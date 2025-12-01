@@ -23,13 +23,14 @@ const { width } = Dimensions.get("window");
 
 export default function SubcontractorDashboard() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [menuAnim] = useState(new Animated.Value(-width * 0.6));
+  const [menuAnim] = useState(new Animated.Value(-width * 0.75));
   const [activePage, setActivePage] = useState("Dashboard");
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [timeEntries, setTimeEntries] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [complianceDocuments, setComplianceDocuments] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState('progress');
   const [selectedTask, setSelectedTask] = useState(null);
@@ -40,7 +41,6 @@ export default function SubcontractorDashboard() {
   const [complianceForm, setComplianceForm] = useState({ title: '', type: 'Insurance', expiryDate: '' });
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const navigation = useNavigation();
-
   useEffect(() => {
     loadUserData();
   }, []);
@@ -51,6 +51,7 @@ export default function SubcontractorDashboard() {
       loadTimeEntries();
       loadDocuments();
       loadInvoices();
+      loadComplianceDocuments();
     }
   }, [user]);
 
@@ -71,7 +72,6 @@ export default function SubcontractorDashboard() {
       setTasks(response.data);
     } catch (error) {
       console.error('Error loading tasks:', error);
-      // Fallback to mock data
       setTasks([
         {
           id: 1,
@@ -142,14 +142,14 @@ export default function SubcontractorDashboard() {
       ]);
     }
   };
-
   const toggleMenu = () => {
     if (menuVisible) {
+      setMenuVisible(false);
       Animated.timing(menuAnim, {
-        toValue: -width * 0.6,
+        toValue: -width * 0.75,
         duration: 300,
         useNativeDriver: true,
-      }).start(() => setMenuVisible(false));
+      }).start();
     } else {
       setMenuVisible(true);
       Animated.timing(menuAnim, {
@@ -240,12 +240,51 @@ export default function SubcontractorDashboard() {
     setModalVisible(false);
     Alert.alert('Success', 'Invoice created successfully!');
   };
+  const loadComplianceDocuments = () => {
+    setComplianceDocuments([
+      {
+        id: 1,
+        title: 'General Liability Insurance',
+        type: 'Insurance',
+        status: 'Valid',
+        expiryDate: '2024-12-31',
+        details: 'Coverage: $2M'
+      },
+      {
+        id: 2,
+        title: 'OSHA 30-Hour Certification',
+        type: 'Certification',
+        status: 'Valid',
+        expiryDate: '2025-03-15',
+        details: 'Certificate #: OSH-2024-001'
+      },
+      {
+        id: 3,
+        title: 'Workers Compensation',
+        type: 'Insurance',
+        status: 'Expiring Soon',
+        expiryDate: '2024-02-28',
+        details: 'Renewal Required'
+      }
+    ]);
+  };
 
   const submitCompliance = () => {
     if (!complianceForm.title || !complianceForm.expiryDate) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
     }
+    
+    const newDocument = {
+      id: complianceDocuments.length + 1,
+      title: complianceForm.title,
+      type: complianceForm.type,
+      status: 'Valid',
+      expiryDate: complianceForm.expiryDate,
+      details: `Uploaded: ${new Date().toLocaleDateString()}`
+    };
+    
+    setComplianceDocuments([newDocument, ...complianceDocuments]);
     Alert.alert('Success', 'Compliance document uploaded successfully!');
     setComplianceForm({ title: '', type: 'Insurance', expiryDate: '' });
     setModalVisible(false);
@@ -279,7 +318,6 @@ export default function SubcontractorDashboard() {
       Alert.alert('Error', 'Failed to log time entry');
     }
   };
-
   const renderContent = () => {
     switch (activePage) {
       case "Assigned Tasks":
@@ -346,7 +384,6 @@ export default function SubcontractorDashboard() {
             ))}
           </ScrollView>
         );
-
       case "Progress Reports":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -398,7 +435,6 @@ export default function SubcontractorDashboard() {
             </View>
           </ScrollView>
         );
-
       case "Documents":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -427,7 +463,6 @@ export default function SubcontractorDashboard() {
             ))}
           </ScrollView>
         );
-
       case "Time Logging":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -471,7 +506,6 @@ export default function SubcontractorDashboard() {
             ))}
           </ScrollView>
         );
-
       case "Communication":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -508,7 +542,6 @@ export default function SubcontractorDashboard() {
             </View>
           </ScrollView>
         );
-
       case "Compliance":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -523,41 +556,26 @@ export default function SubcontractorDashboard() {
               </TouchableOpacity>
             </View>
             
-            <View style={styles.complianceCard}>
-              <View style={styles.complianceHeader}>
-                <Ionicons name="shield-checkmark" size={24} color="#4CAF50" />
-                <Text style={styles.complianceTitle}>General Liability Insurance</Text>
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>Valid</Text>
+            {complianceDocuments.map(doc => (
+              <View key={doc.id} style={styles.complianceCard}>
+                <View style={styles.complianceHeader}>
+                  <Ionicons 
+                    name={doc.type === 'Insurance' ? 'shield-checkmark' : doc.type === 'Certification' ? 'school' : 'document'} 
+                    size={24} 
+                    color={doc.status === 'Valid' ? '#4CAF50' : '#FF9800'} 
+                  />
+                  <Text style={styles.complianceTitle}>{doc.title}</Text>
+                  <View style={[styles.statusBadge, { 
+                    backgroundColor: doc.status === 'Valid' ? '#4CAF50' : '#FF9800' 
+                  }]}>
+                    <Text style={styles.statusText}>{doc.status}</Text>
+                  </View>
                 </View>
+                <Text style={styles.complianceDetails}>Expires: {new Date(doc.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} • {doc.details}</Text>
               </View>
-              <Text style={styles.complianceDetails}>Expires: Dec 31, 2024 • Coverage: $2M</Text>
-            </View>
-            
-            <View style={styles.complianceCard}>
-              <View style={styles.complianceHeader}>
-                <Ionicons name="school" size={24} color="#4CAF50" />
-                <Text style={styles.complianceTitle}>OSHA 30-Hour Certification</Text>
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>Valid</Text>
-                </View>
-              </View>
-              <Text style={styles.complianceDetails}>Expires: Mar 15, 2025 • Certificate #: OSH-2024-001</Text>
-            </View>
-            
-            <View style={styles.complianceCard}>
-              <View style={styles.complianceHeader}>
-                <Ionicons name="warning" size={24} color="#FF9800" />
-                <Text style={styles.complianceTitle}>Workers' Compensation</Text>
-                <View style={[styles.statusBadge, { backgroundColor: '#FF9800' }]}>
-                  <Text style={styles.statusText}>Expiring Soon</Text>
-                </View>
-              </View>
-              <Text style={styles.complianceDetails}>Expires: Feb 28, 2024 • Renewal Required</Text>
-            </View>
+            ))}
           </ScrollView>
         );
-
       case "Invoices":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -588,14 +606,25 @@ export default function SubcontractorDashboard() {
                   <Text style={styles.invoiceAmount}>${invoice.amount.toLocaleString()}</Text>
                   <Text style={styles.invoiceDate}>{invoice.date}</Text>
                 </View>
-                <TouchableOpacity style={styles.viewInvoiceButton}>
+                <TouchableOpacity 
+                  style={styles.viewInvoiceButton}
+                  onPress={() => {
+                    Alert.alert(
+                      `Invoice Details - ${invoice.invoiceNo}`,
+                      `Task: ${invoice.task}\\n\\nAmount: $${invoice.amount.toLocaleString()}\\nStatus: ${invoice.status}\\nDate: ${invoice.date}\\n\\nInvoice Number: ${invoice.invoiceNo}\\nPayment Status: ${invoice.status === 'paid' ? 'Paid' : invoice.status === 'approved' ? 'Approved - Pending Payment' : 'Under Review'}`,
+                      [
+                        { text: 'Download PDF', onPress: () => Alert.alert('Download', 'PDF download functionality will be implemented') },
+                        { text: 'Close', style: 'cancel' }
+                      ]
+                    );
+                  }}
+                >
                   <Text style={styles.viewInvoiceText}>View Details</Text>
                 </TouchableOpacity>
               </View>
             ))}
           </ScrollView>
         );
-
       case "Logout":
         setLogoutModalVisible(true);
         setActivePage("Dashboard");
@@ -603,67 +632,188 @@ export default function SubcontractorDashboard() {
 
       default:
         return (
-          <ScrollView style={styles.fullContainer}>
-            <View style={styles.dashboardHeader}>
-              <Text style={styles.welcome}>👷 Welcome, {user?.first_name || 'Subcontractor'}!</Text>
-              <Text style={styles.subtitle}>Track your assigned tasks and manage site work updates easily.</Text>
+          <ScrollView style={styles.fullContainer} showsVerticalScrollIndicator={false}>
+            <View style={styles.welcomeHeader}>
+              <View style={styles.welcomeBackground}>
+                <View style={styles.constructionIcon}>
+                  <Ionicons name="construct" size={40} color="#FFD700" />
+                </View>
+                <Text style={styles.welcomeTitle}>Welcome Back!</Text>
+                <Text style={styles.welcomeName}>{user?.first_name || user?.username || 'Subcontractor'}</Text>
+                <Text style={styles.welcomeSubtitle}>Manage your projects and deliver quality work</Text>
+                <View style={styles.dateTimeContainer}>
+                  <Ionicons name="calendar-outline" size={16} color="#fff" />
+                  <Text style={styles.dateTimeText}>{new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}</Text>
+                </View>
+                <View style={styles.shiftContainer}>
+                  <Ionicons name="business-outline" size={16} color="#fff" />
+                  <Text style={styles.shiftText}>Subcontractor Portal</Text>
+                </View>
+              </View>
             </View>
             
-            <View style={styles.statsContainer}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{tasks.filter(t => t.status === 'In Progress').length}</Text>
-                <Text style={styles.statLabel}>Active Tasks</Text>
+            <View style={styles.statsSection}>
+              <Text style={styles.statsTitle}>Today's Overview</Text>
+              <View style={styles.statsContainer}>
+                <View style={[styles.statCard, styles.tasksCard]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="clipboard" size={24} color="#FF9800" />
+                  </View>
+                  <Text style={styles.statNumber}>{tasks.filter(t => t.status === 'in_progress' || t.status === 'In Progress').length}</Text>
+                  <Text style={styles.statLabel}>Active Tasks</Text>
+                  <Text style={styles.statSubtext}>in progress</Text>
+                </View>
+                
+                <View style={[styles.statCard, styles.completedCard]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                  <Text style={styles.statNumber}>{tasks.filter(t => t.status === 'completed' || t.status === 'Completed').length}</Text>
+                  <Text style={styles.statLabel}>Completed</Text>
+                  <Text style={styles.statSubtext}>this month</Text>
+                </View>
+                
+                <View style={[styles.statCard, styles.hoursCard]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="time" size={24} color="#2196F3" />
+                  </View>
+                  <Text style={styles.statNumber}>{timeEntries.reduce((sum, entry) => sum + entry.hours, 0)}</Text>
+                  <Text style={styles.statLabel}>Hours</Text>
+                  <Text style={styles.statSubtext}>logged</Text>
+                </View>
               </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{tasks.filter(t => t.status === 'Completed').length}</Text>
-                <Text style={styles.statLabel}>Completed</Text>
+            </View>
+            <View style={styles.alertsSection}>
+              <Text style={styles.sectionTitle}>🚨 Priority Tasks</Text>
+              <TouchableOpacity 
+                style={styles.priorityAlert}
+                onPress={() => {
+                  Alert.alert(
+                    'High Priority Task', 
+                    'Foundation Work - Block A\\n\\nDeadline: Today 5:00 PM\\nLocation: Site A - North Section\\nContact: Project Manager for details\\n\\nEnsure all safety protocols are followed.',
+                    [{ text: 'Understood', style: 'default' }]
+                  );
+                }}
+              >
+                <View style={styles.alertIconContainer}>
+                  <Ionicons name="construct" size={24} color="#fff" />
+                </View>
+                <View style={styles.alertContent}>
+                  <Text style={styles.alertTitle}>High Priority</Text>
+                  <Text style={styles.alertText}>Foundation Work - Block A completion</Text>
+                  <Text style={styles.alertTime}>Due: Today 5:00 PM</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#FF5722" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.actionsSection}>
+              <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
+              <View style={styles.actionGrid}>
+                {[
+                  { 
+                    title: "Assigned Tasks", 
+                    icon: "clipboard", 
+                    count: `${tasks.length} tasks`,
+                    color: "#FF9800",
+                    bgColor: "#FFF3E0"
+                  },
+                  { 
+                    title: "Progress Reports", 
+                    icon: "camera", 
+                    count: "3 pending",
+                    color: "#9C27B0",
+                    bgColor: "#F3E5F5"
+                  },
+                  { 
+                    title: "Time Logging", 
+                    icon: "time", 
+                    count: "Log today",
+                    color: "#4CAF50",
+                    bgColor: "#E8F5E8"
+                  },
+                  { 
+                    title: "Invoices", 
+                    icon: "cash", 
+                    count: `${invoices.length} invoices`,
+                    color: "#2196F3",
+                    bgColor: "#E3F2FD"
+                  },
+                ].map((item, index) => (
+                  <TouchableOpacity
+                    key={item.title}
+                    style={[styles.actionCard, { backgroundColor: item.bgColor }]}
+                    onPress={() => setActivePage(item.title)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.actionIconContainer, { backgroundColor: item.color }]}>
+                      <Ionicons name={item.icon} size={28} color="#fff" />
+                    </View>
+                    <Text style={styles.actionTitle}>{item.title}</Text>
+                    <Text style={[styles.actionCount, { color: item.color }]}>{item.count}</Text>
+                    <View style={styles.actionArrow}>
+                      <Ionicons name="chevron-forward" size={16} color={item.color} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{timeEntries.reduce((sum, entry) => sum + entry.hours, 0)}</Text>
-                <Text style={styles.statLabel}>Hours Logged</Text>
+            </View>
+            <View style={styles.performanceSection}>
+              <Text style={styles.sectionTitle}>📊 Performance Summary</Text>
+              <View style={styles.performanceCard}>
+                <View style={styles.performanceHeader}>
+                  <Ionicons name="trending-up" size={24} color="#4CAF50" />
+                  <Text style={styles.performanceTitle}>This Month</Text>
+                </View>
+                <View style={styles.performanceMetrics}>
+                  <View style={styles.performanceMetric}>
+                    <Text style={styles.performanceValue}>{timeEntries.reduce((sum, entry) => sum + entry.hours, 0)}h</Text>
+                    <Text style={styles.performanceLabel}>Total Hours</Text>
+                  </View>
+                  <View style={styles.performanceMetric}>
+                    <Text style={styles.performanceValue}>{tasks.filter(t => t.status === 'completed' || t.status === 'Completed').length}</Text>
+                    <Text style={styles.performanceLabel}>Tasks Done</Text>
+                  </View>
+                  <View style={styles.performanceMetric}>
+                    <Text style={styles.performanceValue}>{invoices.filter(i => i.status === 'approved' || i.status === 'paid').length}</Text>
+                    <Text style={styles.performanceLabel}>Invoices Paid</Text>
+                  </View>
+                </View>
               </View>
             </View>
             
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <FlatList
-              data={[
-                { title: "🧱 Assigned Tasks", count: tasks.length },
-                { title: "📸 Progress Reports", count: '3 pending' },
-                { title: "📂 Documents", count: documents.length },
-                { title: "🕒 Time Logging", count: 'Log today' },
-              ]}
-              numColumns={2}
-              keyExtractor={(item) => item.title}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.dashboardCard}
-                  onPress={() => setActivePage(item.title.replace(/^[^ ]+\s/, ""))}
-                >
-                  <Text style={styles.cardText}>{item.title}</Text>
-                  <Text style={styles.cardCount}>{item.count}</Text>
-                </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.cardContainer}
-              scrollEnabled={false}
-            />
-            
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <View style={styles.activityCard}>
-              <Text style={styles.activityTitle}>Foundation Work Progress Updated</Text>
-              <Text style={styles.activityTime}>2 hours ago</Text>
-            </View>
-            <View style={styles.activityCard}>
-              <Text style={styles.activityTitle}>Time Entry Logged - 8 hours</Text>
-              <Text style={styles.activityTime}>1 day ago</Text>
+            <View style={styles.recentSection}>
+              <Text style={styles.sectionTitle}>📋 Recent Activity</Text>
+              <View style={styles.activityCard}>
+                <View style={styles.activityIcon}>
+                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityTitle}>Foundation Work Progress Updated</Text>
+                  <Text style={styles.activityTime}>2 hours ago</Text>
+                </View>
+              </View>
+              <View style={styles.activityCard}>
+                <View style={styles.activityIcon}>
+                  <Ionicons name="time" size={20} color="#2196F3" />
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityTitle}>Time Entry Logged - 8 hours</Text>
+                  <Text style={styles.activityTime}>1 day ago</Text>
+                </View>
+              </View>
             </View>
           </ScrollView>
         );
     }
   };
-
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={toggleMenu}>
           <Ionicons name="menu" size={28} color="#fff" />
@@ -673,10 +823,8 @@ export default function SubcontractorDashboard() {
         </Text>
       </View>
 
-      {/* Main Content */}
       <View style={styles.content}>{renderContent()}</View>
       
-      {/* Dynamic Form Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -725,7 +873,6 @@ export default function SubcontractorDashboard() {
                 />
               </>
             )}
-
             {modalType === 'invoice' && (
               <>
                 <Text style={styles.modalTitle}>Create Invoice</Text>
@@ -809,8 +956,6 @@ export default function SubcontractorDashboard() {
           </View>
         </View>
       </Modal>
-
-      {/* Logout Confirmation Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -853,59 +998,57 @@ export default function SubcontractorDashboard() {
         </View>
       </Modal>
 
-      {/* Overlay */}
       {menuVisible && (
         <TouchableWithoutFeedback onPress={toggleMenu}>
           <View style={styles.overlay} />
         </TouchableWithoutFeedback>
       )}
 
-      {/* Side Menu */}
       <Animated.View
         style={[styles.sideMenu, { transform: [{ translateX: menuAnim }] }]}
       >
-        <View style={styles.userProfileSection}>
-          <View style={styles.userAvatar}>
-            <Text style={styles.userAvatarText}>{user?.username?.charAt(0).toUpperCase() || user?.first_name?.charAt(0).toUpperCase() || 'S'}</Text>
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user?.first_name || user?.username || 'Subcontractor'}</Text>
-            <Text style={styles.userRole}>{user?.role?.replace('_', ' ').toUpperCase() || 'Subcontractor'}</Text>
-          </View>
-        </View>
-        <View style={styles.menuDivider} />
-
-        {[
-          { title: "Dashboard", icon: "home" },
-          { title: "Assigned Tasks", icon: "clipboard" },
-          { title: "Progress Reports", icon: "camera" },
-          { title: "Documents", icon: "document-text" },
-          { title: "Time Logging", icon: "time" },
-          { title: "Communication", icon: "chatbubbles" },
-          { title: "Compliance", icon: "shield-checkmark" },
-          { title: "Invoices", icon: "cash" }
-        ].map((item) => (
-          <TouchableOpacity key={item.title} onPress={() => handleMenuClick(item.title)} style={[styles.menuItem, activePage === item.title && styles.activeMenuItem]}>
-            <View style={styles.menuIconContainer}>
-              <Ionicons name={activePage === item.title ? item.icon : `${item.icon}-outline`} size={20} color={activePage === item.title ? "#fff" : "#003366"} />
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.userProfileSection}>
+            <View style={styles.userAvatar}>
+              <Text style={styles.userAvatarText}>{user?.username?.charAt(0).toUpperCase() || user?.first_name?.charAt(0).toUpperCase() || 'S'}</Text>
             </View>
-            <Text style={[styles.menuText, activePage === item.title && styles.activeMenuText]}>{item.title}</Text>
-            {activePage === item.title && <View style={styles.activeIndicator} />}
-          </TouchableOpacity>
-        ))}
-
-        <View style={styles.menuDivider} />
-        <TouchableOpacity onPress={() => { toggleMenu(); setLogoutModalVisible(true); }} style={styles.logoutMenuItem}>
-          <View style={styles.logoutIconContainer}>
-            <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{user?.first_name || user?.username || 'Subcontractor'}</Text>
+              <Text style={styles.userRole}>{user?.role?.replace('_', ' ').toUpperCase() || 'Subcontractor'}</Text>
+            </View>
           </View>
-          <Text style={styles.logoutMenuText}>Logout</Text>
-        </TouchableOpacity>
+          <View style={styles.menuDivider} />
+          {[
+            { title: "Dashboard", icon: "home" },
+            { title: "Assigned Tasks", icon: "clipboard" },
+            { title: "Progress Reports", icon: "camera" },
+            { title: "Documents", icon: "document-text" },
+            { title: "Time Logging", icon: "time" },
+            { title: "Communication", icon: "chatbubbles" },
+            { title: "Compliance", icon: "shield-checkmark" },
+            { title: "Invoices", icon: "cash" }
+          ].map((item) => (
+            <TouchableOpacity key={item.title} onPress={() => handleMenuClick(item.title)} style={[styles.menuItem, activePage === item.title && styles.activeMenuItem]}>
+              <View style={styles.menuIconContainer}>
+                <Ionicons name={activePage === item.title ? item.icon : `${item.icon}-outline`} size={20} color={activePage === item.title ? "#fff" : "#003366"} />
+              </View>
+              <Text style={[styles.menuText, activePage === item.title && styles.activeMenuText]}>{item.title}</Text>
+              {activePage === item.title && <View style={styles.activeIndicator} />}
+            </TouchableOpacity>
+          ))}
+
+          <View style={styles.menuDivider} />
+          <TouchableOpacity onPress={() => { toggleMenu(); setLogoutModalVisible(true); }} style={styles.logoutMenuItem}>
+            <View style={styles.logoutIconContainer}>
+              <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
+            </View>
+            <Text style={styles.logoutMenuText}>Logout</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </Animated.View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f4f7fc" },
   header: {
@@ -918,51 +1061,323 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   fullContainer: { flex: 1, backgroundColor: "#f4f7fc" },
   
-  // Dashboard styles
-  dashboardHeader: { padding: 20, alignItems: "center" },
-  welcome: { fontSize: 24, fontWeight: "700", color: "#003366" },
-  subtitle: { fontSize: 16, color: "#666", marginTop: 8, textAlign: "center" },
-  
-  statsContainer: { flexDirection: "row", paddingHorizontal: 20, marginBottom: 20 },
-  statCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
-    marginHorizontal: 5,
-    alignItems: "center",
-    elevation: 2,
+  welcomeHeader: {
+    marginBottom: 20,
   },
-  statNumber: { fontSize: 24, fontWeight: "bold", color: "#003366" },
-  statLabel: { fontSize: 12, color: "#666", marginTop: 4 },
+  welcomeBackground: {
+    backgroundColor: "#003366",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  constructionIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    color: "#FFD700",
+    fontWeight: "600",
+    marginBottom: 5,
+  },
+  welcomeName: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  dateTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginBottom: 8,
+  },
+  dateTimeText: {
+    color: "#fff",
+    fontSize: 12,
+    marginLeft: 6,
+  },
+  shiftContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 215, 0, 0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  shiftText: {
+    color: "#FFD700",
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: "600",
+  },
+  
+  statsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 15,
+  },
+  statIconContainer: {
+    marginBottom: 8,
+  },
+  statSubtext: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
+  },
+  tasksCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#FF9800",
+  },
+  completedCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#4CAF50",
+  },
+  hoursCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#2196F3",
+  },
+  
+  alertsSection: { 
+    paddingHorizontal: 20, 
+    marginBottom: 25 
+  },
+  priorityAlert: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#fff", 
+    padding: 15, 
+    borderRadius: 12, 
+    marginBottom: 10, 
+    elevation: 3,
+    borderLeftWidth: 4, 
+    borderLeftColor: "#FF5722",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  alertIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FF5722",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF5722",
+    marginBottom: 2,
+  },
+  alertText: { 
+    fontSize: 14, 
+    color: "#333", 
+    marginBottom: 2,
+    fontWeight: "500",
+  },
+  alertTime: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  
+  actionsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  actionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  actionCard: {
+    width: "48%",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    position: "relative",
+  },
+  actionIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  actionCount: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  actionArrow: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+  },
+  
+  performanceSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  performanceCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  performanceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  performanceTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#003366",
+    marginLeft: 10,
+  },
+  performanceMetrics: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  performanceMetric: {
+    alignItems: "center",
+  },
+  performanceValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#4CAF50",
+  },
+  performanceLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  
+  recentSection: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  
+  statsContainer: { 
+    flexDirection: "row", 
+    justifyContent: "space-between" 
+  },
+  statCard: { 
+    flex: 1, 
+    backgroundColor: "#fff", 
+    borderRadius: 16, 
+    padding: 18, 
+    marginHorizontal: 4, 
+    alignItems: "center", 
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  statNumber: { 
+    fontSize: 28, 
+    fontWeight: "bold", 
+    color: "#003366",
+    marginBottom: 4,
+  },
+  statLabel: { 
+    fontSize: 12, 
+    color: "#666", 
+    fontWeight: "600",
+    textAlign: "center",
+  },
   
   sectionTitle: { fontSize: 18, fontWeight: "600", color: "#003366", paddingHorizontal: 20, marginBottom: 10 },
   
-  cardContainer: { paddingHorizontal: 10 },
-  dashboardCard: {
+  activityCard: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 12,
-    padding: 20,
-    margin: 10,
-    elevation: 3,
-    width: width / 2.4,
-    alignItems: "center",
-  },
-  cardText: { fontSize: 14, color: "#003366", fontWeight: "600", textAlign: "center" },
-  cardCount: { fontSize: 12, color: "#666", marginTop: 5 },
-  
-  activityCard: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
     padding: 15,
-    marginHorizontal: 20,
     marginBottom: 10,
-    elevation: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  activityTitle: { fontSize: 14, color: "#003366", fontWeight: "500" },
-  activityTime: { fontSize: 12, color: "#666", marginTop: 4 },
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: { 
+    fontSize: 14, 
+    color: "#003366", 
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  activityTime: { 
+    fontSize: 12, 
+    color: "#666" 
+  },
   
-  // Page styles
   pageHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -985,7 +1400,6 @@ const styles = StyleSheet.create({
   },
   addButtonText: { color: "#fff", fontSize: 12, marginLeft: 4 },
   
-  // Task styles
   taskCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -1037,7 +1451,6 @@ const styles = StyleSheet.create({
   completeButton: { backgroundColor: "#4CAF50" },
   actionButtonText: { color: "#fff", fontSize: 12, marginLeft: 4 },
   
-  // Document styles
   documentCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1054,7 +1467,6 @@ const styles = StyleSheet.create({
   documentDetails: { fontSize: 12, color: "#666", marginTop: 2 },
   downloadButton: { padding: 5 },
   
-  // Time logging styles
   timeEntryForm: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -1101,7 +1513,6 @@ const styles = StyleSheet.create({
   timeEntryTask: { fontSize: 12, color: "#666", marginBottom: 2 },
   timeEntryDescription: { fontSize: 12, color: "#666" },
   
-  // Report styles
   reportCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -1132,7 +1543,6 @@ const styles = StyleSheet.create({
   },
   imagePlaceholderText: { fontSize: 10, color: "#999", marginTop: 4 },
   
-  // Message styles
   messageCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -1160,7 +1570,6 @@ const styles = StyleSheet.create({
   },
   replyButtonText: { color: "#fff", fontSize: 12 },
   
-  // Compliance styles
   complianceCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -1177,7 +1586,6 @@ const styles = StyleSheet.create({
   complianceTitle: { fontSize: 16, fontWeight: "500", color: "#003366", flex: 1, marginLeft: 10 },
   complianceDetails: { fontSize: 12, color: "#666" },
   
-  // Invoice styles
   invoiceCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -1211,7 +1619,6 @@ const styles = StyleSheet.create({
   },
   viewInvoiceText: { color: "#fff", fontSize: 12 },
   
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -1261,7 +1668,6 @@ const styles = StyleSheet.create({
   },
   typeText: { fontSize: 12 },
   
-  // Menu styles
   sideMenu: {
     position: "absolute",
     left: 0,
@@ -1270,10 +1676,11 @@ const styles = StyleSheet.create({
     width: width * 0.75,
     backgroundColor: "#fff",
     paddingTop: 50,
-    elevation: 8,
+    elevation: 10,
     shadowColor: "#000",
     shadowOpacity: 0.3,
     shadowRadius: 10,
+    zIndex: 3,
   },
   userProfileSection: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 20, backgroundColor: "#f8f9fa" },
   userAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: "#003366", alignItems: "center", justifyContent: "center", marginRight: 15 },
@@ -1292,11 +1699,15 @@ const styles = StyleSheet.create({
   logoutIconContainer: { width: 24, alignItems: "center" },
   logoutMenuText: { marginLeft: 15, fontSize: 15, color: "#FF6B6B", fontWeight: "500" },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.3)",
+    zIndex: 2,
   },
   
-  // Logout modal styles
   logoutModalContent: {
     backgroundColor: "#fff",
     borderRadius: 16,

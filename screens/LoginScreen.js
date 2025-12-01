@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import Svg, { Circle, Line } from "react-native-svg";
 import api, { authAPI } from "../utils/api";
 import { getRoleDisplayInfo, getDashboardRoute } from "../utils/rolePermissions";
@@ -19,6 +20,7 @@ export default function BeemjiLogin({ navigation }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     Animated.loop(
@@ -60,7 +62,24 @@ export default function BeemjiLogin({ navigation }) {
       }
     } catch (error) {
       console.error("Login error:", error);
-      if (error.response?.status === 401) {
+      console.error("Error response:", error.response?.data);
+      
+      if (error.response?.status === 400) {
+        const errorData = error.response?.data;
+        let errorMsg = "Invalid login credentials";
+        
+        if (errorData?.non_field_errors && Array.isArray(errorData.non_field_errors)) {
+          errorMsg = errorData.non_field_errors[0] || errorMsg;
+        } else if (errorData?.detail) {
+          errorMsg = errorData.detail;
+        } else if (errorData?.message) {
+          errorMsg = errorData.message;
+        } else if (errorData?.error) {
+          errorMsg = errorData.error;
+        }
+        
+        Alert.alert("Login Error", errorMsg);
+      } else if (error.response?.status === 401) {
         Alert.alert("Login Error", "Invalid username or password");
       } else {
         Alert.alert("Login Error", "Unable to connect to server. Please try again later.");
@@ -114,14 +133,26 @@ export default function BeemjiLogin({ navigation }) {
           onChangeText={setUsername}
           style={styles.input}
         />
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#999"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
+        <View style={styles.passwordContainer}>
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#999"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            style={styles.passwordInput}
+          />
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setShowPassword(!showPassword)}
+          >
+            <Icon
+              name={showPassword ? "visibility" : "visibility-off"}
+              size={24}
+              color="#666"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ✅ Login Button */}
@@ -181,6 +212,26 @@ const styles = StyleSheet.create({
     borderColor: "#dce3f0",
     fontSize: 16,
     color: "#003366",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#dce3f0",
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: "#003366",
+  },
+  eyeIcon: {
+    paddingHorizontal: 15,
+    paddingVertical: 12,
   },
   button: {
     backgroundColor: "#004AAD",

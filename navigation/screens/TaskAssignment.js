@@ -16,10 +16,12 @@ export default function TaskAssignment({ navigation }) {
     assigned_to: null,
     priority: 'medium',
     status: 'not_started',
-    start_date: '',
-    due_date: '',
+    start_date: new Date().toISOString().split('T')[0],
+    due_date: new Date().toISOString().split('T')[0],
     estimated_hours: 0
   });
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
 
   useEffect(() => {
     loadTasks();
@@ -96,7 +98,9 @@ export default function TaskAssignment({ navigation }) {
         ...newTask,
         project: parseInt(newTask.project),
         assigned_to: newTask.assigned_to ? parseInt(newTask.assigned_to) : null,
-        estimated_hours: parseFloat(newTask.estimated_hours) || 0
+        estimated_hours: parseFloat(newTask.estimated_hours) || 0,
+        start_date: newTask.start_date,
+        due_date: newTask.due_date
       };
       
       if (editingTask) {
@@ -116,8 +120,8 @@ export default function TaskAssignment({ navigation }) {
         assigned_to: null,
         priority: 'medium',
         status: 'not_started',
-        start_date: '',
-        due_date: '',
+        start_date: new Date().toISOString().split('T')[0],
+        due_date: new Date().toISOString().split('T')[0],
         estimated_hours: 0
       });
       loadTasks();
@@ -136,8 +140,8 @@ export default function TaskAssignment({ navigation }) {
       assigned_to: task.assigned_to?.id || task.assigned_to,
       priority: task.priority,
       status: task.status,
-      start_date: task.start_date,
-      due_date: task.due_date,
+      start_date: task.start_date || new Date().toISOString().split('T')[0],
+      due_date: task.due_date || new Date().toISOString().split('T')[0],
       estimated_hours: task.estimated_hours || 0
     });
     setModalVisible(true);
@@ -326,8 +330,8 @@ export default function TaskAssignment({ navigation }) {
                 assigned_to: null,
                 priority: 'medium',
                 status: 'not_started',
-                start_date: '',
-                due_date: '',
+                start_date: new Date().toISOString().split('T')[0],
+                due_date: new Date().toISOString().split('T')[0],
                 estimated_hours: 0
               });
             }}>
@@ -518,5 +522,20 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     minHeight: 100,
     maxHeight: 150,
+  },
+  datePickerContainer: {
+    marginBottom: 15,
+  },
+  dateButton: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: 'center',
+  },
+  dateButtonText: {
+    color: "#003366",
+    fontSize: 16,
   },
 });

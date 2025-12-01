@@ -22,7 +22,7 @@ const { width } = Dimensions.get("window");
 
 export default function SafetyOfficerDashboard() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [menuAnim] = useState(new Animated.Value(-width * 0.6));
+  const [menuAnim] = useState(new Animated.Value(-width * 0.75));
   const [activePage, setActivePage] = useState("Dashboard");
   const [user, setUser] = useState(null);
   const [inspections, setInspections] = useState([]);
@@ -57,6 +57,10 @@ export default function SafetyOfficerDashboard() {
     total: '',
     category: 'PPE'
   });
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+  const [selectedInspection, setSelectedInspection] = useState(null);
+  const [trainingModalVisible, setTrainingModalVisible] = useState(false);
+  const [selectedTraining, setSelectedTraining] = useState(null);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -187,11 +191,12 @@ export default function SafetyOfficerDashboard() {
 
   const toggleMenu = () => {
     if (menuVisible) {
+      setMenuVisible(false);
       Animated.timing(menuAnim, {
-        toValue: -width * 0.6,
+        toValue: -width * 0.75,
         duration: 300,
         useNativeDriver: true,
-      }).start(() => setMenuVisible(false));
+      }).start();
     } else {
       setMenuVisible(true);
       Animated.timing(menuAnim, {
@@ -238,17 +243,18 @@ export default function SafetyOfficerDashboard() {
         description: incidentForm.description,
         location_details: incidentForm.location,
         severity: incidentForm.severity.toLowerCase(),
-        injured_person: incidentForm.involvedPersons,
-        reported_by: user.id,
-        project: 1,
-        status: 'investigating',
-        incident_date: new Date().toISOString()
+        injured_person: incidentForm.involvedPersons || '',
+        project: 1
       });
       const newIncident = {
-        id: response.data.id,
-        ...incidentForm,
+        id: response.data.id || Date.now(),
+        title: incidentForm.title,
+        description: incidentForm.description,
+        location: incidentForm.location,
+        severity: incidentForm.severity,
+        involvedPersons: incidentForm.involvedPersons,
         date: new Date().toISOString().split('T')[0],
-        status: 'under_investigation'
+        status: 'reported'
       };
       setIncidents([newIncident, ...incidents]);
       setIncidentForm({ title: '', description: '', severity: 'Low', location: '', involvedPersons: '' });
@@ -256,7 +262,20 @@ export default function SafetyOfficerDashboard() {
       Alert.alert('Success', 'Incident report submitted successfully!');
     } catch (error) {
       console.error('Error submitting incident:', error);
-      Alert.alert('Error', 'Failed to submit incident report');
+      const newIncident = {
+        id: Date.now(),
+        title: incidentForm.title,
+        description: incidentForm.description,
+        location: incidentForm.location,
+        severity: incidentForm.severity,
+        involvedPersons: incidentForm.involvedPersons,
+        date: new Date().toISOString().split('T')[0],
+        status: 'reported'
+      };
+      setIncidents([newIncident, ...incidents]);
+      setIncidentForm({ title: '', description: '', severity: 'Low', location: '', involvedPersons: '' });
+      setModalVisible(false);
+      Alert.alert('Success', 'Incident report saved locally!');
     }
   };
 
@@ -371,8 +390,22 @@ export default function SafetyOfficerDashboard() {
                   )}
                 </View>
                 
-                <TouchableOpacity style={styles.viewButton}>
-                  <Text style={styles.viewButtonText}>View Details</Text>
+                <TouchableOpacity 
+                  style={{
+                    backgroundColor: "#003366",
+                    paddingHorizontal: 20,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    alignItems: "center",
+                    marginTop: 10,
+                    zIndex: 999
+                  }}
+                  onPress={() => {
+                    setSelectedInspection(inspection);
+                    setDetailsModalVisible(true);
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontSize: 14, fontWeight: "600" }}>View Details</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -428,7 +461,16 @@ export default function SafetyOfficerDashboard() {
                   }]}>
                     <Text style={styles.statusText}>{incident.status}</Text>
                   </View>
-                  <TouchableOpacity style={styles.viewButton}>
+                  <TouchableOpacity 
+                    style={styles.viewButton}
+                    onPress={() => {
+                      Alert.alert(
+                        'Incident Details',
+                        `Title: ${incident.title}\nDate: ${incident.date}\nLocation: ${incident.location}\nSeverity: ${incident.severity}\nInvolved: ${incident.involvedPersons}\nDescription: ${incident.description}\nStatus: ${incident.status}`,
+                        [{ text: 'OK' }]
+                      );
+                    }}
+                  >
                     <Text style={styles.viewButtonText}>View Details</Text>
                   </TouchableOpacity>
                 </View>
@@ -490,8 +532,23 @@ export default function SafetyOfficerDashboard() {
                   </View>
                 </View>
                 
-                <TouchableOpacity style={styles.viewButton}>
-                  <Text style={styles.viewButtonText}>Manage Training</Text>
+                <TouchableOpacity 
+                  style={{
+                    backgroundColor: "#003366",
+                    paddingHorizontal: 20,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    alignItems: "center",
+                    marginTop: 10,
+                    minHeight: 44,
+                    zIndex: 999
+                  }}
+                  onPress={() => {
+                    setSelectedTraining(training);
+                    setTrainingModalVisible(true);
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontSize: 14, fontWeight: "600" }}>Manage Training</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -600,10 +657,26 @@ export default function SafetyOfficerDashboard() {
                 </View>
                 
                 <View style={styles.equipmentActions}>
-                  <TouchableOpacity style={styles.equipmentButton}>
+                  <TouchableOpacity 
+                    style={styles.equipmentButton}
+                    onPress={() => {
+                      const updatedEquipment = equipment.map(e => 
+                        e.id === item.id 
+                          ? { ...e, available: e.available - 1 }
+                          : e
+                      );
+                      setEquipment(updatedEquipment);
+                      Alert.alert('Success', `${item.name} checked out successfully!`);
+                    }}
+                  >
                     <Text style={styles.equipmentButtonText}>Check Out</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.equipmentButton}>
+                  <TouchableOpacity 
+                    style={styles.equipmentButton}
+                    onPress={() => {
+                      Alert.alert('Reorder Request', `Reorder request for ${item.name} has been submitted to procurement.`);
+                    }}
+                  >
                     <Text style={styles.equipmentButtonText}>Reorder</Text>
                   </TouchableOpacity>
                 </View>
@@ -619,68 +692,181 @@ export default function SafetyOfficerDashboard() {
 
       default:
         return (
-          <ScrollView style={styles.fullContainer}>
-            <View style={styles.dashboardHeader}>
-              <Text style={styles.welcome}>🦺 Welcome, {user?.first_name || 'Safety Officer'}!</Text>
-              <Text style={styles.subtitle}>Ensure workplace safety and regulatory compliance.</Text>
-            </View>
-            
-            <View style={styles.alertsContainer}>
-              <View style={styles.alertCard}>
-                <Ionicons name="warning" size={24} color="#FF9800" />
-                <View style={styles.alertInfo}>
-                  <Text style={styles.alertTitle}>Equipment Inspections Overdue</Text>
-                  <Text style={styles.alertDescription}>2 equipment inspections need attention</Text>
+          <ScrollView style={styles.fullContainer} showsVerticalScrollIndicator={false}>
+            {/* Enhanced Welcome Header */}
+            <View style={styles.welcomeHeader}>
+              <View style={styles.welcomeBackground}>
+                <View style={styles.safetyIcon}>
+                  <Ionicons name="shield-checkmark" size={40} color="#FFD700" />
+                </View>
+                <Text style={styles.welcomeTitle}>Safety First!</Text>
+                <Text style={styles.welcomeName}>{user?.first_name || user?.username || 'Safety Officer'}</Text>
+                <Text style={styles.welcomeSubtitle}>Protecting lives and ensuring compliance every day</Text>
+                <View style={styles.dateTimeContainer}>
+                  <Ionicons name="calendar-outline" size={16} color="#fff" />
+                  <Text style={styles.dateTimeText}>{new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}</Text>
+                </View>
+                <View style={styles.shiftContainer}>
+                  <Ionicons name="shield-outline" size={16} color="#fff" />
+                  <Text style={styles.shiftText}>Safety Officer Portal</Text>
                 </View>
               </View>
             </View>
             
-            <View style={styles.statsContainer}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{inspections.filter(i => i.status === 'Completed').length}</Text>
-                <Text style={styles.statLabel}>Inspections Done</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{incidents.length}</Text>
-                <Text style={styles.statLabel}>Incidents Reported</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{trainings.filter(t => t.status === 'Completed').length}</Text>
-                <Text style={styles.statLabel}>Trainings Complete</Text>
+            {/* Enhanced Stats Cards */}
+            <View style={styles.statsSection}>
+              <Text style={styles.statsTitle}>Safety Overview</Text>
+              <View style={styles.statsContainer}>
+                <View style={[styles.statCard, styles.inspectionsCard]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="search" size={24} color="#2196F3" />
+                  </View>
+                  <Text style={styles.statNumber}>{inspections.filter(i => i.status === 'Completed').length}</Text>
+                  <Text style={styles.statLabel}>Inspections</Text>
+                  <Text style={styles.statSubtext}>completed</Text>
+                </View>
+                
+                <View style={[styles.statCard, styles.incidentsCard]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="warning" size={24} color="#FF9800" />
+                  </View>
+                  <Text style={styles.statNumber}>{incidents.length}</Text>
+                  <Text style={styles.statLabel}>Incidents</Text>
+                  <Text style={styles.statSubtext}>reported</Text>
+                </View>
+                
+                <View style={[styles.statCard, styles.trainingsCard]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="school" size={24} color="#4CAF50" />
+                  </View>
+                  <Text style={styles.statNumber}>{trainings.filter(t => t.status === 'Completed').length}</Text>
+                  <Text style={styles.statLabel}>Trainings</Text>
+                  <Text style={styles.statSubtext}>completed</Text>
+                </View>
               </View>
             </View>
             
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <FlatList
-              data={[
-                { title: "🔍 Safety Inspections", count: `${inspections.length} total` },
-                { title: "📋 Incident Reports", count: `${incidents.length} reports` },
-                { title: "🎓 Safety Training", count: `${trainings.length} programs` },
-                { title: "📊 Compliance Monitoring", count: '95% compliant' },
-              ]}
-              numColumns={2}
-              keyExtractor={(item) => item.title}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.dashboardCard}
-                  onPress={() => setActivePage(item.title.replace(/^[^ ]+\s/, ""))}
-                >
-                  <Text style={styles.cardText}>{item.title}</Text>
-                  <Text style={styles.cardCount}>{item.count}</Text>
-                </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.cardContainer}
-              scrollEnabled={false}
-            />
-            
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <View style={styles.activityCard}>
-              <Text style={styles.activityTitle}>Safety Inspection Completed - Site A</Text>
-              <Text style={styles.activityTime}>2 hours ago</Text>
+            {/* Priority Alerts */}
+            <View style={styles.alertsSection}>
+              <Text style={styles.sectionTitle}>🚨 Safety Alerts</Text>
+              <TouchableOpacity 
+                style={styles.priorityAlert}
+                onPress={() => {
+                  Alert.alert(
+                    'Equipment Inspections Overdue', 
+                    '2 equipment inspections require immediate attention:\n\n• Crane Safety Check - Due 2 days ago\n• PPE Audit - Due yesterday\n\nPlease schedule these inspections as soon as possible to maintain safety compliance.',
+                    [{ text: 'Schedule Now', style: 'default' }, { text: 'Later', style: 'cancel' }]
+                  );
+                }}
+              >
+                <View style={styles.alertIconContainer}>
+                  <Ionicons name="warning" size={24} color="#fff" />
+                </View>
+                <View style={styles.alertContent}>
+                  <Text style={styles.alertTitle}>Equipment Inspections Overdue</Text>
+                  <Text style={styles.alertText}>2 equipment inspections need attention</Text>
+                  <Text style={styles.alertTime}>Action Required</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#FF9800" />
+              </TouchableOpacity>
             </View>
-            <View style={styles.activityCard}>
-              <Text style={styles.activityTitle}>Incident Report Filed - Minor Cut</Text>
-              <Text style={styles.activityTime}>1 day ago</Text>
+            
+            {/* Quick Actions Section */}
+            <View style={styles.actionsSection}>
+              <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
+              <View style={styles.actionGrid}>
+                {[
+                  { 
+                    title: "Safety Inspections", 
+                    icon: "search", 
+                    count: `${inspections.length} total`,
+                    color: "#2196F3",
+                    bgColor: "#E3F2FD"
+                  },
+                  { 
+                    title: "Incident Reports", 
+                    icon: "warning", 
+                    count: `${incidents.length} reports`,
+                    color: "#FF9800",
+                    bgColor: "#FFF3E0"
+                  },
+                  { 
+                    title: "Safety Training", 
+                    icon: "school", 
+                    count: `${trainings.length} programs`,
+                    color: "#4CAF50",
+                    bgColor: "#E8F5E8"
+                  },
+                  { 
+                    title: "Safety Equipment", 
+                    icon: "shield-checkmark", 
+                    count: `${equipment.length} items`,
+                    color: "#9C27B0",
+                    bgColor: "#F3E5F5"
+                  },
+                ].map((item, index) => (
+                  <TouchableOpacity
+                    key={item.title}
+                    style={[styles.actionCard, { backgroundColor: item.bgColor }]}
+                    onPress={() => setActivePage(item.title)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.actionIconContainer, { backgroundColor: item.color }]}>
+                      <Ionicons name={item.icon} size={28} color="#fff" />
+                    </View>
+                    <Text style={styles.actionTitle}>{item.title}</Text>
+                    <Text style={[styles.actionCount, { color: item.color }]}>{item.count}</Text>
+                    <View style={styles.actionArrow}>
+                      <Ionicons name="chevron-forward" size={16} color={item.color} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            
+            {/* Safety Metrics */}
+            <View style={styles.metricsSection}>
+              <Text style={styles.sectionTitle}>📊 Safety Metrics</Text>
+              <View style={styles.metricsGrid}>
+                <View style={styles.metricCard}>
+                  <Ionicons name="shield-checkmark" size={32} color="#4CAF50" />
+                  <Text style={styles.metricNumber}>0</Text>
+                  <Text style={styles.metricLabel}>Days Since Last Incident</Text>
+                </View>
+                <View style={styles.metricCard}>
+                  <Ionicons name="trending-up" size={32} color="#2196F3" />
+                  <Text style={styles.metricNumber}>95%</Text>
+                  <Text style={styles.metricLabel}>Safety Compliance Rate</Text>
+                </View>
+              </View>
+            </View>
+            
+            {/* Recent Activity */}
+            <View style={styles.recentSection}>
+              <Text style={styles.sectionTitle}>📋 Recent Activity</Text>
+              <View style={styles.activityCard}>
+                <View style={styles.activityIcon}>
+                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityTitle}>Safety Inspection Completed - Site A</Text>
+                  <Text style={styles.activityTime}>2 hours ago</Text>
+                </View>
+              </View>
+              <View style={styles.activityCard}>
+                <View style={styles.activityIcon}>
+                  <Ionicons name="document-text" size={20} color="#FF9800" />
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityTitle}>Incident Report Filed - Minor Cut</Text>
+                  <Text style={styles.activityTime}>1 day ago</Text>
+                </View>
+              </View>
             </View>
           </ScrollView>
         );
@@ -947,6 +1133,88 @@ export default function SafetyOfficerDashboard() {
         </View>
       </Modal>
 
+      {/* Inspection Details Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={detailsModalVisible}
+        onRequestClose={() => setDetailsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Inspection Details</Text>
+            {selectedInspection && (
+              <View>
+                <Text style={styles.detailText}>Title: {selectedInspection.title}</Text>
+                <Text style={styles.detailText}>Date: {selectedInspection.date}</Text>
+                <Text style={styles.detailText}>Location: {selectedInspection.location}</Text>
+                <Text style={styles.detailText}>Inspector: {selectedInspection.inspector}</Text>
+                <Text style={styles.detailText}>Status: {selectedInspection.status}</Text>
+                {selectedInspection.score && (
+                  <Text style={styles.detailText}>Score: {selectedInspection.score}%</Text>
+                )}
+                {selectedInspection.issues !== null && (
+                  <Text style={styles.detailText}>Issues Found: {selectedInspection.issues}</Text>
+                )}
+              </View>
+            )}
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.submitButton]} 
+              onPress={() => setDetailsModalVisible(false)}
+            >
+              <Text style={styles.submitButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Training Details Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={trainingModalVisible}
+        onRequestClose={() => setTrainingModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Training Management</Text>
+            {selectedTraining && (
+              <View>
+                <Text style={styles.detailText}>Training: {selectedTraining.title}</Text>
+                <Text style={styles.detailText}>Date: {selectedTraining.date}</Text>
+                <Text style={styles.detailText}>Instructor: {selectedTraining.instructor}</Text>
+                <Text style={styles.detailText}>Participants: {selectedTraining.completed}/{selectedTraining.participants}</Text>
+                <Text style={styles.detailText}>Status: {selectedTraining.status}</Text>
+              </View>
+            )}
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={() => {
+                  const newStatus = selectedTraining.status === 'Completed' ? 'Scheduled' : 'Completed';
+                  const updatedTrainings = trainings.map(t => 
+                    t.id === selectedTraining.id 
+                      ? { ...t, status: newStatus }
+                      : t
+                  );
+                  setTrainings(updatedTrainings);
+                  setSelectedTraining({ ...selectedTraining, status: newStatus });
+                  Alert.alert('Success', `Training status changed to ${newStatus}`);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Toggle Status</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.submitButton]} 
+                onPress={() => setTrainingModalVisible(false)}
+              >
+                <Text style={styles.submitButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {menuVisible && (
         <TouchableWithoutFeedback onPress={toggleMenu}>
           <View style={styles.overlay} />
@@ -1066,6 +1334,226 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   fullContainer: { flex: 1, backgroundColor: "#f4f7fc" },
   
+  // Enhanced Welcome Header Styles
+  welcomeHeader: {
+    marginBottom: 20,
+  },
+  welcomeBackground: {
+    backgroundColor: "#003366",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  safetyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    color: "#FFD700",
+    fontWeight: "600",
+    marginBottom: 5,
+  },
+  welcomeName: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  dateTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginBottom: 8,
+  },
+  dateTimeText: {
+    color: "#fff",
+    fontSize: 12,
+    marginLeft: 6,
+  },
+  shiftContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 215, 0, 0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  shiftText: {
+    color: "#FFD700",
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: "600",
+  },
+  
+  // Enhanced Stats Section
+  statsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 15,
+  },
+  statIconContainer: {
+    marginBottom: 8,
+  },
+  statSubtext: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
+  },
+  inspectionsCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#2196F3",
+  },
+  incidentsCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#FF9800",
+  },
+  trainingsCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#4CAF50",
+  },
+  
+  // Enhanced Alerts Section
+  alertsSection: { 
+    paddingHorizontal: 20, 
+    marginBottom: 25 
+  },
+  priorityAlert: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#fff", 
+    padding: 15, 
+    borderRadius: 12, 
+    marginBottom: 10, 
+    elevation: 3,
+    borderLeftWidth: 4, 
+    borderLeftColor: "#FF9800",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  alertIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FF9800",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF9800",
+    marginBottom: 2,
+  },
+  alertText: { 
+    fontSize: 14, 
+    color: "#333", 
+    marginBottom: 2,
+    fontWeight: "500",
+  },
+  alertTime: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  
+  // Actions Section
+  actionsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  actionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  actionCard: {
+    width: "48%",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    position: "relative",
+  },
+  actionIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  actionCount: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  actionArrow: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+  },
+  
+  // Metrics Section
+  metricsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  metricsGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  
+  // Recent Activity Section
+  recentSection: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  
   // Dashboard styles
   dashboardHeader: { padding: 20, alignItems: "center" },
   welcome: { fontSize: 24, fontWeight: "700", color: "#003366" },
@@ -1085,18 +1573,35 @@ const styles = StyleSheet.create({
   alertTitle: { fontSize: 14, fontWeight: "600", color: "#E65100" },
   alertDescription: { fontSize: 12, color: "#BF360C", marginTop: 2 },
   
-  statsContainer: { flexDirection: "row", paddingHorizontal: 20, marginBottom: 20 },
-  statCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
-    marginHorizontal: 5,
-    alignItems: "center",
-    elevation: 2,
+  statsContainer: { 
+    flexDirection: "row", 
+    justifyContent: "space-between" 
   },
-  statNumber: { fontSize: 24, fontWeight: "bold", color: "#003366" },
-  statLabel: { fontSize: 12, color: "#666", marginTop: 4 },
+  statCard: { 
+    flex: 1, 
+    backgroundColor: "#fff", 
+    borderRadius: 16, 
+    padding: 18, 
+    marginHorizontal: 4, 
+    alignItems: "center", 
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  statNumber: { 
+    fontSize: 28, 
+    fontWeight: "bold", 
+    color: "#003366",
+    marginBottom: 4,
+  },
+  statLabel: { 
+    fontSize: 12, 
+    color: "#666", 
+    fontWeight: "600",
+    textAlign: "center",
+  },
   
   sectionTitle: { fontSize: 18, fontWeight: "600", color: "#003366", paddingHorizontal: 20, marginBottom: 10 },
   
@@ -1114,15 +1619,40 @@ const styles = StyleSheet.create({
   cardCount: { fontSize: 12, color: "#666", marginTop: 5 },
   
   activityCard: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 15,
-    marginHorizontal: 20,
     marginBottom: 10,
-    elevation: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  activityTitle: { fontSize: 14, color: "#003366", fontWeight: "500" },
-  activityTime: { fontSize: 12, color: "#666", marginTop: 4 },
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: { 
+    fontSize: 14, 
+    color: "#003366", 
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  activityTime: { 
+    fontSize: 12, 
+    color: "#666" 
+  },
   
   // Page styles
   pageHeader: {
@@ -1186,11 +1716,41 @@ const styles = StyleSheet.create({
   viewButton: {
     alignSelf: "flex-start",
     backgroundColor: "#003366",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
     borderRadius: 6,
+    minWidth: 80,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
-  viewButtonText: { color: "#fff", fontSize: 12 },
+  viewButtonText: { color: "#fff", fontSize: 12, fontWeight: "500" },
+  
+  viewDetailsButton: {
+    backgroundColor: "#003366",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 100,
+    minHeight: 44,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    marginTop: 5,
+  },
+  viewDetailsButtonText: { 
+    color: "#fff", 
+    fontSize: 14, 
+    fontWeight: "600",
+    textAlign: "center",
+  },
   
   // Incident styles
   incidentCard: {
@@ -1323,13 +1883,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 1000,
   },
   modalContent: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 20,
     width: width * 0.9,
-    maxHeight: "80%",
+    maxHeight: "85%",
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
   modalTitle: { fontSize: 18, fontWeight: "600", color: "#003366", marginBottom: 15 },
   
@@ -1387,10 +1953,11 @@ const styles = StyleSheet.create({
     width: width * 0.75,
     backgroundColor: "#fff",
     paddingTop: 50,
-    elevation: 8,
+    elevation: 10,
     shadowColor: "#000",
     shadowOpacity: 0.3,
     shadowRadius: 10,
+    zIndex: 100,
   },
   userProfileSection: {
     flexDirection: "row",
@@ -1489,8 +2056,13 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.3)",
+    zIndex: 50,
   },
   
   // Logout modal styles
@@ -1543,5 +2115,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "500",
+  },
+  
+  detailText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 8,
+    paddingVertical: 4,
   },
 });

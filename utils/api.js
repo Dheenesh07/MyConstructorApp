@@ -39,7 +39,10 @@ api.interceptors.response.use(
 
 // Authentication API
 export const authAPI = {
-  login: (credentials) => api.post('login/', credentials),
+  login: (credentials) => {
+    console.log('Login API call with:', credentials);
+    return api.post('login/', credentials);
+  },
   register: (userData) => api.post('signup/', userData),
   refreshToken: (refresh) => api.post('token/refresh/', { refresh }),
 };
@@ -138,6 +141,7 @@ export const safetyAPI = {
 export const communicationAPI = {
   getAll: () => api.get('communications/'),
   getByProject: (projectId) => api.get(`communications/?project=${projectId}`),
+  getByUser: (userId) => api.get(`communications/?receivers=${userId}`),
   send: (message) => api.post('communications/', message),
 };
 

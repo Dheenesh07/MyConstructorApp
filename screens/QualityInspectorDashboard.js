@@ -22,7 +22,7 @@ const { width } = Dimensions.get("window");
 
 export default function QualityInspectorDashboard() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [menuAnim] = useState(new Animated.Value(-width * 0.6));
+  const [menuAnim] = useState(new Animated.Value(-width * 0.75));
   const [activePage, setActivePage] = useState("Dashboard");
   const [user, setUser] = useState(null);
   const [inspections, setInspections] = useState([]);
@@ -67,6 +67,16 @@ export default function QualityInspectorDashboard() {
     type: 'Material',
     location: '',
     priority: 'Medium'
+  });
+  const [inspectionModalVisible, setInspectionModalVisible] = useState(false);
+  const [currentInspection, setCurrentInspection] = useState(null);
+  const [inspectionData, setInspectionData] = useState({
+    checklist_items: '',
+    observations: '',
+    defects_found: '',
+    recommendations: '',
+    score: '',
+    status: 'in_progress'
   });
   const navigation = useNavigation();
 
@@ -273,7 +283,7 @@ export default function QualityInspectorDashboard() {
   const toggleMenu = () => {
     if (menuVisible) {
       Animated.timing(menuAnim, {
-        toValue: -width * 0.6,
+        toValue: -width * 0.75,
         duration: 300,
         useNativeDriver: true,
       }).start(() => setMenuVisible(false));
@@ -483,7 +493,10 @@ export default function QualityInspectorDashboard() {
                 
                 <Text style={styles.inspectionNotes}>{inspection.notes}</Text>
                 
-                <TouchableOpacity style={styles.viewButton}>
+                <TouchableOpacity 
+                  style={styles.viewButton}
+                  onPress={() => Alert.alert('Inspection Report', `Full report for ${inspection.title}\n\nDate: ${inspection.date}\nLocation: ${inspection.location}\nType: ${inspection.type}\nResult: ${inspection.result}\nScore: ${inspection.score}%\n\nNotes: ${inspection.notes}`)}
+                >
                   <Text style={styles.viewButtonText}>View Full Report</Text>
                 </TouchableOpacity>
               </View>
@@ -541,7 +554,10 @@ export default function QualityInspectorDashboard() {
                 
                 <View style={styles.testReportActions}>
                   <Text style={styles.testReportDate}>{report.date}</Text>
-                  <TouchableOpacity style={styles.viewButton}>
+                  <TouchableOpacity 
+                    style={styles.viewButton}
+                    onPress={() => Alert.alert('Test Certificate', `Certificate for ${report.title}\n\nSample ID: ${report.sampleId}\nTest Type: ${report.testType}\nResult: ${report.result}\nSpecification: ${report.specification}\nLaboratory: ${report.laboratory}\nStatus: ${report.status}`)}
+                  >
                     <Text style={styles.viewButtonText}>View Certificate</Text>
                   </TouchableOpacity>
                 </View>
@@ -600,7 +616,10 @@ export default function QualityInspectorDashboard() {
                   }]}>
                     <Text style={styles.statusText}>{ncr.status}</Text>
                   </View>
-                  <TouchableOpacity style={styles.viewButton}>
+                  <TouchableOpacity 
+                    style={styles.viewButton}
+                    onPress={() => Alert.alert('NCR Details', `${ncr.title}\n\nDescription: ${ncr.description}\nLocation: ${ncr.location}\nSeverity: ${ncr.severity}\nStatus: ${ncr.status}\nAssigned to: ${ncr.assignedTo}\nDue Date: ${ncr.dueDate}`)}
+                  >
                     <Text style={styles.viewButtonText}>View Details</Text>
                   </TouchableOpacity>
                 </View>
@@ -650,11 +669,17 @@ export default function QualityInspectorDashboard() {
                 </View>
                 
                 <View style={styles.standardActions}>
-                  <TouchableOpacity style={styles.standardButton}>
+                  <TouchableOpacity 
+                    style={styles.standardButton}
+                    onPress={() => Alert.alert('Download', `Downloading ${standard.title} v${standard.version}`)}
+                  >
                     <Ionicons name="download-outline" size={16} color="#003366" />
                     <Text style={styles.standardButtonText}>Download</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.standardButton}>
+                  <TouchableOpacity 
+                    style={styles.standardButton}
+                    onPress={() => Alert.alert('Standard Details', `${standard.title}\n\nCategory: ${standard.category}\nVersion: ${standard.version}\nLast Updated: ${standard.lastUpdated}\nStatus: ${standard.status}`)}
+                  >
                     <Ionicons name="eye-outline" size={16} color="#003366" />
                     <Text style={styles.standardButtonText}>View</Text>
                   </TouchableOpacity>
@@ -709,8 +734,28 @@ export default function QualityInspectorDashboard() {
                   <View style={[styles.statusBadge, { backgroundColor: '#4CAF50' }]}>
                     <Text style={styles.statusText}>{item.status}</Text>
                   </View>
-                  <TouchableOpacity style={styles.viewButton}>
-                    <Text style={styles.viewButtonText}>Start Inspection</Text>
+                  <TouchableOpacity 
+                    style={styles.viewButton}
+                    onPress={() => {
+                      if (item.status === 'Scheduled') {
+                        setCurrentInspection(item);
+                        setInspectionData({
+                          checklist_items: '',
+                          observations: '',
+                          defects_found: '',
+                          recommendations: '',
+                          score: '',
+                          status: 'in_progress'
+                        });
+                        setInspectionModalVisible(true);
+                      } else {
+                        Alert.alert('Inspection Status', `This inspection is currently: ${item.status}`);
+                      }
+                    }}
+                  >
+                    <Text style={styles.viewButtonText}>
+                      {item.status === 'Scheduled' ? 'Start Inspection' : 'View Status'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -725,10 +770,30 @@ export default function QualityInspectorDashboard() {
 
       default:
         return (
-          <ScrollView style={styles.fullContainer}>
-            <View style={styles.dashboardHeader}>
-              <Text style={styles.welcome}>🔍 Welcome, {user?.first_name || 'Quality Inspector'}!</Text>
-              <Text style={styles.subtitle}>Ensure quality standards and conduct thorough inspections.</Text>
+          <ScrollView style={styles.fullContainer} showsVerticalScrollIndicator={false}>
+            {/* Enhanced Welcome Header */}
+            <View style={styles.welcomeHeader}>
+              <View style={styles.welcomeBackground}>
+                <View style={styles.qualityIcon}>
+                  <Ionicons name="checkmark-circle" size={40} color="#FFD700" />
+                </View>
+                <Text style={styles.welcomeTitle}>Quality Excellence!</Text>
+                <Text style={styles.welcomeName}>{user?.first_name || user?.username || 'Quality Inspector'}</Text>
+                <Text style={styles.welcomeSubtitle}>Ensuring standards and delivering excellence in every inspection</Text>
+                <View style={styles.dateTimeContainer}>
+                  <Ionicons name="calendar-outline" size={16} color="#fff" />
+                  <Text style={styles.dateTimeText}>{new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}</Text>
+                </View>
+                <View style={styles.shiftContainer}>
+                  <Ionicons name="shield-checkmark-outline" size={16} color="#fff" />
+                  <Text style={styles.shiftText}>Quality Inspector Portal</Text>
+                </View>
+              </View>
             </View>
             
             <View style={styles.alertsContainer}>
@@ -1082,6 +1147,131 @@ export default function QualityInspectorDashboard() {
                    modalType === 'standard' ? 'Add Standard' :
                    modalType === 'schedule' ? 'Schedule' : 'Submit'}
                 </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Inspection Interface Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={inspectionModalVisible}
+        onRequestClose={() => setInspectionModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>🔍 Quality Inspection</Text>
+            <Text style={styles.inspectionTitle}>{currentInspection?.title}</Text>
+            <Text style={styles.inspectionDetails}>Location: {currentInspection?.location} | Type: {currentInspection?.type}</Text>
+            
+            <ScrollView style={styles.inspectionForm}>
+              <Text style={styles.fieldLabel}>Checklist Items *</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Enter inspection checklist items..."
+                value={inspectionData.checklist_items}
+                onChangeText={(text) => setInspectionData({...inspectionData, checklist_items: text})}
+                multiline
+                numberOfLines={3}
+              />
+              
+              <Text style={styles.fieldLabel}>Observations</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Record your observations..."
+                value={inspectionData.observations}
+                onChangeText={(text) => setInspectionData({...inspectionData, observations: text})}
+                multiline
+                numberOfLines={3}
+              />
+              
+              <Text style={styles.fieldLabel}>Defects Found</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="List any defects found..."
+                value={inspectionData.defects_found}
+                onChangeText={(text) => setInspectionData({...inspectionData, defects_found: text})}
+                multiline
+                numberOfLines={3}
+              />
+              
+              <Text style={styles.fieldLabel}>Recommendations</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Provide recommendations..."
+                value={inspectionData.recommendations}
+                onChangeText={(text) => setInspectionData({...inspectionData, recommendations: text})}
+                multiline
+                numberOfLines={3}
+              />
+              
+              <Text style={styles.fieldLabel}>Quality Score (0-100)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter quality score"
+                value={inspectionData.score}
+                onChangeText={(text) => setInspectionData({...inspectionData, score: text})}
+                keyboardType="numeric"
+              />
+              
+              <View style={styles.statusContainer}>
+                <Text style={styles.fieldLabel}>Final Status:</Text>
+                {['in_progress', 'passed', 'failed', 'rework_required'].map(status => (
+                  <TouchableOpacity
+                    key={status}
+                    style={[styles.statusOption, {
+                      backgroundColor: inspectionData.status === status ? '#003366' : '#f5f5f5'
+                    }]}
+                    onPress={() => setInspectionData({...inspectionData, status})}
+                  >
+                    <Text style={[styles.statusText, {
+                      color: inspectionData.status === status ? '#fff' : '#666'
+                    }]}>{status.replace('_', ' ').toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={() => setInspectionModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.submitButton]} 
+                onPress={() => {
+                  if (!inspectionData.checklist_items) {
+                    Alert.alert('Error', 'Please fill checklist items');
+                    return;
+                  }
+                  
+                  const updatedSchedule = schedule.map(s => 
+                    s.id === currentInspection.id ? {...s, status: inspectionData.status === 'in_progress' ? 'In Progress' : inspectionData.status.replace('_', ' ')} : s
+                  );
+                  setSchedule(updatedSchedule);
+                  
+                  const newInspection = {
+                    id: inspections.length + 1,
+                    title: currentInspection.title,
+                    date: new Date().toISOString().split('T')[0],
+                    type: currentInspection.type,
+                    location: currentInspection.location,
+                    result: inspectionData.status === 'passed' ? 'Pass' : inspectionData.status === 'failed' ? 'Fail' : 'Pending',
+                    score: parseInt(inspectionData.score) || 0,
+                    inspector: 'Quality Inspector',
+                    notes: inspectionData.observations
+                  };
+                  setInspections([newInspection, ...inspections]);
+                  
+                  setInspectionModalVisible(false);
+                  Alert.alert('Success', 'Inspection completed and saved!');
+                }}
+              >
+                <Text style={styles.submitButtonText}>Complete Inspection</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1611,5 +1801,120 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "500",
+  },
+  
+  // Inspection Modal Styles
+  inspectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 5,
+    textAlign: "center",
+  },
+  inspectionDetails: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  inspectionForm: {
+    maxHeight: 400,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 5,
+    marginTop: 10,
+  },
+  statusContainer: {
+    marginTop: 10,
+    marginBottom: 15,
+  },
+  statusOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginBottom: 5,
+    alignItems: "center",
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  
+  // Enhanced Welcome Header Styles
+  welcomeHeader: {
+    marginBottom: 20,
+  },
+  welcomeBackground: {
+    backgroundColor: "#003366",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  qualityIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    color: "#FFD700",
+    fontWeight: "600",
+    marginBottom: 5,
+  },
+  welcomeName: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  dateTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginBottom: 8,
+  },
+  dateTimeText: {
+    color: "#fff",
+    fontSize: 12,
+    marginLeft: 6,
+  },
+  shiftContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 215, 0, 0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  shiftText: {
+    color: "#FFD700",
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: "600",
   },
 });

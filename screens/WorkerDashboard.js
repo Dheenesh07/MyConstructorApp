@@ -15,7 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { taskAPI, attendanceAPI } from '../utils/api';
+import { taskAPI, attendanceAPI, communicationAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -52,18 +52,28 @@ export default function WorkerDashboard() {
 
   const loadTasks = async () => {
     try {
-      const response = await taskAPI.getByUser(user?.id);
-      setTasks(response.data.map(task => ({
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        priority: task.priority,
-        status: task.status,
-        dueDate: task.due_date,
-        location: task.location || 'Not specified'
-      })));
+      if (!user?.id) return;
+      const response = await taskAPI.getByUser(user.id);
+      if (response.data && response.data.length > 0) {
+        setTasks(response.data.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+          status: task.status,
+          dueDate: task.due_date,
+          location: task.location || 'Not specified',
+          instructions: task.instructions || null
+        })));
+      } else {
+        // Fallback to mock data if no real tasks
+        setTasks([
+          { id: 1, title: 'Concrete Pouring - Foundation', description: 'Pour concrete for foundation section A1-A5', priority: 'high', status: 'in_progress', dueDate: '2024-01-15', location: 'Site A - North' }
+        ]);
+      }
     } catch (error) {
       console.error('Error loading tasks:', error);
+      // Fallback to mock data on error
       setTasks([
         { id: 1, title: 'Concrete Pouring - Foundation', description: 'Pour concrete for foundation section A1-A5', priority: 'high', status: 'in_progress', dueDate: '2024-01-15', location: 'Site A - North' }
       ]);
@@ -87,13 +97,39 @@ export default function WorkerDashboard() {
     ]);
   };
 
-  const loadInstructions = () => {
-    setInstructions([
-      { id: 1, title: 'Daily Safety Briefing', type: 'Safety', date: '2024-01-12', content: 'Today\'s focus: PPE compliance and concrete pouring safety procedures.' },
-      { id: 2, title: 'New Concrete Mix Procedure', type: 'Technical', date: '2024-01-11', content: 'Updated mixing ratios and curing procedures for foundation concrete.' },
-      { id: 3, title: 'Site Access Changes', type: 'General', date: '2024-01-10', content: 'New entry point through Gate B. Gate A closed for maintenance.' },
-      { id: 4, title: 'Weather Alert', type: 'Safety', date: '2024-01-09', content: 'Heavy rain expected. All outdoor concrete work postponed.' }
-    ]);
+  const loadInstructions = async () => {
+    try {
+      if (!user?.id) return;
+      const response = await communicationAPI.getByUser(user.id);
+      if (response.data && response.data.length > 0) {
+        setInstructions(response.data.map(comm => ({
+          id: comm.id,
+          title: comm.subject,
+          type: comm.message_type === 'safety_alert' ? 'Safety' : 
+                comm.message_type === 'progress_update' ? 'Technical' : 'General',
+          date: new Date(comm.timestamp).toLocaleDateString(),
+          content: comm.message,
+          isRead: comm.is_read
+        })));
+      } else {
+        // Fallback to mock data
+        setInstructions([
+          { id: 1, title: 'Daily Safety Briefing', type: 'Safety', date: '2024-01-12', content: 'Today\'s focus: PPE compliance and concrete pouring safety procedures.' },
+          { id: 2, title: 'New Concrete Mix Procedure', type: 'Technical', date: '2024-01-11', content: 'Updated mixing ratios and curing procedures for foundation concrete.' },
+          { id: 3, title: 'Site Access Changes', type: 'General', date: '2024-01-10', content: 'New entry point through Gate B. Gate A closed for maintenance.' },
+          { id: 4, title: 'Weather Alert', type: 'Safety', date: '2024-01-09', content: 'Heavy rain expected. All outdoor concrete work postponed.' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading instructions:', error);
+      // Fallback to mock data on error
+      setInstructions([
+        { id: 1, title: 'Daily Safety Briefing', type: 'Safety', date: '2024-01-12', content: 'Today\'s focus: PPE compliance and concrete pouring safety procedures.' },
+        { id: 2, title: 'New Concrete Mix Procedure', type: 'Technical', date: '2024-01-11', content: 'Updated mixing ratios and curing procedures for foundation concrete.' },
+        { id: 3, title: 'Site Access Changes', type: 'General', date: '2024-01-10', content: 'New entry point through Gate B. Gate A closed for maintenance.' },
+        { id: 4, title: 'Weather Alert', type: 'Safety', date: '2024-01-09', content: 'Heavy rain expected. All outdoor concrete work postponed.' }
+      ]);
+    }
   };
 
   const toggleMenu = () => {
@@ -203,7 +239,28 @@ export default function WorkerDashboard() {
                     <Text style={styles.statusText}>{task.status}</Text>
                   </View>
                   {task.status !== 'Completed' && (
-                    <TouchableOpacity style={styles.viewButton}>
+                    <TouchableOpacity 
+                      style={styles.viewButton}
+                      onPress={() => {
+                        console.log('View Instructions pressed for task:', task.title);
+                        
+                        // Show real task instructions if available, otherwise show generic instructions
+                        const instructionContent = task.instructions ? 
+                          `${task.title}\n\n📍 Location: ${task.location}\n⏰ Due: ${task.dueDate}\n\n📋 TASK INSTRUCTIONS:\n\n${task.instructions}` :
+                          `${task.title}\n\n📍 Location: ${task.location}\n⏰ Due: ${task.dueDate}\n\n🔧 DETAILED INSTRUCTIONS:\n\n• Ensure all safety equipment is worn (hard hat, safety vest, steel-toe boots)\n• Check concrete mix ratios before starting\n• Maintain proper pouring technique to avoid air bubbles\n• Monitor weather conditions throughout the process\n• Document progress with photos at key milestones\n• Report any equipment issues immediately to foreman\n• Follow proper curing procedures after completion\n\n⚠️ SAFETY NOTES:\n• Keep work area clear of debris\n• Maintain safe distance from heavy machinery\n• Use proper lifting techniques\n• Report any incidents immediately\n\n📞 Contact foreman for questions or issues`;
+                        
+                        Alert.alert(
+                          `📋 Task Instructions`,
+                          instructionContent,
+                          [
+                            { text: 'Got it!', style: 'default' },
+                            { text: 'Call Foreman', onPress: () => Alert.alert('Calling Foreman', 'Connecting to foreman...') }
+                          ]
+                        );
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="document-text-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
                       <Text style={styles.viewButtonText}>View Instructions</Text>
                     </TouchableOpacity>
                   )}
@@ -332,18 +389,57 @@ export default function WorkerDashboard() {
                 
                 <View style={styles.trainingActions}>
                   {course.certificate && (
-                    <TouchableOpacity style={styles.certificateButton}>
+                    <TouchableOpacity 
+                      style={styles.certificateButton}
+                      onPress={() => {
+                        console.log('Viewing certificate for:', course.title);
+                        Alert.alert(
+                          'Training Certificate',
+                          `Certificate for: ${course.title}\n\nCompleted: ${course.completedDate}\nValid until: ${course.validUntil}\n\nCertificate ID: CERT-${course.id}-2024\nStatus: Valid`,
+                          [
+                            { text: 'Download PDF', style: 'default' },
+                            { text: 'Close', style: 'cancel' }
+                          ]
+                        );
+                      }}
+                    >
                       <Ionicons name="document-outline" size={16} color="#003366" />
                       <Text style={styles.certificateButtonText}>View Certificate</Text>
                     </TouchableOpacity>
                   )}
                   {course.status === 'In Progress' && (
-                    <TouchableOpacity style={styles.continueButton}>
+                    <TouchableOpacity 
+                      style={styles.continueButton}
+                      onPress={() => {
+                        console.log('Continuing training:', course.title);
+                        Alert.alert(
+                          'Continue Training',
+                          `Resume training: ${course.title}\n\nProgress: ${course.progress}%\nEstimated time remaining: ${Math.round((100 - course.progress) * 0.3)} minutes\n\nYou will be redirected to the training module.`,
+                          [
+                            { text: 'Start Now', style: 'default' },
+                            { text: 'Later', style: 'cancel' }
+                          ]
+                        );
+                      }}
+                    >
                       <Text style={styles.continueButtonText}>Continue Training</Text>
                     </TouchableOpacity>
                   )}
                   {course.status === 'Not Started' && (
-                    <TouchableOpacity style={styles.startButton}>
+                    <TouchableOpacity 
+                      style={styles.startButton}
+                      onPress={() => {
+                        console.log('Starting training:', course.title);
+                        Alert.alert(
+                          'Start Training',
+                          `Begin training: ${course.title}\n\nDue date: ${course.dueDate}\nEstimated duration: 2-3 hours\n\nThis training is mandatory for your role.`,
+                          [
+                            { text: 'Start Now', style: 'default' },
+                            { text: 'Schedule Later', style: 'cancel' }
+                          ]
+                        );
+                      }}
+                    >
                       <Text style={styles.startButtonText}>Start Training</Text>
                     </TouchableOpacity>
                   )}
@@ -379,7 +475,23 @@ export default function WorkerDashboard() {
                     <Ionicons name="calendar-outline" size={16} color="#666" />
                     <Text style={styles.instructionDetailText}>{instruction.date}</Text>
                   </View>
-                  <TouchableOpacity style={styles.readButton}>
+                  <TouchableOpacity 
+                    style={styles.readButton}
+                    onPress={() => {
+                      console.log('Marking instruction as read:', instruction.title);
+                      Alert.alert(
+                        'Instruction Acknowledged',
+                        `You have marked "${instruction.title}" as read.\n\nThis instruction will be moved to your read items.`,
+                        [{ text: 'OK', style: 'default' }]
+                      );
+                      // Update the instruction status locally
+                      setInstructions(prev => prev.map(inst => 
+                        inst.id === instruction.id 
+                          ? { ...inst, isRead: true }
+                          : inst
+                      ));
+                    }}
+                  >
                     <Text style={styles.readButtonText}>Mark as Read</Text>
                   </TouchableOpacity>
                 </View>
@@ -395,62 +507,193 @@ export default function WorkerDashboard() {
 
       default:
         return (
-          <ScrollView style={styles.fullContainer}>
-            <View style={styles.dashboardHeader}>
-              <Text style={styles.welcome}>👷 Good morning, {user?.username || 'Worker'}!</Text>
-              <Text style={styles.subtitle}>Beemji Construction - Worker Portal</Text>
-              <Text style={styles.dateTime}>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • Shift: 7:00 AM - 4:00 PM</Text>
+          <ScrollView style={styles.fullContainer} showsVerticalScrollIndicator={false}>
+            {/* Enhanced Welcome Header */}
+            <View style={styles.welcomeHeader}>
+              <View style={styles.welcomeBackground}>
+                <View style={styles.constructionIcon}>
+                  <Ionicons name="hammer" size={40} color="#FFD700" />
+                </View>
+                <Text style={styles.welcomeTitle}>Welcome Back!</Text>
+                <Text style={styles.welcomeName}>{user?.first_name || user?.username || 'Worker'}</Text>
+                <Text style={styles.welcomeSubtitle}>Ready to build something amazing today</Text>
+                <View style={styles.dateTimeContainer}>
+                  <Ionicons name="calendar-outline" size={16} color="#fff" />
+                  <Text style={styles.dateTimeText}>{new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}</Text>
+                </View>
+                <View style={styles.shiftContainer}>
+                  <Ionicons name="time-outline" size={16} color="#fff" />
+                  <Text style={styles.shiftText}>Shift: 7:00 AM - 4:00 PM</Text>
+                </View>
+              </View>
             </View>
             
+            {/* Enhanced Stats Cards */}
+            <View style={styles.statsSection}>
+              <Text style={styles.statsTitle}>Today's Overview</Text>
+              <View style={styles.statsContainer}>
+                <View style={[styles.statCard, styles.tasksCard]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="clipboard" size={24} color="#FF9800" />
+                  </View>
+                  <Text style={styles.statNumber}>{tasks.filter(t => t.status === 'in_progress' || t.status === 'In Progress').length}</Text>
+                  <Text style={styles.statLabel}>Active Tasks</Text>
+                  <Text style={styles.statSubtext}>in progress</Text>
+                </View>
+                
+                <View style={[styles.statCard, styles.attendanceCard]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="time" size={24} color="#4CAF50" />
+                  </View>
+                  <Text style={styles.statNumber}>{attendance?.thisWeek.totalHours || 0}h</Text>
+                  <Text style={styles.statLabel}>This Week</Text>
+                  <Text style={styles.statSubtext}>hours worked</Text>
+                </View>
+                
+                <View style={[styles.statCard, styles.trainingCard]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="school" size={24} color="#2196F3" />
+                  </View>
+                  <Text style={styles.statNumber}>{training.filter(t => t.status === 'Completed').length}</Text>
+                  <Text style={styles.statLabel}>Training</Text>
+                  <Text style={styles.statSubtext}>completed</Text>
+                </View>
+              </View>
+            </View>
+            
+            {/* Priority Alerts */}
             <View style={styles.alertsSection}>
               <Text style={styles.sectionTitle}>🚨 Today's Priorities</Text>
-              <View style={styles.alertCard}>
-                <Ionicons name="hammer" size={20} color="#FF5722" />
-                <Text style={styles.alertText}>High Priority: Complete concrete pouring - Block A foundation</Text>
-              </View>
-              <View style={styles.alertCard}>
-                <Ionicons name="shield-checkmark" size={20} color="#FF9800" />
-                <Text style={styles.alertText}>Safety briefing at 8:00 AM - Mandatory attendance</Text>
+              <TouchableOpacity 
+                style={styles.priorityAlert}
+                onPress={() => {
+                  console.log('Priority alert pressed');
+                  Alert.alert(
+                    'High Priority Task', 
+                    'Complete concrete pouring - Block A foundation\n\nLocation: Site A - North Section\nDeadline: Today 3:00 PM\nSafety Requirements: Hard hat, safety vest, steel-toe boots\n\nContact foreman if you need assistance.',
+                    [{ text: 'Understood', style: 'default' }]
+                  );
+                }}
+              >
+                <View style={styles.alertIconContainer}>
+                  <Ionicons name="hammer" size={24} color="#fff" />
+                </View>
+                <View style={styles.alertContent}>
+                  <Text style={styles.alertTitle}>High Priority</Text>
+                  <Text style={styles.alertText}>Complete concrete pouring - Block A foundation</Text>
+                  <Text style={styles.alertTime}>Due: Today 3:00 PM</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#FF5722" />
+              </TouchableOpacity>
+              
+              <View style={styles.safetyAlert}>
+                <View style={styles.safetyIconContainer}>
+                  <Ionicons name="shield-checkmark" size={24} color="#fff" />
+                </View>
+                <View style={styles.alertContent}>
+                  <Text style={styles.safetyTitle}>Safety Briefing</Text>
+                  <Text style={styles.safetyText}>Mandatory attendance at 8:00 AM</Text>
+                  <Text style={styles.safetyTime}>Location: Main Site Office</Text>
+                </View>
               </View>
             </View>
             
-            <View style={styles.statsContainer}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{tasks.filter(t => t.status === 'In Progress').length}</Text>
-                <Text style={styles.statLabel}>Active Tasks</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{attendance?.thisWeek.totalHours || 0}h</Text>
-                <Text style={styles.statLabel}>This Week</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{training.filter(t => t.status === 'Completed').length}</Text>
-                <Text style={styles.statLabel}>Training Complete</Text>
+            {/* Quick Actions Section */}
+            <View style={styles.actionsSection}>
+              <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
+              <View style={styles.actionGrid}>
+                {[
+                  { 
+                    title: "My Tasks", 
+                    icon: "clipboard", 
+                    count: `${tasks.length} tasks`,
+                    color: "#FF9800",
+                    bgColor: "#FFF3E0"
+                  },
+                  { 
+                    title: "Attendance", 
+                    icon: "time", 
+                    count: attendance?.today.status || 'Check status',
+                    color: "#4CAF50",
+                    bgColor: "#E8F5E8"
+                  },
+                  { 
+                    title: "Safety Training", 
+                    icon: "school", 
+                    count: `${training.length} courses`,
+                    color: "#2196F3",
+                    bgColor: "#E3F2FD"
+                  },
+                  { 
+                    title: "Work Instructions", 
+                    icon: "document-text", 
+                    count: `${instructions.length} updates`,
+                    color: "#9C27B0",
+                    bgColor: "#F3E5F5"
+                  },
+                ].map((item, index) => (
+                  <TouchableOpacity
+                    key={item.title}
+                    style={[styles.actionCard, { backgroundColor: item.bgColor }]}
+                    onPress={() => setActivePage(item.title)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.actionIconContainer, { backgroundColor: item.color }]}>
+                      <Ionicons name={item.icon} size={28} color="#fff" />
+                    </View>
+                    <Text style={styles.actionTitle}>{item.title}</Text>
+                    <Text style={[styles.actionCount, { color: item.color }]}>{item.count}</Text>
+                    <View style={styles.actionArrow}>
+                      <Ionicons name="chevron-forward" size={16} color={item.color} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
             
-            <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
-            <FlatList
-              data={[
-                { title: "📋 My Tasks", count: `${tasks.length} tasks` },
-                { title: "⏰ Attendance", count: attendance?.today.status || 'Check status' },
-                { title: "🎓 Safety Training", count: `${training.length} courses` },
-                { title: "📖 Work Instructions", count: `${instructions.length} updates` },
-              ]}
-              numColumns={2}
-              keyExtractor={(item) => item.title}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.dashboardCard}
-                  onPress={() => setActivePage(item.title.replace(/^[^ ]+\s/, ""))}
-                >
-                  <Text style={styles.cardText}>{item.title}</Text>
-                  <Text style={styles.cardCount}>{item.count}</Text>
-                </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.cardContainer}
-              scrollEnabled={false}
-            />
+            {/* Performance Summary */}
+            <View style={styles.performanceSection}>
+              <Text style={styles.sectionTitle}>📊 My Performance</Text>
+              <View style={styles.performanceCard}>
+                <View style={styles.performanceHeader}>
+                  <Ionicons name="trending-up" size={24} color="#4CAF50" />
+                  <Text style={styles.performanceTitle}>Weekly Summary</Text>
+                </View>
+                <View style={styles.performanceMetrics}>
+                  <View style={styles.performanceMetric}>
+                    <Text style={styles.performanceValue}>{attendance?.thisWeek.totalHours || 0}h</Text>
+                    <Text style={styles.performanceLabel}>Hours Worked</Text>
+                  </View>
+                  <View style={styles.performanceMetric}>
+                    <Text style={styles.performanceValue}>{tasks.filter(t => t.status === 'completed' || t.status === 'Completed').length}</Text>
+                    <Text style={styles.performanceLabel}>Tasks Done</Text>
+                  </View>
+                  <View style={styles.performanceMetric}>
+                    <Text style={styles.performanceValue}>{attendance?.thisWeek.daysPresent || 0}</Text>
+                    <Text style={styles.performanceLabel}>Days Present</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+            
+            {/* Safety Status */}
+            <View style={styles.safetySection}>
+              <View style={styles.safetyStatusCard}>
+                <View style={styles.safetyStatusHeader}>
+                  <Ionicons name="shield-checkmark" size={24} color="#4CAF50" />
+                  <Text style={styles.safetyStatusTitle}>Safety Status: Compliant</Text>
+                </View>
+                <Text style={styles.safetyStatusText}>All required training up to date</Text>
+                <View style={styles.safetyStats}>
+                  <Text style={styles.safetyDays}>0 days without incident</Text>
+                </View>
+              </View>
+            </View>
           </ScrollView>
         );
     }
@@ -565,21 +808,364 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   fullContainer: { flex: 1, backgroundColor: "#f4f7fc" },
   
-  dashboardHeader: { padding: 20, alignItems: "center" },
-  welcome: { fontSize: 24, fontWeight: "700", color: "#003366" },
-  subtitle: { fontSize: 16, color: "#666", marginTop: 8, textAlign: "center" },
-  dateTime: { fontSize: 14, color: "#999", marginTop: 4, textAlign: "center" },
+  // Enhanced Welcome Header Styles
+  welcomeHeader: {
+    marginBottom: 20,
+  },
+  welcomeBackground: {
+    backgroundColor: "#003366",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  constructionIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    color: "#FFD700",
+    fontWeight: "600",
+    marginBottom: 5,
+  },
+  welcomeName: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  dateTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginBottom: 8,
+  },
+  dateTimeText: {
+    color: "#fff",
+    fontSize: 12,
+    marginLeft: 6,
+  },
+  shiftContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 215, 0, 0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  shiftText: {
+    color: "#FFD700",
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: "600",
+  },
   
-  alertsSection: { paddingHorizontal: 20, marginBottom: 20 },
-  alertCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 12, borderRadius: 8, marginBottom: 8, elevation: 1, borderLeftWidth: 4, borderLeftColor: "#FF5722" },
-  alertText: { marginLeft: 10, fontSize: 13, color: "#333", flex: 1 },
+  // Enhanced Stats Section
+  statsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 15,
+  },
+  statIconContainer: {
+    marginBottom: 8,
+  },
+  statSubtext: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
+  },
+  tasksCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#FF9800",
+  },
+  attendanceCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#4CAF50",
+  },
+  trainingCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#2196F3",
+  },
   
-  statsContainer: { flexDirection: "row", paddingHorizontal: 20, marginBottom: 20 },
-  statCard: { flex: 1, backgroundColor: "#fff", borderRadius: 12, padding: 15, marginHorizontal: 5, alignItems: "center", elevation: 2 },
-  statNumber: { fontSize: 24, fontWeight: "bold", color: "#003366" },
-  statLabel: { fontSize: 12, color: "#666", marginTop: 4 },
+  // Enhanced Alerts Section
+  alertsSection: { 
+    paddingHorizontal: 20, 
+    marginBottom: 25 
+  },
+  priorityAlert: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#fff", 
+    padding: 15, 
+    borderRadius: 12, 
+    marginBottom: 10, 
+    elevation: 3,
+    borderLeftWidth: 4, 
+    borderLeftColor: "#FF5722",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  alertIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FF5722",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF5722",
+    marginBottom: 2,
+  },
+  alertText: { 
+    fontSize: 14, 
+    color: "#333", 
+    marginBottom: 2,
+    fontWeight: "500",
+  },
+  alertTime: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  safetyAlert: {
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#fff", 
+    padding: 15, 
+    borderRadius: 12, 
+    elevation: 2,
+    borderLeftWidth: 4, 
+    borderLeftColor: "#FF9800",
+  },
+  safetyIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FF9800",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  safetyTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF9800",
+    marginBottom: 2,
+  },
+  safetyText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 2,
+    fontWeight: "500",
+  },
+  safetyTime: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
   
-  sectionTitle: { fontSize: 18, fontWeight: "600", color: "#003366", paddingHorizontal: 20, marginBottom: 10 },
+  // Actions Section
+  actionsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  actionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  actionCard: {
+    width: "48%",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    position: "relative",
+  },
+  actionIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  actionCount: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  actionArrow: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+  },
+  
+  // Performance Section
+  performanceSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  performanceCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  performanceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  performanceTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#003366",
+    marginLeft: 10,
+  },
+  performanceMetrics: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  performanceMetric: {
+    alignItems: "center",
+  },
+  performanceValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#4CAF50",
+  },
+  performanceLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  
+  // Safety Section
+  safetySection: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  safetyStatusCard: {
+    backgroundColor: "#E8F5E8",
+    borderRadius: 16,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
+  },
+  safetyStatusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  safetyStatusTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2E7D32",
+    marginLeft: 10,
+  },
+  safetyStatusText: {
+    fontSize: 14,
+    color: "#4CAF50",
+    marginBottom: 10,
+  },
+  safetyStats: {
+    alignItems: "center",
+  },
+  safetyDays: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2E7D32",
+  },
+  
+  statsContainer: { 
+    flexDirection: "row", 
+    justifyContent: "space-between" 
+  },
+  statCard: { 
+    flex: 1, 
+    backgroundColor: "#fff", 
+    borderRadius: 16, 
+    padding: 18, 
+    marginHorizontal: 4, 
+    alignItems: "center", 
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  statNumber: { 
+    fontSize: 28, 
+    fontWeight: "bold", 
+    color: "#003366",
+    marginBottom: 4,
+  },
+  statLabel: { 
+    fontSize: 12, 
+    color: "#666", 
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: "600", 
+    color: "#003366", 
+    marginBottom: 15 
+  },
   
   cardContainer: { paddingHorizontal: 10 },
   dashboardCard: { backgroundColor: "#fff", borderRadius: 12, padding: 20, margin: 10, elevation: 3, width: width / 2.4, alignItems: "center" },
@@ -631,12 +1217,40 @@ const styles = StyleSheet.create({
   trainingDetailRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
   trainingDetailText: { fontSize: 12, color: "#666", marginLeft: 6 },
   trainingActions: { flexDirection: "row", justifyContent: "space-around", flexWrap: "wrap" },
-  certificateButton: { flexDirection: "row", alignItems: "center", backgroundColor: "#f5f5f5", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, marginBottom: 5 },
-  certificateButtonText: { color: "#003366", fontSize: 12, marginLeft: 4 },
-  continueButton: { backgroundColor: "#FF9800", paddingHorizontal: 15, paddingVertical: 6, borderRadius: 6, marginBottom: 5 },
-  continueButtonText: { color: "#fff", fontSize: 12 },
-  startButton: { backgroundColor: "#4CAF50", paddingHorizontal: 15, paddingVertical: 6, borderRadius: 6, marginBottom: 5 },
-  startButtonText: { color: "#fff", fontSize: 12 },
+  certificateButton: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#f5f5f5", 
+    paddingHorizontal: 15, 
+    paddingVertical: 8, 
+    borderRadius: 6, 
+    marginBottom: 5,
+    minWidth: 120,
+    elevation: 1
+  },
+  certificateButtonText: { color: "#003366", fontSize: 12, marginLeft: 4, fontWeight: '600' },
+  continueButton: { 
+    backgroundColor: "#FF9800", 
+    paddingHorizontal: 18, 
+    paddingVertical: 8, 
+    borderRadius: 6, 
+    marginBottom: 5,
+    minWidth: 120,
+    alignItems: 'center',
+    elevation: 2
+  },
+  continueButtonText: { color: "#fff", fontSize: 12, fontWeight: '600' },
+  startButton: { 
+    backgroundColor: "#4CAF50", 
+    paddingHorizontal: 18, 
+    paddingVertical: 8, 
+    borderRadius: 6, 
+    marginBottom: 5,
+    minWidth: 120,
+    alignItems: 'center',
+    elevation: 2
+  },
+  startButtonText: { color: "#fff", fontSize: 12, fontWeight: '600' },
   
   instructionCard: { backgroundColor: "#fff", borderRadius: 12, padding: 15, marginHorizontal: 20, marginBottom: 15, elevation: 2 },
   instructionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
@@ -645,16 +1259,39 @@ const styles = StyleSheet.create({
   instructionFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   instructionDetailRow: { flexDirection: "row", alignItems: "center" },
   instructionDetailText: { fontSize: 12, color: "#666", marginLeft: 6 },
-  readButton: { backgroundColor: "#003366", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  readButtonText: { color: "#fff", fontSize: 12 },
+  readButton: { 
+    backgroundColor: "#003366", 
+    paddingHorizontal: 15, 
+    paddingVertical: 8, 
+    borderRadius: 6,
+    minWidth: 100,
+    alignItems: 'center',
+    elevation: 2
+  },
+  readButtonText: { color: "#fff", fontSize: 12, fontWeight: '600' },
   
   statusBadge: { backgroundColor: "#4CAF50", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   priorityBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   statusText: { color: "#fff", fontSize: 10, fontWeight: "500" },
   
-  viewButton: { alignSelf: "flex-start", backgroundColor: "#003366", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  viewButtonText: { color: "#fff", fontSize: 12 },
+  viewButton: { 
+    alignSelf: "flex-start", 
+    backgroundColor: "#003366", 
+    paddingHorizontal: 15, 
+    paddingVertical: 10, 
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    flexDirection: 'row',
+    justifyContent: 'center'
+  },
+  viewButtonText: { color: "#fff", fontSize: 13, fontWeight: '600' },
   
   sideMenu: { position: "absolute", left: 0, top: 0, bottom: 0, width: width * 0.75, backgroundColor: "#fff", paddingTop: 50, elevation: 8, shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 10, zIndex: 2 },
   userProfileSection: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 20, backgroundColor: "#f8f9fa" },

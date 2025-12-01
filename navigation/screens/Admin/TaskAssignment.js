@@ -20,6 +20,8 @@ export default function TaskAssignment({ navigation }) {
     due_date: '',
     estimated_hours: 0
   });
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
 
   useEffect(() => {
     loadTasks();
@@ -535,5 +537,20 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     minHeight: 100,
     maxHeight: 150,
+  },
+  datePickerContainer: {
+    marginBottom: 15,
+  },
+  dateButton: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: 'center',
+  },
+  dateButtonText: {
+    color: "#003366",
+    fontSize: 16,
   },
 });

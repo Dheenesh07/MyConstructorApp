@@ -794,90 +794,251 @@ export default function AdminDashboard() {
       default:
         return (
           <ScrollView style={styles.fullContainer}>
-            <View style={styles.dashboardHeader}>
-              <Text style={styles.welcome}>🏗️ Welcome back, {user?.username || 'Administrator'}!</Text>
-              <Text style={styles.subtitle}>Beemji Construction - Executive Dashboard</Text>
-              <Text style={styles.dateTime}>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</Text>
-            </View>
-            
-            <View style={styles.metricsGrid}>
-              <View style={styles.metricCard}>
-                <View style={styles.metricIcon}>
-                  <Ionicons name="people" size={24} color="#4CAF50" />
+            {/* Executive Header */}
+            <View style={styles.executiveHeader}>
+              <View style={styles.headerContent}>
+                <View style={styles.welcomeSection}>
+                  <Text style={styles.executiveWelcome}>🏗️ Executive Command Center</Text>
+                  <Text style={styles.executiveSubtitle}>Welcome back, {user?.first_name || user?.username || 'Administrator'}</Text>
+                  <Text style={styles.companyName}>Beemji Construction Ltd.</Text>
                 </View>
-                <Text style={styles.metricNumber}>{users.length}</Text>
-                <Text style={styles.metricLabel}>Total Users</Text>
-                <Text style={styles.metricChange}>+12% this month</Text>
+                <View style={styles.dateTimeCard}>
+                  <Text style={styles.currentDate}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</Text>
+                  <Text style={styles.currentTime}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</Text>
+                </View>
               </View>
-              <View style={styles.metricCard}>
-                <View style={styles.metricIcon}>
-                  <Ionicons name="construct" size={24} color="#2196F3" />
+              <View style={styles.headerStats}>
+                <View style={styles.headerStat}>
+                  <Text style={styles.headerStatNumber}>{projects.filter(p => p.status === 'active').length}</Text>
+                  <Text style={styles.headerStatLabel}>Active Projects</Text>
                 </View>
-                <Text style={styles.metricNumber}>{projects.filter(p => p.status === 'active').length}</Text>
-                <Text style={styles.metricLabel}>Active Projects</Text>
-                <Text style={styles.metricChange}>+3 new projects</Text>
-              </View>
-              <View style={styles.metricCard}>
-                <View style={styles.metricIcon}>
-                  <Ionicons name="cash" size={24} color="#FF9800" />
+                <View style={styles.headerStat}>
+                  <Text style={styles.headerStatNumber}>₹{(projects.reduce((sum, p) => sum + (p.budget || 0), 0) / 10000000).toFixed(1)}Cr</Text>
+                  <Text style={styles.headerStatLabel}>Total Portfolio</Text>
                 </View>
-                <Text style={styles.metricNumber}>₹2.4M</Text>
-                <Text style={styles.metricLabel}>Monthly Revenue</Text>
-                <Text style={styles.metricChange}>+8.5% vs last month</Text>
-              </View>
-              <View style={styles.metricCard}>
-                <View style={styles.metricIcon}>
-                  <Ionicons name="business" size={24} color="#9C27B0" />
+                <View style={styles.headerStat}>
+                  <Text style={styles.headerStatNumber}>{Math.round(projects.reduce((sum, p) => sum + (p.progress || 0), 0) / projects.length)}%</Text>
+                  <Text style={styles.headerStatLabel}>Avg Progress</Text>
                 </View>
-                <Text style={styles.metricNumber}>{vendors.length}</Text>
-                <Text style={styles.metricLabel}>Active Vendors</Text>
-                <Text style={styles.metricChange}>{vendors.filter(v => v.is_approved).length} approved</Text>
               </View>
             </View>
-            
+
+            {/* Key Performance Indicators */}
+            <View style={styles.kpiSection}>
+              <Text style={styles.sectionTitle}>📊 Key Performance Indicators</Text>
+              <View style={styles.kpiGrid}>
+                <View style={[styles.kpiCard, { borderLeftColor: '#4CAF50' }]}>
+                  <View style={styles.kpiHeader}>
+                    <Ionicons name="people" size={28} color="#4CAF50" />
+                    <View style={styles.kpiTrend}>
+                      <Ionicons name="trending-up" size={16} color="#4CAF50" />
+                      <Text style={[styles.kpiTrendText, { color: '#4CAF50' }]}>+12%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.kpiNumber}>{users.length}</Text>
+                  <Text style={styles.kpiLabel}>Total Workforce</Text>
+                  <Text style={styles.kpiSubtext}>{users.filter(u => u.status === 'Active').length} active employees</Text>
+                </View>
+
+                <View style={[styles.kpiCard, { borderLeftColor: '#2196F3' }]}>
+                  <View style={styles.kpiHeader}>
+                    <Ionicons name="construct" size={28} color="#2196F3" />
+                    <View style={styles.kpiTrend}>
+                      <Ionicons name="trending-up" size={16} color="#4CAF50" />
+                      <Text style={[styles.kpiTrendText, { color: '#4CAF50' }]}>+18%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.kpiNumber}>{projects.length}</Text>
+                  <Text style={styles.kpiLabel}>Project Portfolio</Text>
+                  <Text style={styles.kpiSubtext}>{projects.filter(p => p.status === 'active').length} in progress, {projects.filter(p => p.status === 'completed').length} completed</Text>
+                </View>
+
+                <View style={[styles.kpiCard, { borderLeftColor: '#FF9800' }]}>
+                  <View style={styles.kpiHeader}>
+                    <Ionicons name="cash" size={28} color="#FF9800" />
+                    <View style={styles.kpiTrend}>
+                      <Ionicons name="trending-up" size={16} color="#4CAF50" />
+                      <Text style={[styles.kpiTrendText, { color: '#4CAF50' }]}>+8.5%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.kpiNumber}>₹2.4M</Text>
+                  <Text style={styles.kpiLabel}>Monthly Revenue</Text>
+                  <Text style={styles.kpiSubtext}>₹28.8M annual projection</Text>
+                </View>
+
+                <View style={[styles.kpiCard, { borderLeftColor: '#9C27B0' }]}>
+                  <View style={styles.kpiHeader}>
+                    <Ionicons name="business" size={28} color="#9C27B0" />
+                    <View style={styles.kpiTrend}>
+                      <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                      <Text style={[styles.kpiTrendText, { color: '#4CAF50' }]}>98%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.kpiNumber}>{vendors.length}</Text>
+                  <Text style={styles.kpiLabel}>Vendor Network</Text>
+                  <Text style={styles.kpiSubtext}>{vendors.filter(v => v.is_approved).length} approved partners</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Executive Alerts & Notifications */}
             <View style={styles.alertsSection}>
-              <Text style={styles.sectionTitle}>🚨 Executive Alerts</Text>
-              <View style={styles.alertCard}>
-                <Ionicons name="warning" size={20} color="#FF5722" />
-                <Text style={styles.alertText}>Budget variance: Project Alpha exceeds by 12%</Text>
-              </View>
-              <View style={styles.alertCard}>
-                <Ionicons name="time" size={20} color="#FF9800" />
-                <Text style={styles.alertText}>3 pending user approvals require attention</Text>
-              </View>
-              <View style={styles.alertCard}>
-                <Ionicons name="shield-checkmark" size={20} color="#4CAF50" />
-                <Text style={styles.alertText}>System backup completed successfully</Text>
+              <Text style={styles.sectionTitle}>🚨 Executive Alerts & Notifications</Text>
+              <View style={styles.alertsContainer}>
+                <View style={[styles.alertCard, { borderLeftColor: '#FF5722' }]}>
+                  <View style={styles.alertIcon}>
+                    <Ionicons name="warning" size={24} color="#FF5722" />
+                  </View>
+                  <View style={styles.alertContent}>
+                    <Text style={styles.alertTitle}>Budget Variance Alert</Text>
+                    <Text style={styles.alertText}>Project Alpha exceeds budget by 12% - Requires immediate attention</Text>
+                    <Text style={styles.alertTime}>2 hours ago</Text>
+                  </View>
+                  <TouchableOpacity style={styles.alertAction}>
+                    <Ionicons name="chevron-forward" size={16} color="#666" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.alertCard, { borderLeftColor: '#FF9800' }]}>
+                  <View style={styles.alertIcon}>
+                    <Ionicons name="time" size={24} color="#FF9800" />
+                  </View>
+                  <View style={styles.alertContent}>
+                    <Text style={styles.alertTitle}>Pending Approvals</Text>
+                    <Text style={styles.alertText}>3 user access requests and 2 vendor applications awaiting approval</Text>
+                    <Text style={styles.alertTime}>4 hours ago</Text>
+                  </View>
+                  <TouchableOpacity style={styles.alertAction}>
+                    <Ionicons name="chevron-forward" size={16} color="#666" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.alertCard, { borderLeftColor: '#4CAF50' }]}>
+                  <View style={styles.alertIcon}>
+                    <Ionicons name="shield-checkmark" size={24} color="#4CAF50" />
+                  </View>
+                  <View style={styles.alertContent}>
+                    <Text style={styles.alertTitle}>System Backup Complete</Text>
+                    <Text style={styles.alertText}>Daily backup completed successfully - All data secured</Text>
+                    <Text style={styles.alertTime}>6 hours ago</Text>
+                  </View>
+                  <TouchableOpacity style={styles.alertAction}>
+                    <Ionicons name="checkmark" size={16} color="#4CAF50" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.alertCard, { borderLeftColor: '#2196F3' }]}>
+                  <View style={styles.alertIcon}>
+                    <Ionicons name="calendar" size={24} color="#2196F3" />
+                  </View>
+                  <View style={styles.alertContent}>
+                    <Text style={styles.alertTitle}>Upcoming Milestones</Text>
+                    <Text style={styles.alertText}>5 project milestones due this week - Review progress status</Text>
+                    <Text style={styles.alertTime}>Today</Text>
+                  </View>
+                  <TouchableOpacity style={styles.alertAction}>
+                    <Ionicons name="chevron-forward" size={16} color="#666" />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-            
-            <Text style={styles.sectionTitle}>📊 Quick Actions</Text>
-            <FlatList
-              data={[
-                { title: "💼 Project Management", count: `${projects.length} projects`, color: '#2196F3' },
-                { title: "👥 User Management", count: `${users.length} users`, color: '#4CAF50' },
-                { title: "📋 Task Management", count: 'Assign & Track', color: '#FF5722' },
-                { title: "🏢 Vendor Management", count: `${vendors.length} vendors`, color: '#9C27B0' },
-                { title: "💰 Budget & Finance", count: 'Financial Control', color: '#FF9800' },
-                { title: "🔧 Equipment Management", count: 'Asset Control', color: '#607D8B' },
-                { title: "📁 Document Management", count: 'File System', color: '#795548' },
-                { title: "🛡️ Safety & Compliance", count: 'Safety Control', color: '#F44336' },
-              ]}
-              numColumns={2}
-              keyExtractor={(item) => item.title}
-              renderItem={({ item }) => (
+
+            {/* Management Control Center */}
+            <View style={styles.controlCenter}>
+              <Text style={styles.sectionTitle}>🎛️ Management Control Center</Text>
+              <View style={styles.controlGrid}>
                 <TouchableOpacity
-                  style={[styles.actionCard, { borderLeftColor: item.color }]}
-                  onPress={() => setActivePage(item.title.replace(/^[^ ]+\s/, ""))}
+                  style={[styles.controlCard, { backgroundColor: '#E3F2FD' }]}
+                  onPress={() => setActivePage('Project Management')}
                 >
-                  <Text style={styles.actionTitle}>{item.title}</Text>
-                  <Text style={styles.actionCount}>{item.count}</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#666" style={styles.actionArrow} />
+                  <View style={styles.controlIcon}>
+                    <Ionicons name="briefcase" size={32} color="#1976D2" />
+                  </View>
+                  <Text style={styles.controlTitle}>Project Management</Text>
+                  <Text style={styles.controlSubtitle}>{projects.length} active projects</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlMetricValue}>₹{(projects.reduce((sum, p) => sum + (p.budget || 0), 0) / 1000000).toFixed(1)}M</Text>
+                    <Text style={styles.controlMetricLabel}>Total Value</Text>
+                  </View>
                 </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.cardContainer}
-              scrollEnabled={false}
-            />
+
+                <TouchableOpacity
+                  style={[styles.controlCard, { backgroundColor: '#E8F5E8' }]}
+                  onPress={() => setActivePage('User Management')}
+                >
+                  <View style={styles.controlIcon}>
+                    <Ionicons name="people" size={32} color="#388E3C" />
+                  </View>
+                  <Text style={styles.controlTitle}>Workforce Management</Text>
+                  <Text style={styles.controlSubtitle}>{users.length} total employees</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlMetricValue}>{users.filter(u => u.status === 'Active').length}</Text>
+                    <Text style={styles.controlMetricLabel}>Active Users</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.controlCard, { backgroundColor: '#FFF3E0' }]}
+                  onPress={() => setActivePage('Budget & Finance')}
+                >
+                  <View style={styles.controlIcon}>
+                    <Ionicons name="cash" size={32} color="#F57C00" />
+                  </View>
+                  <Text style={styles.controlTitle}>Financial Control</Text>
+                  <Text style={styles.controlSubtitle}>Budget & Analytics</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlMetricValue}>94%</Text>
+                    <Text style={styles.controlMetricLabel}>Budget Efficiency</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.controlCard, { backgroundColor: '#FCE4EC' }]}
+                  onPress={() => setActivePage('Safety & Compliance')}
+                >
+                  <View style={styles.controlIcon}>
+                    <Ionicons name="shield-checkmark" size={32} color="#C2185B" />
+                  </View>
+                  <Text style={styles.controlTitle}>Safety & Compliance</Text>
+                  <Text style={styles.controlSubtitle}>Risk Management</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlMetricValue}>98%</Text>
+                    <Text style={styles.controlMetricLabel}>Compliance Rate</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Quick Access Tools */}
+            <View style={styles.quickAccessSection}>
+              <Text style={styles.sectionTitle}>⚡ Quick Access Tools</Text>
+              <View style={styles.quickAccessGrid}>
+                <TouchableOpacity style={styles.quickAccessItem} onPress={() => setActivePage('Vendor Management')}>
+                  <Ionicons name="business" size={24} color="#9C27B0" />
+                  <Text style={styles.quickAccessText}>Vendors</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAccessItem} onPress={() => setActivePage('Equipment Management')}>
+                  <Ionicons name="build" size={24} color="#607D8B" />
+                  <Text style={styles.quickAccessText}>Equipment</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAccessItem} onPress={() => setActivePage('Document Management')}>
+                  <Ionicons name="folder" size={24} color="#795548" />
+                  <Text style={styles.quickAccessText}>Documents</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAccessItem} onPress={() => setActivePage('Reports & Analytics')}>
+                  <Ionicons name="bar-chart" size={24} color="#FF5722" />
+                  <Text style={styles.quickAccessText}>Reports</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAccessItem} onPress={() => setActivePage('Task Management')}>
+                  <Ionicons name="clipboard" size={24} color="#FF9800" />
+                  <Text style={styles.quickAccessText}>Tasks</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAccessItem} onPress={() => setActivePage('System Settings')}>
+                  <Ionicons name="settings" size={24} color="#666" />
+                  <Text style={styles.quickAccessText}>Settings</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </ScrollView>
         );
     }
@@ -1495,6 +1656,275 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   fullContainer: { flex: 1, backgroundColor: "#f4f7fc" },
   
+  // Executive Header Styles
+  executiveHeader: {
+    backgroundColor: "linear-gradient(135deg, #003366 0%, #004080 100%)",
+    backgroundColor: "#003366",
+    paddingTop: 20,
+    paddingBottom: 25,
+    marginBottom: 20,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  welcomeSection: {
+    flex: 1,
+  },
+  executiveWelcome: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  executiveSubtitle: {
+    fontSize: 16,
+    color: "#B3D9FF",
+    marginBottom: 4,
+  },
+  companyName: {
+    fontSize: 14,
+    color: "#80BFFF",
+    fontWeight: "600",
+  },
+  dateTimeCard: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    minWidth: 100,
+  },
+  currentDate: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+    marginBottom: 2,
+  },
+  currentTime: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#B3D9FF",
+  },
+  headerStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingHorizontal: 20,
+  },
+  headerStat: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 12,
+    padding: 15,
+    minWidth: 90,
+  },
+  headerStatNumber: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  headerStatLabel: {
+    fontSize: 11,
+    color: "#B3D9FF",
+    textAlign: "center",
+  },
+
+  // KPI Section Styles
+  kpiSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  kpiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  kpiCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    width: "48%",
+    marginBottom: 15,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderLeftWidth: 5,
+  },
+  kpiHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  kpiTrend: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F8F0",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  kpiTrendText: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  kpiNumber: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#003366",
+    marginBottom: 8,
+  },
+  kpiLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 4,
+  },
+  kpiSubtext: {
+    fontSize: 12,
+    color: "#999",
+    lineHeight: 16,
+  },
+
+  // Enhanced Alerts Section
+  alertsContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 5,
+    elevation: 3,
+  },
+  alertCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+    borderLeftWidth: 4,
+  },
+  alertIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#f8f9fa",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  alertText: {
+    fontSize: 13,
+    color: "#666",
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  alertTime: {
+    fontSize: 11,
+    color: "#999",
+  },
+  alertAction: {
+    padding: 8,
+  },
+
+  // Control Center Styles
+  controlCenter: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  controlGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  controlCard: {
+    width: "48%",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  controlIcon: {
+    alignSelf: "flex-start",
+    marginBottom: 15,
+  },
+  controlTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#003366",
+    marginBottom: 6,
+  },
+  controlSubtitle: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 12,
+  },
+  controlMetric: {
+    alignItems: "flex-start",
+  },
+  controlMetricValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#003366",
+  },
+  controlMetricLabel: {
+    fontSize: 11,
+    color: "#999",
+    marginTop: 2,
+  },
+
+  // Quick Access Styles
+  quickAccessSection: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  quickAccessGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    elevation: 2,
+  },
+  quickAccessItem: {
+    alignItems: "center",
+    width: "30%",
+    paddingVertical: 15,
+    borderRadius: 12,
+    backgroundColor: "#f8f9fa",
+    marginBottom: 10,
+  },
+  quickAccessText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#003366",
+    marginTop: 8,
+    textAlign: "center",
+  },
+
+  // Legacy styles (keeping for compatibility)
   dashboardHeader: { padding: 20, alignItems: "center", backgroundColor: "#fff", marginBottom: 20, elevation: 2 },
   welcome: { fontSize: 24, fontWeight: "700", color: "#003366" },
   subtitle: { fontSize: 16, color: "#666", marginTop: 8, textAlign: "center" },
@@ -1507,9 +1937,7 @@ const styles = StyleSheet.create({
   metricLabel: { fontSize: 12, color: "#666", marginBottom: 4 },
   metricChange: { fontSize: 11, color: "#4CAF50", fontWeight: "500" },
   
-  alertsSection: { paddingHorizontal: 20, marginBottom: 20 },
-  alertCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 12, borderRadius: 8, marginBottom: 8, elevation: 1, borderLeftWidth: 4, borderLeftColor: "#FF5722" },
-  alertText: { marginLeft: 10, fontSize: 13, color: "#333", flex: 1 },
+  alertsSection: { paddingHorizontal: 20, marginBottom: 25 },
   
   actionCard: { backgroundColor: "#fff", borderRadius: 12, padding: 15, margin: 10, elevation: 2, width: width / 2.4, borderLeftWidth: 4 },
   actionTitle: { fontSize: 13, color: "#003366", fontWeight: "600", marginBottom: 8 },

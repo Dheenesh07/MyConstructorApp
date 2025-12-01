@@ -580,62 +580,231 @@ export default function EngineerDashboard() {
           );
         }
         return (
-          <ScrollView style={styles.fullContainer}>
-            <View style={styles.dashboardHeader}>
-              <Text style={styles.welcome}>👷 Welcome back, {user?.username || 'Engineer'}!</Text>
-              <Text style={styles.subtitle}>Beemji Construction - Site Engineering Portal</Text>
-              <Text style={styles.dateTime}>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Text>
-            </View>
-            
-            <View style={styles.alertsSection}>
-              <Text style={styles.sectionTitle}>🚨 Priority Alerts</Text>
-              <View style={styles.alertCard}>
-                <Ionicons name="warning" size={20} color="#FF5722" />
-                <Text style={styles.alertText}>Foundation inspection due tomorrow - Block A</Text>
-              </View>
-              <View style={styles.alertCard}>
-                <Ionicons name="time" size={20} color="#FF9800" />
-                <Text style={styles.alertText}>Structural drawings pending approval - 2 days overdue</Text>
-              </View>
-            </View>
-            
-            <View style={styles.statsContainer}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{tasks.filter(t => t.status === 'In Progress').length}</Text>
-                <Text style={styles.statLabel}>Active Tasks</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{drawings.filter(d => d.status === 'Approved').length}</Text>
-                <Text style={styles.statLabel}>Approved Drawings</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{equipment.filter(e => e.status === 'Operational').length}</Text>
-                <Text style={styles.statLabel}>Operational Equipment</Text>
+          <ScrollView style={styles.fullContainer} showsVerticalScrollIndicator={false}>
+            {/* Professional Engineer Header */}
+            <View style={styles.engineerHeader}>
+              <View style={styles.engineerGradient}>
+                <View style={styles.engineerContent}>
+                  <View style={styles.engineerIcon}>
+                    <Ionicons name="construct" size={32} color="#FFD700" />
+                  </View>
+                  <Text style={styles.engineerGreeting}>Technical Excellence</Text>
+                  <Text style={styles.engineerName}>{user?.first_name || user?.username || 'Site Engineer'}</Text>
+                  <Text style={styles.engineerRole}>Engineering precision in construction</Text>
+                  <View style={styles.engineerDateCard}>
+                    <Text style={styles.engineerDate}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</Text>
+                    <Text style={styles.engineerTime}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</Text>
+                  </View>
+                </View>
               </View>
             </View>
-            
-            <Text style={styles.sectionTitle}>📋 Quick Actions</Text>
-            <FlatList
-              data={[
-                { title: "🔧 Technical Tasks", count: `${tasks.length} tasks` },
-                { title: "📐 Drawings & Documents", count: `${drawings.length} drawings` },
-                { title: "🏗️ Equipment Management", count: `${equipment.length} equipment` },
-                { title: "📊 Technical Reports", count: `${reports.length} reports` },
-              ]}
-              numColumns={2}
-              keyExtractor={(item) => item.title}
-              renderItem={({ item }) => (
+
+            {/* Engineering Metrics */}
+            <View style={styles.engineeringMetrics}>
+              <Text style={styles.sectionTitle}>🔧 Engineering Dashboard</Text>
+              <View style={styles.engineeringGrid}>
+                <View style={[styles.engineeringCard, { borderLeftColor: '#FF9800' }]}>
+                  <View style={styles.engineeringHeader}>
+                    <Ionicons name="construct" size={28} color="#FF9800" />
+                    <View style={styles.engineeringTrend}>
+                      <Ionicons name="trending-up" size={16} color="#4CAF50" />
+                      <Text style={styles.engineeringTrendText}>+25%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.engineeringNumber}>{tasks.length}</Text>
+                  <Text style={styles.engineeringLabel}>Technical Tasks</Text>
+                  <Text style={styles.engineeringDetail}>{tasks.filter(t => t.status === 'In Progress').length} active, {tasks.filter(t => t.status === 'Completed').length} completed</Text>
+                </View>
+
+                <View style={[styles.engineeringCard, { borderLeftColor: '#4CAF50' }]}>
+                  <View style={styles.engineeringHeader}>
+                    <Ionicons name="document-text" size={28} color="#4CAF50" />
+                    <View style={styles.engineeringTrend}>
+                      <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                      <Text style={styles.engineeringTrendText}>95%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.engineeringNumber}>{drawings.length}</Text>
+                  <Text style={styles.engineeringLabel}>Technical Drawings</Text>
+                  <Text style={styles.engineeringDetail}>{drawings.filter(d => d.status === 'Approved').length} approved, {drawings.filter(d => d.status === 'Under Review').length} pending</Text>
+                </View>
+
+                <View style={[styles.engineeringCard, { borderLeftColor: '#2196F3' }]}>
+                  <View style={styles.engineeringHeader}>
+                    <Ionicons name="build" size={28} color="#2196F3" />
+                    <View style={styles.engineeringTrend}>
+                      <Ionicons name="checkmark" size={16} color="#4CAF50" />
+                      <Text style={styles.engineeringTrendText}>92%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.engineeringNumber}>{equipment.length}</Text>
+                  <Text style={styles.engineeringLabel}>Equipment Status</Text>
+                  <Text style={styles.engineeringDetail}>{equipment.filter(e => e.status === 'Operational').length} operational, 92% uptime</Text>
+                </View>
+
+                <View style={[styles.engineeringCard, { borderLeftColor: '#9C27B0' }]}>
+                  <View style={styles.engineeringHeader}>
+                    <Ionicons name="bar-chart" size={28} color="#9C27B0" />
+                    <View style={styles.engineeringTrend}>
+                      <Ionicons name="trending-up" size={16} color="#4CAF50" />
+                      <Text style={styles.engineeringTrendText}>+18%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.engineeringNumber}>{reports.length}</Text>
+                  <Text style={styles.engineeringLabel}>Technical Reports</Text>
+                  <Text style={styles.engineeringDetail}>{reports.filter(r => r.status === 'Submitted').length} submitted this week</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Technical Priorities */}
+            <View style={styles.technicalPriorities}>
+              <Text style={styles.sectionTitle}>⚡ Technical Priorities</Text>
+              <View style={styles.prioritiesContainer}>
+                <View style={[styles.priorityCard, { borderLeftColor: '#F44336' }]}>
+                  <View style={styles.priorityIcon}>
+                    <Ionicons name="warning" size={24} color="#F44336" />
+                  </View>
+                  <View style={styles.priorityContent}>
+                    <Text style={styles.priorityTitle}>Foundation Inspection</Text>
+                    <Text style={styles.priorityText}>Structural integrity check due tomorrow</Text>
+                    <Text style={styles.priorityProject}>Block A - Critical Priority</Text>
+                  </View>
+                  <TouchableOpacity style={styles.priorityAction}>
+                    <Ionicons name="chevron-forward" size={20} color="#F44336" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.priorityCard, { borderLeftColor: '#FF9800' }]}>
+                  <View style={styles.priorityIcon}>
+                    <Ionicons name="time" size={24} color="#FF9800" />
+                  </View>
+                  <View style={styles.priorityContent}>
+                    <Text style={styles.priorityTitle}>Drawing Approval</Text>
+                    <Text style={styles.priorityText}>Structural drawings pending review</Text>
+                    <Text style={styles.priorityProject}>2 days overdue - Action required</Text>
+                  </View>
+                  <TouchableOpacity style={styles.priorityAction}>
+                    <Ionicons name="document-text" size={20} color="#FF9800" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.priorityCard, { borderLeftColor: '#4CAF50' }]}>
+                  <View style={styles.priorityIcon}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                  <View style={styles.priorityContent}>
+                    <Text style={styles.priorityTitle}>MEP Coordination</Text>
+                    <Text style={styles.priorityText}>Systems integration meeting completed</Text>
+                    <Text style={styles.priorityProject}>All systems aligned - On schedule</Text>
+                  </View>
+                  <TouchableOpacity style={styles.priorityAction}>
+                    <Ionicons name="checkmark" size={20} color="#4CAF50" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Engineering Control Center */}
+            <View style={styles.engineeringControl}>
+              <Text style={styles.sectionTitle}>🎯 Engineering Control Center</Text>
+              <View style={styles.controlGrid}>
                 <TouchableOpacity
-                  style={styles.dashboardCard}
-                  onPress={() => setActivePage(item.title.replace(/^[^ ]+\s/, ""))}
+                  style={[styles.controlCard, { backgroundColor: '#FFF3E0' }]}
+                  onPress={() => setActivePage('Technical Tasks')}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.cardText}>{item.title}</Text>
-                  <Text style={styles.cardCount}>{item.count}</Text>
+                  <View style={[styles.controlIcon, { backgroundColor: '#FF9800' }]}>
+                    <Ionicons name="construct" size={28} color="#fff" />
+                  </View>
+                  <Text style={styles.controlTitle}>Technical Tasks</Text>
+                  <Text style={styles.controlSubtitle}>{tasks.length} active tasks</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlValue}>{Math.round((tasks.filter(t => t.progress === 100).length / tasks.length) * 100)}%</Text>
+                    <Text style={styles.controlLabel}>Completion Rate</Text>
+                  </View>
                 </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.cardContainer}
-              scrollEnabled={false}
-            />
+
+                <TouchableOpacity
+                  style={[styles.controlCard, { backgroundColor: '#E8F5E8' }]}
+                  onPress={() => setActivePage('Drawings & Documents')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.controlIcon, { backgroundColor: '#4CAF50' }]}>
+                    <Ionicons name="document-text" size={28} color="#fff" />
+                  </View>
+                  <Text style={styles.controlTitle}>Drawings & Docs</Text>
+                  <Text style={styles.controlSubtitle}>{drawings.length} technical drawings</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlValue}>{drawings.filter(d => d.status === 'Approved').length}</Text>
+                    <Text style={styles.controlLabel}>Approved</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.controlCard, { backgroundColor: '#E3F2FD' }]}
+                  onPress={() => setActivePage('Equipment Management')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.controlIcon, { backgroundColor: '#2196F3' }]}>
+                    <Ionicons name="build" size={28} color="#fff" />
+                  </View>
+                  <Text style={styles.controlTitle}>Equipment</Text>
+                  <Text style={styles.controlSubtitle}>{equipment.length} units managed</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlValue}>{equipment.filter(e => e.status === 'Operational').length}</Text>
+                    <Text style={styles.controlLabel}>Operational</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.controlCard, { backgroundColor: '#F3E5F5' }]}
+                  onPress={() => setActivePage('Technical Reports')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.controlIcon, { backgroundColor: '#9C27B0' }]}>
+                    <Ionicons name="bar-chart" size={28} color="#fff" />
+                  </View>
+                  <Text style={styles.controlTitle}>Reports</Text>
+                  <Text style={styles.controlSubtitle}>{reports.length} technical reports</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlValue}>{reports.filter(r => r.status === 'Submitted').length}</Text>
+                    <Text style={styles.controlLabel}>Submitted</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Engineering Tools */}
+            <View style={styles.engineeringTools}>
+              <Text style={styles.sectionTitle}>🔧 Engineering Tools</Text>
+              <View style={styles.toolsGrid}>
+                <TouchableOpacity style={styles.toolItem} onPress={() => setActivePage('Vendor Management')}>
+                  <Ionicons name="business" size={24} color="#673AB7" />
+                  <Text style={styles.toolText}>Vendors</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('CAD Tools', 'Launch CAD software')}>
+                  <Ionicons name="shapes" size={24} color="#795548" />
+                  <Text style={styles.toolText}>CAD Tools</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Calculator', 'Engineering calculator')}>
+                  <Ionicons name="calculator" size={24} color="#607D8B" />
+                  <Text style={styles.toolText}>Calculator</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Specifications', 'View technical specs')}>
+                  <Ionicons name="library" size={24} color="#FF5722" />
+                  <Text style={styles.toolText}>Specs</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Measurements', 'Site measurement tools')}>
+                  <Ionicons name="resize" size={24} color="#009688" />
+                  <Text style={styles.toolText}>Measure</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Quality Check', 'Quality assurance tools')}>
+                  <Ionicons name="checkmark-done" size={24} color="#4CAF50" />
+                  <Text style={styles.toolText}>Quality</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </ScrollView>
         );
     }
@@ -1105,16 +1274,526 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold", marginLeft: 10 },
   fullContainer: { flex: 1, backgroundColor: "#f4f7fc" },
   
-  dashboardHeader: { padding: 20, alignItems: "center" },
-  welcome: { fontSize: 24, fontWeight: "700", color: "#003366" },
-  subtitle: { fontSize: 16, color: "#666", marginTop: 8, textAlign: "center" },
+  // Professional Engineer Header Styles
+  engineerHeader: {
+    marginBottom: 20,
+  },
+  engineerGradient: {
+    backgroundColor: "#003366",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  engineerContent: {
+    alignItems: "center",
+  },
+  engineerIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: "rgba(255, 215, 0, 0.4)",
+  },
+  engineerGreeting: {
+    fontSize: 16,
+    color: "#FFD700",
+    fontWeight: "500",
+    marginBottom: 5,
+  },
+  engineerName: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  engineerRole: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  engineerDateCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  engineerDate: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  engineerTime: {
+    color: "#B3D9FF",
+    fontSize: 16,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+
+  // Engineering Metrics Section
+  engineeringMetrics: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  engineeringGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  engineeringCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 18,
+    width: "48%",
+    marginBottom: 15,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderLeftWidth: 5,
+  },
+  engineeringHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  engineeringTrend: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F8F0",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  engineeringTrendText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#4CAF50",
+    marginLeft: 3,
+  },
+  engineeringNumber: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#003366",
+    marginBottom: 6,
+  },
+  engineeringLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 4,
+  },
+  engineeringDetail: {
+    fontSize: 11,
+    color: "#999",
+    lineHeight: 15,
+  },
+
+  // Technical Priorities Section
+  technicalPriorities: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  prioritiesContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 5,
+    elevation: 3,
+  },
+  priorityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+    borderLeftWidth: 4,
+  },
+  priorityIcon: {
+    width: 45,
+    height: 45,
+    borderRadius: 22,
+    backgroundColor: "#f8f9fa",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  priorityContent: {
+    flex: 1,
+  },
+  priorityTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 3,
+  },
+  priorityText: {
+    fontSize: 13,
+    color: "#333",
+    marginBottom: 2,
+  },
+  priorityProject: {
+    fontSize: 11,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  priorityAction: {
+    padding: 8,
+  },
+
+  // Engineering Control Section
+  engineeringControl: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  controlGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  controlCard: {
+    width: "48%",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  controlIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  controlTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  controlSubtitle: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 10,
+  },
+  controlMetric: {
+    alignItems: "flex-start",
+  },
+  controlValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#003366",
+  },
+  controlLabel: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
+  },
+
+  // Engineering Tools Section
+  engineeringTools: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  toolsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    elevation: 2,
+  },
+  toolItem: {
+    alignItems: "center",
+    width: "30%",
+    paddingVertical: 15,
+    borderRadius: 12,
+    backgroundColor: "#f8f9fa",
+    marginBottom: 10,
+  },
+  toolText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#003366",
+    marginTop: 6,
+    textAlign: "center",
+  },
+
+  // Legacy styles (keeping for compatibility)
+  welcomeHeader: {
+    marginBottom: 20,
+  },
+  welcomeBackground: {
+    backgroundColor: "#003366",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  constructionIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    color: "#FFD700",
+    fontWeight: "600",
+    marginBottom: 5,
+  },
+  welcomeName: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  dateTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  dateTimeText: {
+    color: "#fff",
+    fontSize: 12,
+    marginLeft: 6,
+  },
   
-  statsContainer: { flexDirection: "row", paddingHorizontal: 20, marginBottom: 20 },
-  statCard: { flex: 1, backgroundColor: "#fff", borderRadius: 12, padding: 15, marginHorizontal: 5, alignItems: "center", elevation: 2 },
-  statNumber: { fontSize: 24, fontWeight: "bold", color: "#003366" },
-  statLabel: { fontSize: 12, color: "#666", marginTop: 4 },
+  // Enhanced Stats Section
+  statsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 15,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 18,
+    marginHorizontal: 4,
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  tasksCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#FF9800",
+  },
+  drawingsCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#4CAF50",
+  },
+  equipmentCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#2196F3",
+  },
+  statIconContainer: {
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  statSubtext: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
+  },
   
-  sectionTitle: { fontSize: 18, fontWeight: "600", color: "#003366", paddingHorizontal: 20, marginBottom: 10 },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 15,
+  },
+  
+  // Actions Section
+  actionsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  actionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  actionCard: {
+    width: "48%",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    position: "relative",
+  },
+  actionIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  actionCount: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  actionArrow: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+  },
+  
+  // Performance Section
+  performanceSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  performanceCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  performanceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  performanceTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#003366",
+    marginLeft: 10,
+  },
+  performanceMetrics: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  performanceMetric: {
+    alignItems: "center",
+  },
+  performanceValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#4CAF50",
+  },
+  performanceLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  
+  // Quality Section
+  qualitySection: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  qualityCard: {
+    backgroundColor: "#E8F5E8",
+    borderRadius: 16,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
+  },
+  qualityHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  qualityTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2E7D32",
+    marginLeft: 10,
+  },
+  qualityText: {
+    fontSize: 14,
+    color: "#4CAF50",
+    marginBottom: 10,
+  },
+  qualityStats: {
+    alignItems: "center",
+  },
+  qualityMetric: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2E7D32",
+  },
   
   cardContainer: { paddingHorizontal: 10, justifyContent: 'center' },
   dashboardCard: { backgroundColor: "#fff", borderRadius: 12, padding: 20, margin: 10, elevation: 3, flex: 1, maxWidth: (width - 60) / 2, alignItems: "center" },
@@ -1289,26 +1968,86 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "center",
   },
+  // Enhanced Alerts Section
   alertsSection: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 25,
   },
-  alertCard: {
+  priorityAlert: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    elevation: 1,
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    elevation: 3,
     borderLeftWidth: 4,
     borderLeftColor: "#FF5722",
   },
-  alertText: {
-    marginLeft: 10,
-    fontSize: 13,
-    color: "#333",
+  alertIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FF5722",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  alertContent: {
     flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF5722",
+    marginBottom: 2,
+  },
+  alertText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 2,
+    fontWeight: "500",
+  },
+  alertTime: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  warningAlert: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 12,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FF9800",
+  },
+  warningIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FF9800",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF9800",
+    marginBottom: 2,
+  },
+  warningText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 2,
+    fontWeight: "500",
+  },
+  warningTime: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
   },
   
   // Document upload styles

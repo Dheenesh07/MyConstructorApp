@@ -497,87 +497,231 @@ export default function ProjectManagerDashboard() {
 
       default:
         return (
-          <ScrollView style={styles.fullContainer}>
-            <View style={styles.dashboardHeader}>
-              <Text style={styles.welcome}>📋 Welcome back, {user?.username || 'Project Manager'}!</Text>
-              <Text style={styles.subtitle}>Beemji Construction - Project Management Hub</Text>
-              <Text style={styles.dateTime}>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</Text>
-            </View>
-            
-            <View style={styles.metricsGrid}>
-              <View style={styles.metricCard}>
-                <View style={styles.metricIcon}>
-                  <Ionicons name="construct" size={24} color="#2196F3" />
+          <ScrollView style={styles.fullContainer} showsVerticalScrollIndicator={false}>
+            {/* Professional Header */}
+            <View style={styles.professionalHeader}>
+              <View style={styles.headerGradient}>
+                <View style={styles.headerContent}>
+                  <View style={styles.managerIcon}>
+                    <Ionicons name="briefcase" size={32} color="#FFD700" />
+                  </View>
+                  <Text style={styles.headerGreeting}>Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}</Text>
+                  <Text style={styles.managerName}>{user?.first_name || user?.username || 'Project Manager'}</Text>
+                  <Text style={styles.roleTitle}>Project Management Excellence</Text>
+                  <View style={styles.dateCard}>
+                    <Text style={styles.currentDate}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</Text>
+                    <Text style={styles.currentTime}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</Text>
+                  </View>
                 </View>
-                <Text style={styles.metricNumber}>{projects.filter(p => p.status === 'In Progress').length}</Text>
-                <Text style={styles.metricLabel}>Active Projects</Text>
-                <Text style={styles.metricChange}>85% on schedule</Text>
-              </View>
-              <View style={styles.metricCard}>
-                <View style={styles.metricIcon}>
-                  <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                </View>
-                <Text style={styles.metricNumber}>{tasks.filter(t => t.status === 'Completed').length}</Text>
-                <Text style={styles.metricLabel}>Tasks Completed</Text>
-                <Text style={styles.metricChange}>+15 this week</Text>
-              </View>
-              <View style={styles.metricCard}>
-                <View style={styles.metricIcon}>
-                  <Ionicons name="people" size={24} color="#FF9800" />
-                </View>
-                <Text style={styles.metricNumber}>{team.length}</Text>
-                <Text style={styles.metricLabel}>Team Members</Text>
-                <Text style={styles.metricChange}>98% attendance</Text>
-              </View>
-              <View style={styles.metricCard}>
-                <View style={styles.metricIcon}>
-                  <Ionicons name="trending-up" size={24} color="#4CAF50" />
-                </View>
-                <Text style={styles.metricNumber}>₹1.8M</Text>
-                <Text style={styles.metricLabel}>Project Value</Text>
-                <Text style={styles.metricChange}>Within budget</Text>
               </View>
             </View>
-            
-            <View style={styles.alertsSection}>
-              <Text style={styles.sectionTitle}>🚨 Project Priorities</Text>
-              <View style={styles.alertCard}>
-                <Ionicons name="time" size={20} color="#FF5722" />
-                <Text style={styles.alertText}>Residential Complex A: Foundation inspection due today</Text>
-              </View>
-              <View style={styles.alertCard}>
-                <Ionicons name="people" size={20} color="#FF9800" />
-                <Text style={styles.alertText}>Team standup at 2:00 PM - Weekly progress review</Text>
-              </View>
-              <View style={styles.alertCard}>
-                <Ionicons name="cash" size={20} color="#4CAF50" />
-                <Text style={styles.alertText}>Budget approval received for Office Building B</Text>
+
+            {/* Key Metrics Dashboard */}
+            <View style={styles.metricsSection}>
+              <Text style={styles.sectionTitle}>📈 Project Portfolio Metrics</Text>
+              <View style={styles.metricsGrid}>
+                <View style={[styles.metricCard, { borderLeftColor: '#2196F3' }]}>
+                  <View style={styles.metricHeader}>
+                    <Ionicons name="construct" size={28} color="#2196F3" />
+                    <View style={styles.trendIndicator}>
+                      <Ionicons name="trending-up" size={16} color="#4CAF50" />
+                      <Text style={styles.trendText}>+15%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.metricNumber}>{projects.length}</Text>
+                  <Text style={styles.metricLabel}>Total Projects</Text>
+                  <Text style={styles.metricDetail}>{projects.filter(p => p.status === 'In Progress').length} active, {projects.filter(p => p.status === 'Completed').length} completed</Text>
+                </View>
+
+                <View style={[styles.metricCard, { borderLeftColor: '#4CAF50' }]}>
+                  <View style={styles.metricHeader}>
+                    <Ionicons name="checkmark-circle" size={28} color="#4CAF50" />
+                    <View style={styles.trendIndicator}>
+                      <Ionicons name="trending-up" size={16} color="#4CAF50" />
+                      <Text style={styles.trendText}>+22%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.metricNumber}>{tasks.filter(t => t.status === 'Completed').length}</Text>
+                  <Text style={styles.metricLabel}>Tasks Completed</Text>
+                  <Text style={styles.metricDetail}>This week: {Math.floor(tasks.filter(t => t.status === 'Completed').length * 0.3)} tasks</Text>
+                </View>
+
+                <View style={[styles.metricCard, { borderLeftColor: '#FF9800' }]}>
+                  <View style={styles.metricHeader}>
+                    <Ionicons name="people" size={28} color="#FF9800" />
+                    <View style={styles.trendIndicator}>
+                      <Ionicons name="checkmark" size={16} color="#4CAF50" />
+                      <Text style={styles.trendText}>98%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.metricNumber}>{team.length}</Text>
+                  <Text style={styles.metricLabel}>Team Members</Text>
+                  <Text style={styles.metricDetail}>{team.filter(m => m.status === 'Available').length} available, 98% efficiency</Text>
+                </View>
+
+                <View style={[styles.metricCard, { borderLeftColor: '#9C27B0' }]}>
+                  <View style={styles.metricHeader}>
+                    <Ionicons name="cash" size={28} color="#9C27B0" />
+                    <View style={styles.trendIndicator}>
+                      <Ionicons name="trending-up" size={16} color="#4CAF50" />
+                      <Text style={styles.trendText}>+8%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.metricNumber}>$2.8M</Text>
+                  <Text style={styles.metricLabel}>Portfolio Value</Text>
+                  <Text style={styles.metricDetail}>65% utilized, on budget</Text>
+                </View>
               </View>
             </View>
-            
-            <Text style={styles.sectionTitle}>📊 Quick Actions</Text>
-            <FlatList
-              data={[
-                { title: "📊 Project Management", count: `${projects.length} projects`, color: '#2196F3' },
-                { title: "👥 Team Management", count: `${team.length} members`, color: '#FF9800' },
-                { title: "📋 Task Assignment", count: `${tasks.length} tasks`, color: '#4CAF50' },
-                { title: "💰 Budget Management", count: '$2.8M budget', color: '#9C27B0' },
-              ]}
-              numColumns={2}
-              keyExtractor={(item) => item.title}
-              renderItem={({ item }) => (
+
+            {/* Priority Management */}
+            <View style={styles.prioritySection}>
+              <Text style={styles.sectionTitle}>⚡ Priority Management</Text>
+              <View style={styles.priorityContainer}>
+                <View style={[styles.priorityCard, { borderLeftColor: '#F44336' }]}>
+                  <View style={styles.priorityIcon}>
+                    <Ionicons name="warning" size={24} color="#F44336" />
+                  </View>
+                  <View style={styles.priorityContent}>
+                    <Text style={styles.priorityTitle}>Critical Deadline</Text>
+                    <Text style={styles.priorityText}>Foundation inspection due today at 3:00 PM</Text>
+                    <Text style={styles.priorityProject}>Residential Complex A</Text>
+                  </View>
+                  <TouchableOpacity style={styles.priorityAction}>
+                    <Ionicons name="chevron-forward" size={20} color="#F44336" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.priorityCard, { borderLeftColor: '#FF9800' }]}>
+                  <View style={styles.priorityIcon}>
+                    <Ionicons name="people" size={24} color="#FF9800" />
+                  </View>
+                  <View style={styles.priorityContent}>
+                    <Text style={styles.priorityTitle}>Team Meeting</Text>
+                    <Text style={styles.priorityText}>Weekly progress review at 2:00 PM</Text>
+                    <Text style={styles.priorityProject}>Conference Room A - All leads</Text>
+                  </View>
+                  <TouchableOpacity style={styles.priorityAction}>
+                    <Ionicons name="calendar" size={20} color="#FF9800" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.priorityCard, { borderLeftColor: '#4CAF50' }]}>
+                  <View style={styles.priorityIcon}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                  <View style={styles.priorityContent}>
+                    <Text style={styles.priorityTitle}>Budget Approved</Text>
+                    <Text style={styles.priorityText}>Office Building B - $5M budget approved</Text>
+                    <Text style={styles.priorityProject}>Ready for Phase 2 execution</Text>
+                  </View>
+                  <TouchableOpacity style={styles.priorityAction}>
+                    <Ionicons name="checkmark" size={20} color="#4CAF50" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Management Control Center */}
+            <View style={styles.controlSection}>
+              <Text style={styles.sectionTitle}>🎯 Management Control Center</Text>
+              <View style={styles.controlGrid}>
                 <TouchableOpacity
-                  style={[styles.actionCard, { borderLeftColor: item.color }]}
-                  onPress={() => setActivePage(item.title.replace(/^[^ ]+\s/, ""))}
+                  style={[styles.controlCard, { backgroundColor: '#E3F2FD' }]}
+                  onPress={() => setActivePage('Project Management')}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.actionTitle}>{item.title}</Text>
-                  <Text style={styles.actionCount}>{item.count}</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#666" style={styles.actionArrow} />
+                  <View style={[styles.controlIcon, { backgroundColor: '#2196F3' }]}>
+                    <Ionicons name="bar-chart" size={28} color="#fff" />
+                  </View>
+                  <Text style={styles.controlTitle}>Project Management</Text>
+                  <Text style={styles.controlSubtitle}>{projects.length} active projects</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlValue}>85%</Text>
+                    <Text style={styles.controlLabel}>On Schedule</Text>
+                  </View>
                 </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.cardContainer}
-              scrollEnabled={false}
-            />
+
+                <TouchableOpacity
+                  style={[styles.controlCard, { backgroundColor: '#FFF3E0' }]}
+                  onPress={() => setActivePage('Team Management')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.controlIcon, { backgroundColor: '#FF9800' }]}>
+                    <Ionicons name="people" size={28} color="#fff" />
+                  </View>
+                  <Text style={styles.controlTitle}>Team Management</Text>
+                  <Text style={styles.controlSubtitle}>{team.length} team members</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlValue}>98%</Text>
+                    <Text style={styles.controlLabel}>Efficiency</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.controlCard, { backgroundColor: '#E8F5E8' }]}
+                  onPress={() => setActivePage('Task Assignment')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.controlIcon, { backgroundColor: '#4CAF50' }]}>
+                    <Ionicons name="clipboard" size={28} color="#fff" />
+                  </View>
+                  <Text style={styles.controlTitle}>Task Assignment</Text>
+                  <Text style={styles.controlSubtitle}>{tasks.length} total tasks</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlValue}>{tasks.filter(t => t.status === 'Completed').length}</Text>
+                    <Text style={styles.controlLabel}>Completed</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.controlCard, { backgroundColor: '#F3E5F5' }]}
+                  onPress={() => setActivePage('Budget Management')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.controlIcon, { backgroundColor: '#9C27B0' }]}>
+                    <Ionicons name="cash" size={28} color="#fff" />
+                  </View>
+                  <Text style={styles.controlTitle}>Budget Management</Text>
+                  <Text style={styles.controlSubtitle}>$2.8M portfolio</Text>
+                  <View style={styles.controlMetric}>
+                    <Text style={styles.controlValue}>65%</Text>
+                    <Text style={styles.controlLabel}>Utilized</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Quick Tools */}
+            <View style={styles.toolsSection}>
+              <Text style={styles.sectionTitle}>🔧 Quick Management Tools</Text>
+              <View style={styles.toolsGrid}>
+                <TouchableOpacity style={styles.toolItem} onPress={() => setActivePage('Vendor Management')}>
+                  <Ionicons name="business" size={24} color="#673AB7" />
+                  <Text style={styles.toolText}>Vendors</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Reports', 'Generate project reports')}>
+                  <Ionicons name="document-text" size={24} color="#795548" />
+                  <Text style={styles.toolText}>Reports</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Calendar', 'View project calendar')}>
+                  <Ionicons name="calendar" size={24} color="#607D8B" />
+                  <Text style={styles.toolText}>Calendar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Analytics', 'View project analytics')}>
+                  <Ionicons name="analytics" size={24} color="#FF5722" />
+                  <Text style={styles.toolText}>Analytics</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Communication', 'Team communication hub')}>
+                  <Ionicons name="chatbubbles" size={24} color="#009688" />
+                  <Text style={styles.toolText}>Messages</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Settings', 'Project settings')}>
+                  <Ionicons name="settings" size={24} color="#666" />
+                  <Text style={styles.toolText}>Settings</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </ScrollView>
         );
     }
@@ -995,28 +1139,608 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   fullContainer: { flex: 1, backgroundColor: "#f4f7fc" },
   
-  dashboardHeader: { padding: 20, alignItems: "center", backgroundColor: "#fff", marginBottom: 20, elevation: 2 },
-  welcome: { fontSize: 24, fontWeight: "700", color: "#003366" },
-  subtitle: { fontSize: 16, color: "#666", marginTop: 8, textAlign: "center" },
-  dateTime: { fontSize: 14, color: "#999", marginTop: 4, textAlign: "center" },
+  // Professional Header Styles
+  professionalHeader: {
+    marginBottom: 20,
+  },
+  headerGradient: {
+    backgroundColor: "#003366",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  headerContent: {
+    alignItems: "center",
+  },
+  managerIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: "rgba(255, 215, 0, 0.4)",
+  },
+  headerGreeting: {
+    fontSize: 16,
+    color: "#FFD700",
+    fontWeight: "500",
+    marginBottom: 5,
+  },
+  managerName: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  roleTitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  dateCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  currentDate: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  currentTime: {
+    color: "#B3D9FF",
+    fontSize: 16,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+
+  // Metrics Section
+  metricsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  metricsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  metricCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 18,
+    width: "48%",
+    marginBottom: 15,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderLeftWidth: 5,
+  },
+  metricHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  trendIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F8F0",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  trendText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#4CAF50",
+    marginLeft: 3,
+  },
+  metricNumber: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#003366",
+    marginBottom: 6,
+  },
+  metricLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 4,
+  },
+  metricDetail: {
+    fontSize: 11,
+    color: "#999",
+    lineHeight: 15,
+  },
+
+  // Priority Section
+  prioritySection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  priorityContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 5,
+    elevation: 3,
+  },
+  priorityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+    borderLeftWidth: 4,
+  },
+  priorityIcon: {
+    width: 45,
+    height: 45,
+    borderRadius: 22,
+    backgroundColor: "#f8f9fa",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  priorityContent: {
+    flex: 1,
+  },
+  priorityTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 3,
+  },
+  priorityText: {
+    fontSize: 13,
+    color: "#333",
+    marginBottom: 2,
+  },
+  priorityProject: {
+    fontSize: 11,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  priorityAction: {
+    padding: 8,
+  },
+
+  // Control Section
+  controlSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  controlGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  controlCard: {
+    width: "48%",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  controlIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  controlTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  controlSubtitle: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 10,
+  },
+  controlMetric: {
+    alignItems: "flex-start",
+  },
+  controlValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#003366",
+  },
+  controlLabel: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
+  },
+
+  // Tools Section
+  toolsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  toolsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    elevation: 2,
+  },
+  toolItem: {
+    alignItems: "center",
+    width: "30%",
+    paddingVertical: 15,
+    borderRadius: 12,
+    backgroundColor: "#f8f9fa",
+    marginBottom: 10,
+  },
+  toolText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#003366",
+    marginTop: 6,
+    textAlign: "center",
+  },
+
+  // Legacy styles (keeping for compatibility)
+  welcomeHeader: {
+    marginBottom: 20,
+  },
+  welcomeBackground: {
+    backgroundColor: "#003366",
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  constructionIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+  },
+  welcomeTitle: {
+    fontSize: 18,
+    color: "#FFD700",
+    fontWeight: "600",
+    marginBottom: 5,
+  },
+  welcomeName: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  dateTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  dateTimeText: {
+    color: "#fff",
+    fontSize: 12,
+    marginLeft: 6,
+  },
   
-  metricsGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 10, marginBottom: 20 },
-  metricCard: { width: "48%", backgroundColor: "#fff", borderRadius: 12, padding: 15, margin: "1%", elevation: 3 },
-  metricIcon: { alignSelf: "flex-start", marginBottom: 10 },
-  metricNumber: { fontSize: 28, fontWeight: "bold", color: "#003366", marginBottom: 4 },
-  metricLabel: { fontSize: 12, color: "#666", marginBottom: 4 },
-  metricChange: { fontSize: 11, color: "#4CAF50", fontWeight: "500" },
+  // Enhanced Stats Section
+  statsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 15,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 18,
+    marginHorizontal: 4,
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  projectsCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#2196F3",
+  },
+  tasksCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#4CAF50",
+  },
+  teamCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#FF9800",
+  },
+  statIconContainer: {
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  statSubtext: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
+  },
   
-  alertsSection: { paddingHorizontal: 20, marginBottom: 20 },
-  alertCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 12, borderRadius: 8, marginBottom: 8, elevation: 1, borderLeftWidth: 4, borderLeftColor: "#FF5722" },
-  alertText: { marginLeft: 10, fontSize: 13, color: "#333", flex: 1 },
+  // Enhanced Alerts Section
+  alertsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  priorityAlert: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FF5722",
+  },
+  alertIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FF5722",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF5722",
+    marginBottom: 2,
+  },
+  alertText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 2,
+    fontWeight: "500",
+  },
+  alertTime: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  meetingAlert: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FF9800",
+  },
+  meetingIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FF9800",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  meetingTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FF9800",
+    marginBottom: 2,
+  },
+  meetingText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 2,
+    fontWeight: "500",
+  },
+  meetingTime: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  successAlert: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 12,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
+  },
+  successIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#4CAF50",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 15,
+  },
+  successTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#4CAF50",
+    marginBottom: 2,
+  },
+  successText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 2,
+    fontWeight: "500",
+  },
+  successTime: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
   
-  actionCard: { backgroundColor: "#fff", borderRadius: 12, padding: 15, margin: 10, elevation: 2, width: width / 2.4, borderLeftWidth: 4 },
-  actionTitle: { fontSize: 13, color: "#003366", fontWeight: "600", marginBottom: 8 },
-  actionCount: { fontSize: 11, color: "#666", marginBottom: 8 },
-  actionArrow: { alignSelf: "flex-end" },
+  // Actions Section
+  actionsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  actionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  actionCard: {
+    width: "48%",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    position: "relative",
+  },
+  actionIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 4,
+  },
+  actionCount: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  actionArrow: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+  },
   
-  sectionTitle: { fontSize: 18, fontWeight: "600", color: "#003366", paddingHorizontal: 20, marginBottom: 10 },
+  // Performance Section
+  performanceSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  performanceCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  performanceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  performanceTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#003366",
+    marginLeft: 10,
+  },
+  performanceMetrics: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  performanceMetric: {
+    alignItems: "center",
+  },
+  performanceValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#4CAF50",
+  },
+  performanceLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 15,
+  },
   
   cardContainer: { paddingHorizontal: 10 },
   

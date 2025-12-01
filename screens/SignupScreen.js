@@ -75,13 +75,11 @@ export default function SignupScreen() {
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        role: formData.role
+        role: formData.role,
+        phone: formData.phone,
+        employee_id: formData.employee_id || `EMP${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 99).toString().padStart(2, '0')}`,
+        department: formData.department || `${formData.role} dept`
       };
-      
-      // Add phone as required field
-      signupData.phone = formData.phone;
-      if (formData.employee_id) signupData.employee_id = formData.employee_id;
-      if (formData.department) signupData.department = formData.department;
       
       console.log('Sending signup data:', signupData);
       const response = await authAPI.register(signupData);
@@ -107,13 +105,24 @@ export default function SignupScreen() {
       
       let errorMessage = 'Failed to create account. Please try again.';
       
-      if (error.response?.data) {
+      if (error.response?.status === 500 && error.response?.data?.includes('IntegrityError')) {
+        // Handle duplicate username/email error
+        if (error.response.data.includes('UNIQUE constraint')) {
+          errorMessage = 'Username or email already exists. Please choose different credentials.';
+        } else {
+          errorMessage = 'This username or email is already registered. Please use different credentials.';
+        }
+      } else if (error.response?.data) {
         if (typeof error.response.data === 'string') {
           errorMessage = error.response.data;
         } else if (error.response.data.detail) {
           errorMessage = error.response.data.detail;
         } else if (error.response.data.message) {
           errorMessage = error.response.data.message;
+        } else if (error.response.data.username) {
+          errorMessage = 'Username already exists. Please choose a different username.';
+        } else if (error.response.data.email) {
+          errorMessage = 'Email already exists. Please use a different email address.';
         } else {
           // Handle field-specific errors
           const fieldErrors = Object.values(error.response.data).flat();
@@ -222,13 +231,15 @@ export default function SignupScreen() {
             ))}
           </ScrollView>
 
+
+
           {/* Employee ID */}
           <Text style={styles.label}>Employee ID</Text>
           <TextInput
             style={styles.input}
             value={formData.employee_id}
             onChangeText={(text) => updateFormData('employee_id', text)}
-            placeholder="EMP001"
+            placeholder="EMP001 (auto-generated if empty)"
             placeholderTextColor="#999"
             autoCapitalize="characters"
           />
@@ -239,7 +250,7 @@ export default function SignupScreen() {
             style={styles.input}
             value={formData.department}
             onChangeText={(text) => updateFormData('department', text)}
-            placeholder="Construction"
+            placeholder="Construction (auto-generated if empty)"
             placeholderTextColor="#999"
           />
 
@@ -394,10 +405,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
   },
 
   label: {
@@ -505,10 +513,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: width * 0.85,
     elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    boxShadow: '0 10px 20px rgba(0,0,0,0.3)',
   },
   successIconContainer: {
     marginBottom: 20,
