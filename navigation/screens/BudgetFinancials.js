@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from "react-native";
-import { projectAPI } from "../../utils/api";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, RefreshControl } from "react-native";
+import { projectAPI, budgetAPI } from "../../utils/api";
 
 export default function BudgetFinancials({ navigation }) {
   const [budgets, setBudgets] = useState([]);
@@ -20,96 +20,86 @@ export default function BudgetFinancials({ navigation }) {
   }, []);
 
   const loadBudgets = async () => {
+    setLoading(true);
     try {
-      const response = await projectAPI.getAll();
-      setBudgets(response.data || []);
-    } catch (error) {
-      setBudgets([
-        {
-          id: 1,
-          project_code: "PROJ001",
-          name: "Downtown Office Complex",
-          allocated_amount: 50000000,
-          spent_amount: 15000000,
-          committed_amount: 5000000,
-          categories: [
-            { category: "materials", allocated: 20000000, spent: 8000000, committed: 2000000 },
-            { category: "labor", allocated: 15000000, spent: 5000000, committed: 2000000 },
-            { category: "equipment", allocated: 10000000, spent: 2000000, committed: 1000000 },
-            { category: "subcontractor", allocated: 3000000, spent: 0, committed: 0 },
-            { category: "overhead", allocated: 2000000, spent: 0, committed: 0 }
-          ]
-        },
-        {
-          id: 2,
-          project_code: "PROJ002",
-          name: "Luxury Apartments",
-          allocated_amount: 25000000,
-          spent_amount: 12000000,
-          committed_amount: 3000000,
-          categories: [
-            { category: "materials", allocated: 12000000, spent: 7000000, committed: 1500000 },
-            { category: "labor", allocated: 8000000, spent: 3500000, committed: 1000000 },
-            { category: "equipment", allocated: 3000000, spent: 1500000, committed: 500000 },
-            { category: "overhead", allocated: 2000000, spent: 0, committed: 0 }
-          ]
-        }
-      ]);
+      // Load projects
+      const projectsResponse = await projectAPI.getAll();
+      const projects = projectsResponse.data || [];
       
-      setExpenses([
-        { id: 1, project_id: 1, category: "materials", amount: 50000, description: "Concrete delivery", date: "2024-03-15", vendor: "ABC Materials" },
-        { id: 2, project_id: 1, category: "labor", amount: 25000, description: "Weekly payroll", date: "2024-03-18", vendor: "Construction Crew" },
-        { id: 3, project_id: 2, category: "equipment", amount: 15000, description: "Crane rental", date: "2024-03-20", vendor: "Heavy Equipment Co" }
-      ]);
+      // Load budgets/expenses from backend
+      const budgetsResponse = await budgetAPI.getAll();
+      const backendExpenses = budgetsResponse.data || [];
+      
+      // Map projects with budget data
+      const projectsWithBudgets = projects.map(project => ({
+        ...project,
+        allocated_amount: project.total_budget || 0,
+        spent_amount: project.actual_cost || 0,
+        committed_amount: 0,
+        categories: [
+          { category: "materials", allocated: (project.total_budget || 0) * 0.4, spent: 0, committed: 0 },
+          { category: "labor", allocated: (project.total_budget || 0) * 0.3, spent: 0, committed: 0 },
+          { category: "equipment", allocated: (project.total_budget || 0) * 0.2, spent: 0, committed: 0 },
+          { category: "overhead", allocated: (project.total_budget || 0) * 0.1, spent: 0, committed: 0 }
+        ]
+      }));
+      
+      setBudgets(projectsWithBudgets);
+      setExpenses(backendExpenses);
+      
+    } catch (error) {
+      console.error('Error loading budgets:', error);
+      Alert.alert('Error', 'Failed to load budget data from backend');
+      setBudgets([]);
+      setExpenses([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const addExpense = () => {
+  const addExpense = async () => {
     if (!newExpense.amount || !newExpense.description) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
     }
     
-    const expense = {
-      id: expenses.length + 1,
-      project_id: 1, // Default to first project
-      category: newExpense.category,
-      amount: parseFloat(newExpense.amount),
-      description: newExpense.description,
-      date: newExpense.date,
-      vendor: 'Manual Entry'
-    };
+    if (!budgets || budgets.length === 0) {
+      Alert.alert('Error', 'No projects available. Please create a project first.');
+      return;
+    }
     
-    setExpenses([...expenses, expense]);
-    
-    // Update budget spent amount
-    const updatedBudgets = budgets.map(budget => {
-      if (budget.id === 1) {
-        return {
-          ...budget,
-          spent_amount: budget.spent_amount + expense.amount,
-          categories: budget.categories.map(cat => 
-            cat.category === expense.category 
-              ? { ...cat, spent: cat.spent + expense.amount }
-              : cat
-          )
-        };
-      }
-      return budget;
-    });
-    setBudgets(updatedBudgets);
-    
-    Alert.alert("Success", "Expense added successfully");
-    setModalVisible(false);
-    setNewExpense({
-      project_id: '',
-      category: 'materials',
-      amount: '',
-      description: '',
-      date: new Date().toISOString().split('T')[0]
-    });
+    setLoading(true);
+    try {
+      const expenseData = {
+        project: budgets[0].id,
+        category: newExpense.category,
+        amount: parseFloat(newExpense.amount),
+        description: newExpense.description,
+        expense_date: newExpense.date,
+        vendor: 'Manual Entry'
+      };
+      
+      // Save to backend
+      const response = await budgetAPI.create(expenseData);
+      
+      Alert.alert("Success", "Expense added successfully!");
+      
+      // Reload data from backend to show updated values
+      await loadBudgets();
+      setModalVisible(false);
+      setNewExpense({
+        project_id: '',
+        category: 'materials',
+        amount: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      Alert.alert('Error', `Failed to add expense: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getBudgetProgress = (spent, allocated) => {
@@ -218,8 +208,21 @@ export default function BudgetFinancials({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView>
-        {budgets.map(renderBudgetCard)}
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={loadBudgets} />
+        }
+      >
+        {budgets && budgets.length > 0 ? (
+          budgets.map(renderBudgetCard)
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No budget data available</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={loadBudgets}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       <Modal visible={modalVisible} animationType="slide">
@@ -535,5 +538,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#dc3545',
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
   },
 });

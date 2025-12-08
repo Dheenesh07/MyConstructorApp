@@ -68,6 +68,21 @@ export default function AdminDashboard() {
     injured_person: '',
     project: ''
   });
+  const [vendorModalVisible, setVendorModalVisible] = useState(false);
+  const [viewVendorModalVisible, setViewVendorModalVisible] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [vendorForm, setVendorForm] = useState({
+    name: '',
+    vendor_code: '',
+    vendor_type: 'supplier',
+    contact_person: '',
+    email: '',
+    phone: '',
+    address: '',
+    tax_id: '',
+    rating: 4.0,
+    is_approved: true
+  });
   const [companyInfo, setCompanyInfo] = useState({
     name: 'Beemji Construction',
     address: '123 Construction Ave, Building City',
@@ -330,6 +345,35 @@ export default function AdminDashboard() {
     setSettingsModalVisible(false);
   };
 
+  const createVendor = async () => {
+    if (!vendorForm.name || !vendorForm.email || !vendorForm.phone) {
+      Alert.alert('Error', 'Please fill all required fields');
+      return;
+    }
+    try {
+      const response = await vendorAPI.create(vendorForm);
+      setVendors([response.data, ...vendors]);
+      setVendorForm({
+        name: '',
+        vendor_code: '',
+        vendor_type: 'supplier',
+        contact_person: '',
+        email: '',
+        phone: '',
+        address: '',
+        tax_id: '',
+        rating: 4.0,
+        is_approved: true
+      });
+      setVendorModalVisible(false);
+      Alert.alert('Success', 'Vendor created successfully!');
+      loadVendors();
+    } catch (error) {
+      console.error('Error creating vendor:', error);
+      Alert.alert('Error', `Failed to create vendor: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
   const createUser = async () => {
     if (!userForm.name || !userForm.email) {
       Alert.alert('Error', 'Please fill required fields');
@@ -484,9 +528,9 @@ export default function AdminDashboard() {
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
               <Text style={styles.pageTitle}>🏢 Vendor Management</Text>
-              <TouchableOpacity style={styles.addButton} onPress={() => setActivePage('Vendor Management')}>
-                <Ionicons name="business" size={20} color="#fff" />
-                <Text style={styles.addButtonText}>Manage Vendors</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => setVendorModalVisible(true)}>
+                <Ionicons name="add" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>Add Vendor</Text>
               </TouchableOpacity>
             </View>
             
@@ -501,8 +545,9 @@ export default function AdminDashboard() {
                   </View>
                 </View>
                 <Text style={styles.vendorType}>{vendor.vendor_type?.replace('_', ' ').toUpperCase()}</Text>
+                <Text style={styles.userEmail}>{vendor.email} • {vendor.phone}</Text>
                 <View style={styles.vendorActions}>
-                  <TouchableOpacity style={styles.actionBtn}>
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => { setSelectedVendor(vendor); setViewVendorModalVisible(true); }}>
                     <Text style={styles.actionBtnText}>View Details</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.actionBtn, { backgroundColor: vendor.is_approved ? '#FF9800' : '#4CAF50' }]}>
@@ -580,6 +625,27 @@ export default function AdminDashboard() {
               <Text style={styles.managementDescription}>Assign, track, and monitor all project tasks across teams</Text>
               <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('TaskAssignment')}>
                 <Text style={styles.managementButtonText}>Open Task Management</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        );
+
+      case "Invoice Management":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>📄 Invoice Management</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('InvoiceManagement')}>
+                <Ionicons name="receipt" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>Manage Invoices</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.managementCard}>
+              <Text style={styles.managementTitle}>Invoice Control</Text>
+              <Text style={styles.managementDescription}>Create, approve, and track vendor invoices</Text>
+              <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('InvoiceManagement')}>
+                <Text style={styles.managementButtonText}>Open Invoice Management</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -1551,6 +1617,164 @@ export default function AdminDashboard() {
         </View>
       </Modal>
 
+      {/* Add Vendor Modal */}
+      <Modal animationType="slide" transparent={true} visible={vendorModalVisible} onRequestClose={() => setVendorModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.vendorModalContainer}>
+            <Text style={styles.modalTitle}>Add New Vendor</Text>
+            <ScrollView style={styles.vendorScrollView}>
+              <TextInput
+                style={styles.input}
+                placeholder="Vendor Name *"
+                value={vendorForm.name}
+                onChangeText={(text) => setVendorForm({...vendorForm, name: text})}
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Vendor Code (e.g., VEN001)"
+                value={vendorForm.vendor_code}
+                onChangeText={(text) => setVendorForm({...vendorForm, vendor_code: text})}
+              />
+              
+              <View style={styles.roleContainer}>
+                <Text style={styles.roleLabel}>Vendor Type:</Text>
+                {['supplier', 'equipment_rental', 'subcontractor', 'consultant'].map(type => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[styles.roleOption, {
+                      backgroundColor: vendorForm.vendor_type === type ? '#003366' : '#f5f5f5'
+                    }]}
+                    onPress={() => setVendorForm({...vendorForm, vendor_type: type})}
+                  >
+                    <Text style={[styles.roleText, {
+                      color: vendorForm.vendor_type === type ? '#fff' : '#666'
+                    }]}>{type.replace('_', ' ')}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Contact Person *"
+                value={vendorForm.contact_person}
+                onChangeText={(text) => setVendorForm({...vendorForm, contact_person: text})}
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Email *"
+                value={vendorForm.email}
+                onChangeText={(text) => setVendorForm({...vendorForm, email: text})}
+                keyboardType="email-address"
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Phone *"
+                value={vendorForm.phone}
+                onChangeText={(text) => setVendorForm({...vendorForm, phone: text})}
+                keyboardType="phone-pad"
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Address"
+                value={vendorForm.address}
+                onChangeText={(text) => setVendorForm({...vendorForm, address: text})}
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Tax ID"
+                value={vendorForm.tax_id}
+                onChangeText={(text) => setVendorForm({...vendorForm, tax_id: text})}
+              />
+              
+            </ScrollView>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setVendorModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.submitButton]} onPress={createVendor}>
+                <Text style={styles.submitButtonText}>Create Vendor</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* View Vendor Details Modal */}
+      <Modal animationType="slide" transparent={true} visible={viewVendorModalVisible} onRequestClose={() => setViewVendorModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.reportViewHeader}>
+              <Text style={styles.modalTitle}>{selectedVendor?.name}</Text>
+              <TouchableOpacity onPress={() => setViewVendorModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.reportViewContent}>
+              <View style={styles.reportMetadata}>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>Vendor Code:</Text>
+                  <Text style={styles.metadataValue}>{selectedVendor?.vendor_code || 'N/A'}</Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>Type:</Text>
+                  <Text style={styles.metadataValue}>{selectedVendor?.vendor_type?.replace('_', ' ').toUpperCase()}</Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>Status:</Text>
+                  <View style={[styles.statusBadge, { 
+                    backgroundColor: selectedVendor?.is_approved ? '#4CAF50' : '#FF9800'
+                  }]}>
+                    <Text style={styles.statusText}>{selectedVendor?.is_approved ? 'Approved' : 'Pending'}</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.reportSection}>
+                <Text style={styles.sectionHeader}>Contact Information</Text>
+                <View style={styles.reportMetadata}>
+                  <View style={styles.metadataRow}>
+                    <Text style={styles.metadataLabel}>Contact Person:</Text>
+                    <Text style={styles.metadataValue}>{selectedVendor?.contact_person || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.metadataRow}>
+                    <Text style={styles.metadataLabel}>Email:</Text>
+                    <Text style={styles.metadataValue}>{selectedVendor?.email}</Text>
+                  </View>
+                  <View style={styles.metadataRow}>
+                    <Text style={styles.metadataLabel}>Phone:</Text>
+                    <Text style={styles.metadataValue}>{selectedVendor?.phone}</Text>
+                  </View>
+                  <View style={styles.metadataRow}>
+                    <Text style={styles.metadataLabel}>Address:</Text>
+                    <Text style={styles.metadataValue}>{selectedVendor?.address || 'N/A'}</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.reportSection}>
+                <Text style={styles.sectionHeader}>Business Details</Text>
+                <View style={styles.reportMetadata}>
+                  <View style={styles.metadataRow}>
+                    <Text style={styles.metadataLabel}>Tax ID:</Text>
+                    <Text style={styles.metadataValue}>{selectedVendor?.tax_id || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.metadataRow}>
+                    <Text style={styles.metadataLabel}>Rating:</Text>
+                    <Text style={styles.metadataValue}>{selectedVendor?.rating ? `${selectedVendor.rating}/5.0` : 'N/A'}</Text>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Logout Confirmation Modal */}
       <Modal
         animationType="fade"
@@ -1620,6 +1844,7 @@ export default function AdminDashboard() {
             { title: "User Management", icon: "people" },
             { title: "Task Management", icon: "clipboard" },
             { title: "Vendor Management", icon: "business" },
+            { title: "Invoice Management", icon: "receipt" },
             { title: "Budget & Finance", icon: "cash" },
             { title: "Equipment Management", icon: "build" },
             { title: "Document Management", icon: "folder" },
@@ -2008,6 +2233,8 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
   modalContent: { backgroundColor: "#fff", borderRadius: 12, padding: 20, width: width * 0.9, maxHeight: "80%" },
   modalTitle: { fontSize: 18, fontWeight: "600", color: "#003366", marginBottom: 15 },
+  vendorModalContainer: { backgroundColor: "#fff", borderRadius: 12, padding: 20, width: width * 0.9, maxHeight: "85%" },
+  vendorScrollView: { maxHeight: 450 },
   
   input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 10, backgroundColor: "#fff" },
   

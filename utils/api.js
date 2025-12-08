@@ -15,8 +15,12 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('access');
+  console.log('🔑 Token from storage:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log('✅ Authorization header set');
+  } else {
+    console.log('❌ No token found in AsyncStorage');
   }
   return config;
 });
@@ -112,8 +116,8 @@ export const budgetAPI = {
 export const attendanceAPI = {
   getAll: () => api.get('attendance/'),
   getByUser: (userId) => api.get(`attendance/?user=${userId}`),
-  checkIn: (data) => api.post('attendance/', { ...data, check_in: new Date().toISOString() }),
-  checkOut: (id) => api.patch(`attendance/${id}/`, { check_out: new Date().toISOString() }),
+  checkIn: (data) => api.post('attendance/', data),
+  checkOut: (id, data) => api.patch(`attendance/${id}/`, data),
 };
 
 // Invoice API

@@ -63,27 +63,33 @@ export default function BeemjiLogin({ navigation }) {
     } catch (error) {
       console.error("Login error:", error);
       console.error("Error response:", error.response?.data);
+      console.error("Request data:", { username, password: '***' });
       
-      if (error.response?.status === 400) {
-        const errorData = error.response?.data;
-        let errorMsg = "Invalid login credentials";
+      let errorMsg = "Unable to login. Please try again.";
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
         
-        if (errorData?.non_field_errors && Array.isArray(errorData.non_field_errors)) {
-          errorMsg = errorData.non_field_errors[0] || errorMsg;
-        } else if (errorData?.detail) {
+        if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
+          errorMsg = errorData.non_field_errors.join(', ');
+        } else if (errorData.detail) {
           errorMsg = errorData.detail;
-        } else if (errorData?.message) {
+        } else if (errorData.username) {
+          errorMsg = `Username: ${errorData.username[0]}`;
+        } else if (errorData.password) {
+          errorMsg = `Password: ${errorData.password[0]}`;
+        } else if (errorData.message) {
           errorMsg = errorData.message;
-        } else if (errorData?.error) {
+        } else if (errorData.error) {
           errorMsg = errorData.error;
+        } else {
+          errorMsg = JSON.stringify(errorData);
         }
-        
-        Alert.alert("Login Error", errorMsg);
-      } else if (error.response?.status === 401) {
-        Alert.alert("Login Error", "Invalid username or password");
-      } else {
-        Alert.alert("Login Error", "Unable to connect to server. Please try again later.");
+      } else if (error.message) {
+        errorMsg = error.message;
       }
+      
+      Alert.alert("Login Failed", errorMsg);
     } finally {
       setIsLoading(false);
     }

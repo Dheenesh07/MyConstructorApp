@@ -21,6 +21,7 @@ import EquipmentInventory from "./screens/EquipmentInventory";
 import SafetyCompliance from "./screens/SafetyCompliance";
 import CommunicationCenter from "./screens/CommunicationCenter";
 import Settings from "./screens/Settings";
+import InvoiceManagement from "./screens/InvoiceManagement";
 
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
@@ -185,6 +186,11 @@ export default function AppNavigator() {
           name="Settings"
           component={Settings}
           options={{ title: "Settings" }}
+        />
+        <Stack.Screen
+          name="InvoiceManagement"
+          component={InvoiceManagement}
+          options={{ title: "Invoice Management" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

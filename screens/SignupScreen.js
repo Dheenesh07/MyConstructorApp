@@ -26,7 +26,7 @@ export default function SignupScreen() {
     phone: '',
     password: '',
     confirmPassword: '',
-    role: 'worker',
+    role: '',
     employee_id: '',
     department: ''
   });
@@ -49,8 +49,18 @@ export default function SignupScreen() {
   ];
 
   const handleSignup = async () => {
-    if (!formData.username || !formData.email || !formData.phone || !formData.password) {
-      Alert.alert('Error', 'Please fill all required fields');
+    // Prevent double submission
+    if (loading) return;
+    
+    // Check password match
+    if (formData.confirmPassword && !passwordMatch) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+    
+    // Validation
+    if (!formData.username || !formData.email || !formData.phone || !formData.password || !formData.role) {
+      Alert.alert('Error', 'Please fill all required fields including role selection');
       return;
     }
 
@@ -72,20 +82,25 @@ export default function SignupScreen() {
     setLoading(true);
     try {
       const signupData = {
-        username: formData.username,
-        email: formData.email,
+        username: formData.username.trim(),
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         role: formData.role,
-        phone: formData.phone,
-        employee_id: formData.employee_id || `EMP${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 99).toString().padStart(2, '0')}`,
-        department: formData.department || `${formData.role} dept`
+        phone: formData.phone.trim(),
+        employee_id: formData.employee_id.trim() || `EMP${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 99).toString().padStart(2, '0')}`,
+        department: formData.department.trim() || 'Construction'
       };
       
-      console.log('Sending signup data:', signupData);
+      console.log('📤 Sending signup request:', {
+        url: 'https://construct.velandev.in/api/auth/signup/',
+        data: { ...signupData, password: '***' }
+      });
+      
       const response = await authAPI.register(signupData);
-      console.log('Signup response:', response.data);
-
-      // Show success modal with animation
+      
+      console.log('✅ Signup successful:', response.data);
+      
+      // Show success modal
       setSuccessModalVisible(true);
       
       // Auto-navigate after 3 seconds
@@ -93,48 +108,67 @@ export default function SignupScreen() {
         setSuccessModalVisible(false);
         navigation.navigate('Login');
       }, 3000);
+      
     } catch (error) {
-      console.error('Signup error details:', {
+      console.error('❌ Signup error:', {
         message: error.message,
-        response: error.response?.data,
         status: error.response?.status,
-        url: error.config?.url,
-        method: error.config?.method,
-        data: error.config?.data
+        data: error.response?.data,
+        code: error.code
       });
       
       let errorMessage = 'Failed to create account. Please try again.';
       
-      if (error.response?.status === 500 && error.response?.data?.includes('IntegrityError')) {
-        // Handle duplicate username/email error
-        if (error.response.data.includes('UNIQUE constraint')) {
-          errorMessage = 'Username or email already exists. Please choose different credentials.';
-        } else {
-          errorMessage = 'This username or email is already registered. Please use different credentials.';
-        }
-      } else if (error.response?.data) {
-        if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (error.response.data.detail) {
-          errorMessage = error.response.data.detail;
-        } else if (error.response.data.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.response.data.username) {
-          errorMessage = 'Username already exists. Please choose a different username.';
-        } else if (error.response.data.email) {
-          errorMessage = 'Email already exists. Please use a different email address.';
-        } else {
-          // Handle field-specific errors
-          const fieldErrors = Object.values(error.response.data).flat();
-          if (fieldErrors.length > 0) {
-            errorMessage = fieldErrors.join(', ');
+      // Network error
+      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      }
+      // Timeout error
+      else if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Request timeout. Please check your internet connection.';
+      }
+      // Server errors
+      else if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        if (status === 500) {
+          if (typeof data === 'string' && data.includes('IntegrityError')) {
+            errorMessage = 'Username or email already exists. Please use different credentials.';
+          } else {
+            errorMessage = 'Server error. Please try again later.';
           }
+        } else if (status === 400) {
+          // Handle validation errors
+          if (typeof data === 'object') {
+            if (data.username) {
+              errorMessage = `Username: ${Array.isArray(data.username) ? data.username[0] : data.username}`;
+            } else if (data.email) {
+              errorMessage = `Email: ${Array.isArray(data.email) ? data.email[0] : data.email}`;
+            } else if (data.phone) {
+              errorMessage = `Phone: ${Array.isArray(data.phone) ? data.phone[0] : data.phone}`;
+            } else if (data.password) {
+              errorMessage = `Password: ${Array.isArray(data.password) ? data.password[0] : data.password}`;
+            } else if (data.detail) {
+              errorMessage = data.detail;
+            } else {
+              // Combine all field errors
+              const errors = Object.entries(data)
+                .map(([key, value]) => `${key}: ${Array.isArray(value) ? value[0] : value}`)
+                .join('\n');
+              errorMessage = errors || 'Invalid data. Please check your inputs.';
+            }
+          } else if (typeof data === 'string') {
+            errorMessage = data;
+          }
+        } else if (status === 404) {
+          errorMessage = 'Signup endpoint not found. Please contact support.';
+        } else {
+          errorMessage = `Error ${status}: ${data?.detail || data?.message || 'Please try again.'}`;
         }
-      } else if (error.message) {
-        errorMessage = error.message;
       }
       
-      Alert.alert('Signup Error', errorMessage);
+      Alert.alert('Signup Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -205,7 +239,10 @@ export default function SignupScreen() {
           />
 
           {/* Role Selection */}
-          <Text style={styles.label}>Role *</Text>
+          <Text style={styles.label}>Select Your Role *</Text>
+          {!formData.role && (
+            <Text style={styles.roleHint}>Tap to select your role</Text>
+          )}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roleContainer}>
             {roles.map((role) => (
               <TouchableOpacity
@@ -321,7 +358,7 @@ export default function SignupScreen() {
               (loading || (formData.confirmPassword && !passwordMatch)) && styles.disabledButton
             ]}
             onPress={handleSignup}
-            disabled={loading || (formData.confirmPassword && !passwordMatch)}
+            activeOpacity={0.7}
           >
             <Text style={styles.signupButtonText}>
               {loading ? 'Creating Account...' : 'Create Account'}
@@ -335,6 +372,21 @@ export default function SignupScreen() {
               <Text style={styles.loginLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Debug: Test API Connection */}
+          <TouchableOpacity
+            style={styles.testButton}
+            onPress={async () => {
+              try {
+                const response = await axios.get('https://construct.velandev.in/api/auth/users/');
+                Alert.alert('API Test', `Connection successful! Found ${response.data.length} users`);
+              } catch (error) {
+                Alert.alert('API Test Failed', `Error: ${error.message}\nStatus: ${error.response?.status || 'No response'}`);
+              }
+            }}
+          >
+            <Text style={styles.testButtonText}>Test API Connection</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
       
@@ -413,6 +465,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#003366',
     marginBottom: 8,
+  },
+  roleHint: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   input: {
     borderWidth: 1,
@@ -497,6 +555,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#003366',
     fontWeight: '600',
+  },
+  testButton: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  testButtonText: {
+    color: '#666',
+    fontSize: 12,
+    fontWeight: '500',
   },
   
   // Success Modal Styles

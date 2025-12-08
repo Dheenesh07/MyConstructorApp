@@ -1,46 +1,49 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput } from "react-native";
-
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput, RefreshControl } from "react-native";
+import { documentAPI, projectAPI } from "../../utils/api";
+import * as DocumentPicker from 'expo-document-picker';
 
 export default function DocumentManagement({ navigation }) {
-  const [documents, setDocuments] = useState([
-    {
-      id: 1,
-      name: "Project Blueprint - Floor 1",
-      type: "blueprint",
-      size: "2.5 MB",
-      date: "2024-03-15",
-      project: "Downtown Office Complex"
-    },
-    {
-      id: 2,
-      name: "Safety Compliance Report",
-      type: "report",
-      size: "1.2 MB",
-      date: "2024-03-20",
-      project: "Luxury Apartments"
-    },
-    {
-      id: 3,
-      name: "Material Specifications",
-      type: "specification",
-      size: "800 KB",
-      date: "2024-03-18",
-      project: "Downtown Office Complex"
-    },
-    {
-      id: 4,
-      name: "Electrical Drawings",
-      type: "blueprint",
-      size: "3.1 MB",
-      date: "2024-03-22",
-      project: "Luxury Apartments"
-    }
-  ]);
+  const [documents, setDocuments] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState('all');
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadForm, setUploadForm] = useState({
+    project: '',
+    document_type: 'blueprint',
+    description: ''
+  });
+
+  useEffect(() => {
+    loadDocuments();
+    loadProjects();
+  }, []);
+
+  const loadDocuments = async () => {
+    setLoading(true);
+    try {
+      const response = await documentAPI.getAll();
+      setDocuments(response.data || []);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      Alert.alert('Error', 'Failed to load documents');
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadProjects = async () => {
+    try {
+      const response = await projectAPI.getAll();
+      setProjects(response.data || []);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  };
 
   const getDocumentIcon = (type) => {
     switch (type) {
@@ -64,57 +67,117 @@ export default function DocumentManagement({ navigation }) {
 
   const filteredDocuments = activeTab === 'all' 
     ? documents 
-    : documents.filter(doc => doc.type === activeTab);
+    : documents.filter(doc => (doc.document_type || doc.type) === activeTab);
 
   const uploadDocument = () => {
     setUploadModalVisible(true);
   };
 
-  const pickDocument = () => {
-    const documentTypes = [
-      { type: 'blueprint', name: 'Construction Blueprint', ext: '.dwg' },
-      { type: 'contract', name: 'Project Contract', ext: '.pdf' },
-      { type: 'permit', name: 'Building Permit', ext: '.pdf' },
-      { type: 'inspection_report', name: 'Safety Inspection Report', ext: '.pdf' },
-      { type: 'specification', name: 'Material Specification', ext: '.pdf' }
-    ];
-    
-    const randomDoc = documentTypes[Math.floor(Math.random() * documentTypes.length)];
-    
-    const newDoc = {
-      id: documents.length + 1,
-      name: `${randomDoc.name} ${documents.length + 1}${randomDoc.ext}`,
-      type: randomDoc.type,
-      size: `${(Math.random() * 3 + 0.5).toFixed(1)} MB`,
-      date: new Date().toISOString().split('T')[0],
-      project: 'General'
-    };
-    setDocuments([...documents, newDoc]);
-    setUploadModalVisible(false);
-    Alert.alert('Success', `${randomDoc.name} uploaded successfully`);
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true
+      });
+
+      if (result.type === 'success' || !result.canceled) {
+        setSelectedFile(result);
+        Alert.alert('File Selected', `${result.name || result.assets?.[0]?.name} ready to upload`);
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert('Error', 'Failed to pick document');
+    }
   };
 
-  const downloadDocument = (docName) => {
-    Alert.alert("Download", `Downloading ${docName}...`);
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      Alert.alert('Error', 'Please select a file first');
+      return;
+    }
+
+    if (!uploadForm.project) {
+      Alert.alert('Error', 'Please select a project');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      const file = selectedFile.assets ? selectedFile.assets[0] : selectedFile;
+      
+      console.log('📤 Uploading file:', {
+        name: file.name,
+        type: file.mimeType,
+        size: file.size,
+        project: uploadForm.project,
+        document_type: uploadForm.document_type
+      });
+      
+      formData.append('file', {
+        uri: file.uri,
+        type: file.mimeType || 'application/pdf',
+        name: file.name
+      });
+      formData.append('project', uploadForm.project);
+      formData.append('filename', file.name);
+      formData.append('description', uploadForm.description || file.name);
+
+      const response = await documentAPI.upload(formData);
+      console.log('✅ Upload success:', response.data);
+      
+      Alert.alert('Success', 'Document uploaded successfully!');
+      setUploadModalVisible(false);
+      setSelectedFile(null);
+      setUploadForm({ project: '', document_type: 'blueprint', description: '' });
+      loadDocuments();
+    } catch (error) {
+      console.error('❌ Upload error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
+      
+      let errorMsg = 'Failed to upload document';
+      if (error.response?.data) {
+        const data = error.response.data;
+        if (typeof data === 'object') {
+          errorMsg = Object.entries(data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value[0] : value}`)
+            .join('\n');
+        } else {
+          errorMsg = data;
+        }
+      }
+      
+      Alert.alert('Upload Failed', errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const downloadDocument = (doc) => {
+    Alert.alert("Download", `Downloading ${doc.file_name || doc.name}...\n\nFile URL: ${doc.file}`);
   };
 
   const renderDocument = ({ item }) => (
     <View style={styles.documentCard}>
       <View style={styles.documentHeader}>
-        <Text style={styles.documentIcon}>{getDocumentIcon(item.type)}</Text>
+        <Text style={styles.documentIcon}>{getDocumentIcon(item.document_type || item.type)}</Text>
         <View style={styles.documentInfo}>
-          <Text style={styles.documentName}>{item.name}</Text>
-          <Text style={styles.documentProject}>{item.project}</Text>
+          <Text style={styles.documentName}>{item.file_name || item.description || item.name}</Text>
+          <Text style={styles.documentProject}>{item.project_name || item.project}</Text>
         </View>
-        <View style={[styles.typeBadge, { backgroundColor: getTypeColor(item.type) }]}>
-          <Text style={styles.typeText}>{item.type.toUpperCase()}</Text>
+        <View style={[styles.typeBadge, { backgroundColor: getTypeColor(item.document_type || item.type) }]}>
+          <Text style={styles.typeText}>{(item.document_type || item.type).toUpperCase()}</Text>
         </View>
       </View>
       <View style={styles.documentFooter}>
-        <Text style={styles.documentDetails}>{item.size} • {item.date}</Text>
+        <Text style={styles.documentDetails}>{item.file_size || item.size} • {item.uploaded_at?.split('T')[0] || item.date}</Text>
         <TouchableOpacity 
           style={styles.downloadButton}
-          onPress={() => downloadDocument(item.name)}
+          onPress={() => downloadDocument(item)}
         >
           <Text style={styles.downloadText}>📥 Download</Text>
         </TouchableOpacity>
@@ -153,11 +216,11 @@ export default function DocumentManagement({ navigation }) {
           <Text style={styles.statLabel}>Total Documents</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{documents.filter(d => d.type === 'blueprint').length}</Text>
+          <Text style={styles.statNumber}>{documents.filter(d => (d.document_type || d.type) === 'blueprint').length}</Text>
           <Text style={styles.statLabel}>Blueprints</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{documents.filter(d => d.type === 'report').length}</Text>
+          <Text style={styles.statNumber}>{documents.filter(d => (d.document_type || d.type) === 'report').length}</Text>
           <Text style={styles.statLabel}>Reports</Text>
         </View>
       </View>
@@ -168,20 +231,78 @@ export default function DocumentManagement({ navigation }) {
         renderItem={renderDocument}
         keyExtractor={(item) => item.id.toString()}
         style={styles.documentsList}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={loadDocuments} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No documents found</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={loadDocuments}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        }
       />
 
       <Modal visible={uploadModalVisible} animationType="slide">
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Upload Document</Text>
+          
           <TouchableOpacity style={styles.filePickerButton} onPress={pickDocument}>
-            <Text style={styles.filePickerText}>📎 Click to Upload Random Document</Text>
+            <Text style={styles.filePickerText}>
+              {selectedFile ? `📎 ${selectedFile.name || selectedFile.assets?.[0]?.name}` : '📎 Select File'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.cancelButton} 
-            onPress={() => setUploadModalVisible(false)}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
+
+          <Text style={styles.inputLabel}>Select Project *</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectSelector}>
+            {projects.map((project) => (
+              <TouchableOpacity
+                key={project.id}
+                style={[
+                  styles.projectOption,
+                  uploadForm.project === project.id && styles.selectedProject
+                ]}
+                onPress={() => setUploadForm({...uploadForm, project: project.id})}
+              >
+                <Text style={[
+                  styles.projectText,
+                  uploadForm.project === project.id && styles.selectedProjectText
+                ]}>
+                  {project.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+
+
+          <TextInput
+            style={styles.input}
+            placeholder="Description (optional)"
+            value={uploadForm.description}
+            onChangeText={(text) => setUploadForm({...uploadForm, description: text})}
+            multiline
+          />
+
+          <View style={styles.modalButtons}>
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={() => {
+                setUploadModalVisible(false);
+                setSelectedFile(null);
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.uploadBtn, loading && styles.disabledButton]} 
+              onPress={handleUpload}
+              disabled={loading}
+            >
+              <Text style={styles.uploadBtnText}>{loading ? 'Uploading...' : 'Upload'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
@@ -359,5 +480,108 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 15,
+  },
+  retryButton: {
+    backgroundColor: '#004AAD',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#003366',
+    marginBottom: 10,
+    marginTop: 15,
+  },
+  projectSelector: {
+    marginBottom: 15,
+  },
+  projectOption: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  selectedProject: {
+    backgroundColor: '#004AAD',
+    borderColor: '#004AAD',
+  },
+  projectText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  selectedProjectText: {
+    color: '#fff',
+  },
+  typeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 15,
+  },
+  typeOption: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  selectedType: {
+    backgroundColor: '#004AAD',
+    borderColor: '#004AAD',
+  },
+  typeOptionText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  selectedTypeText: {
+    color: '#fff',
+  },
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  uploadBtn: {
+    flex: 1,
+    backgroundColor: '#28a745',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  uploadBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
   },
 });

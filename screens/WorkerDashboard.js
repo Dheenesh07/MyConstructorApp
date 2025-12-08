@@ -33,27 +33,28 @@ export default function WorkerDashboard() {
 
   useEffect(() => {
     loadUserData();
-    loadTasks();
     loadAttendance();
     loadTraining();
-    loadInstructions();
   }, []);
 
   const loadUserData = async () => {
     try {
       const userData = await AsyncStorage.getItem('user');
       if (userData) {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        // Load user-specific data after user is set
+        loadTasksForUser(parsedUser.id);
+        loadInstructionsForUser(parsedUser.id);
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     }
   };
 
-  const loadTasks = async () => {
+  const loadTasksForUser = async (userId) => {
     try {
-      if (!user?.id) return;
-      const response = await taskAPI.getByUser(user.id);
+      const response = await taskAPI.getByUser(userId);
       if (response.data && response.data.length > 0) {
         setTasks(response.data.map(task => ({
           id: task.id,
@@ -80,12 +81,51 @@ export default function WorkerDashboard() {
     }
   };
 
-  const loadAttendance = () => {
-    setAttendance({
-      today: { status: 'Present', checkIn: '07:30', checkOut: null, hours: 0 },
-      thisWeek: { totalHours: 32, daysPresent: 4, daysAbsent: 0 },
-      thisMonth: { totalHours: 168, daysPresent: 21, daysAbsent: 1 }
-    });
+  const loadAttendance = async () => {
+    try {
+      const response = await attendanceAPI.getAll();
+      console.log('Attendance data:', response.data);
+      
+      // Find today's attendance record
+      const today = new Date().toISOString().split('T')[0];
+      const todayRecord = response.data.find(att => {
+        const attDate = att.check_in_time ? att.check_in_time.split('T')[0] : null;
+        return attDate === today && !att.check_out_time;
+      });
+      
+      if (todayRecord) {
+        const checkInTime = new Date(todayRecord.check_in_time).toLocaleTimeString('en-US', { 
+          hour12: false, 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        setAttendance({
+          today: { 
+            status: 'Present', 
+            checkIn: checkInTime, 
+            checkOut: null, 
+            hours: 0,
+            attendanceId: todayRecord.id 
+          },
+          thisWeek: { totalHours: 32, daysPresent: 4, daysAbsent: 0 },
+          thisMonth: { totalHours: 168, daysPresent: 21, daysAbsent: 1 }
+        });
+      } else {
+        setAttendance({
+          today: { status: 'Not Checked In', checkIn: null, checkOut: null, hours: 0 },
+          thisWeek: { totalHours: 32, daysPresent: 4, daysAbsent: 0 },
+          thisMonth: { totalHours: 168, daysPresent: 21, daysAbsent: 1 }
+        });
+      }
+    } catch (error) {
+      console.error('Error loading attendance:', error);
+      // Fallback to default state
+      setAttendance({
+        today: { status: 'Not Checked In', checkIn: null, checkOut: null, hours: 0 },
+        thisWeek: { totalHours: 32, daysPresent: 4, daysAbsent: 0 },
+        thisMonth: { totalHours: 168, daysPresent: 21, daysAbsent: 1 }
+      });
+    }
   };
 
   const loadTraining = () => {
@@ -97,10 +137,9 @@ export default function WorkerDashboard() {
     ]);
   };
 
-  const loadInstructions = async () => {
+  const loadInstructionsForUser = async (userId) => {
     try {
-      if (!user?.id) return;
-      const response = await communicationAPI.getByUser(user.id);
+      const response = await communicationAPI.getByUser(userId);
       if (response.data && response.data.length > 0) {
         setInstructions(response.data.map(comm => ({
           id: comm.id,
@@ -160,31 +199,40 @@ export default function WorkerDashboard() {
     
     try {
       if (type === 'checkIn') {
-        const response = await attendanceAPI.checkIn({
-          user: user.id,
+        const checkInData = {
           project: 1, // Default project - should be dynamic
-          check_in: new Date().toISOString()
-        });
-        setAttendance(prev => ({
-          ...prev,
-          today: { ...prev.today, checkIn: currentTime, status: 'Present', attendanceId: response.data.id }
-        }));
+          check_in_time: new Date().toTimeString().split(' ')[0], // HH:MM:SS format
+          latitude: 40.7128,
+          longitude: -74.0060,
+          notes: 'Check-in via mobile app'
+        };
+        console.log('Check-in data:', checkInData);
+        const response = await attendanceAPI.checkIn(checkInData);
+        console.log('Check-in response:', response.data);
         Alert.alert('Success', `Checked in at ${currentTime}`);
+        loadAttendance(); // Reload to get updated data
       } else {
         if (attendance.today.attendanceId) {
-          await attendanceAPI.checkOut(attendance.today.attendanceId);
+          const checkInTime = attendance.today.checkIn;
+          const hoursWorked = parseFloat(calculateHours(checkInTime, currentTime));
+          const overtimeHours = Math.max(0, hoursWorked - 8);
+          
+          const checkOutData = {
+            check_out_time: new Date().toTimeString().split(' ')[0],
+            hours_worked: hoursWorked,
+            overtime_hours: overtimeHours
+          };
+          console.log('Check-out data:', checkOutData);
+          await attendanceAPI.checkOut(attendance.today.attendanceId, checkOutData);
+          Alert.alert('Success', `Checked out at ${currentTime}. Hours worked: ${hoursWorked}`);
+          loadAttendance(); // Reload to get updated data
+        } else {
+          Alert.alert('Error', 'No active check-in found');
         }
-        const checkInTime = attendance.today.checkIn;
-        const hoursWorked = calculateHours(checkInTime, currentTime);
-        setAttendance(prev => ({
-          ...prev,
-          today: { ...prev.today, checkOut: currentTime, hours: hoursWorked }
-        }));
-        Alert.alert('Success', `Checked out at ${currentTime}. Hours worked: ${hoursWorked}`);
       }
     } catch (error) {
-      console.error('Error marking attendance:', error);
-      Alert.alert('Error', 'Failed to mark attendance');
+      console.error('Error marking attendance:', error.response?.data || error);
+      Alert.alert('Error', `Failed to mark attendance: ${error.response?.data?.detail || error.message}`);
     }
   };
 
@@ -738,7 +786,8 @@ export default function WorkerDashboard() {
                 onPress={async () => {
                   try {
                     await AsyncStorage.removeItem('user');
-                    await AsyncStorage.removeItem('token');
+                    await AsyncStorage.removeItem('access');
+                    await AsyncStorage.removeItem('refresh');
                     setLogoutModalVisible(false);
                     navigation.navigate('Login');
                   } catch (error) {
