@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput } from "react-native";
-import { projectAPI } from "../../utils/api";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput, Dimensions } from "react-native";
+
+const { width } = Dimensions.get("window");
+import { projectAPI, equipmentAPI, materialAPI } from "../../utils/api";
 
 export default function ProjectManagement({ navigation, route }) {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [equipment, setEquipment] = useState([]);
+  const [materialRequests, setMaterialRequests] = useState([]);
   const { projectId, projectName } = route.params || {};
   const [newProject, setNewProject] = useState({
     name: '',
@@ -33,15 +37,23 @@ export default function ProjectManagement({ navigation, route }) {
 
   const loadProjects = async () => {
     try {
-      const response = await projectAPI.getAll();
-      if (response.data && response.data.length > 0) {
-        setProjects(response.data);
+      const [projectsRes, equipmentRes, materialRes] = await Promise.all([
+        projectAPI.getAll(),
+        equipmentAPI.getAll(),
+        materialAPI.getRequests()
+      ]);
+      if (projectsRes.data && projectsRes.data.length > 0) {
+        setProjects(projectsRes.data);
       } else {
         setProjects([]);
       }
+      setEquipment(equipmentRes.data || []);
+      setMaterialRequests(materialRes.data || []);
     } catch (error) {
       console.error('Error loading projects:', error);
       setProjects([]);
+      setEquipment([]);
+      setMaterialRequests([]);
     } finally {
       setLoading(false);
     }
@@ -88,9 +100,37 @@ export default function ProjectManagement({ navigation, route }) {
       <Text style={styles.projectBudget}>Budget: ${item.total_budget?.toLocaleString()}</Text>
       <Text style={styles.projectDates}>{item.start_date} - {item.end_date}</Text>
       
+      {equipment.filter(e => e.current_project === item.id).length > 0 && (
+        <View style={styles.equipmentSection}>
+          <Text style={styles.equipmentTitle}>🛠️ Assigned Equipment ({equipment.filter(e => e.current_project === item.id).length})</Text>
+          {equipment.filter(e => e.current_project === item.id).map(eq => (
+            <Text key={eq.id} style={styles.equipmentItem}>• {eq.name} - {eq.status}</Text>
+          ))}
+        </View>
+      )}
+      
+      {materialRequests.filter(r => r.project === item.id).length > 0 && (
+        <View style={styles.materialSection}>
+          <Text style={styles.materialTitle}>📦 Material Requests ({materialRequests.filter(r => r.project === item.id).length})</Text>
+          {materialRequests.filter(r => r.project === item.id).slice(0, 3).map(req => (
+            <View key={req.id} style={styles.materialItem}>
+              <Text style={styles.materialDesc}>• {req.material_description}</Text>
+              <View style={[styles.materialBadge, {
+                backgroundColor: req.status === 'approved' ? '#4CAF50' : req.urgency === 'high' ? '#F44336' : '#FF9800'
+              }]}>
+                <Text style={styles.materialBadgeText}>{req.status?.toUpperCase()}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+      
       <View style={styles.projectActions}>
         <TouchableOpacity style={styles.actionButton} onPress={() => setSelectedProject(item)}>
           <Text style={styles.actionButtonText}>Select Project</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionButton, {backgroundColor: "#FF9800"}]} onPress={() => navigation.navigate('MaterialRequests', {projectId: item.id})}>
+          <Text style={styles.actionButtonText}>Request Materials</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -341,13 +381,15 @@ const styles = StyleSheet.create({
   },
   projectActions: {
     marginTop: 10,
-    alignItems: "flex-end",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   actionButton: {
     backgroundColor: "#004AAD",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
+    marginHorizontal: 4,
   },
   actionButtonText: {
     color: "#fff",
@@ -381,6 +423,61 @@ const styles = StyleSheet.create({
   createFirstButtonText: {
     color: "#fff",
     fontSize: 16,
+    fontWeight: "600",
+  },
+  equipmentSection: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: "#f0f8ff",
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#004AAD",
+  },
+  equipmentTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 5,
+  },
+  equipmentItem: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 10,
+    marginTop: 2,
+  },
+  materialSection: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: "#fff8e1",
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#FF9800",
+  },
+  materialTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 5,
+  },
+  materialItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  materialDesc: {
+    fontSize: 12,
+    color: "#666",
+    flex: 1,
+  },
+  materialBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  materialBadgeText: {
+    fontSize: 10,
+    color: "#fff",
     fontWeight: "600",
   },
 });

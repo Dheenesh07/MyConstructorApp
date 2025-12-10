@@ -42,14 +42,15 @@ export default function ReportsAnalytics({ navigation }) {
           Math.round((projectData.filter(p => p.status === 'completed').length / projectData.length) * 100) : 0
       });
     } catch (error) {
-      // Mock data fallback
+      console.error('Error loading analytics:', error);
+      Alert.alert('Error', 'Failed to load analytics data from database');
       setAnalytics({
-        totalProjects: 8,
-        activeProjects: 5,
-        completedTasks: 24,
-        totalUsers: 15,
-        totalBudget: 125000000,
-        projectProgress: 65
+        totalProjects: 0,
+        activeProjects: 0,
+        completedTasks: 0,
+        totalUsers: 0,
+        totalBudget: 0,
+        projectProgress: 0
       });
     } finally {
       setLoading(false);

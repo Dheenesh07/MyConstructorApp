@@ -1,62 +1,60 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert } from "react-native";
+import { equipmentAPI, projectAPI, userAPI } from '../../utils/api';
 
 export default function EquipmentInventory({ navigation }) {
-  const [equipment, setEquipment] = useState([
-    {
-      id: 1,
-      name: "Excavator CAT 320",
-      type: "heavy_machinery",
-      status: "available",
-      location: "Site A",
-      condition: "good",
-      lastMaintenance: "2024-03-01"
-    },
-    {
-      id: 2,
-      name: "Concrete Mixer",
-      type: "machinery",
-      status: "in_use",
-      location: "Site B",
-      condition: "excellent",
-      lastMaintenance: "2024-02-15"
-    },
-    {
-      id: 3,
-      name: "Safety Helmets (50x)",
-      type: "safety",
-      status: "available",
-      location: "Warehouse",
-      condition: "good",
-      lastMaintenance: "N/A"
-    },
-    {
-      id: 4,
-      name: "Tower Crane",
-      type: "heavy_machinery",
-      status: "maintenance",
-      location: "Site A",
-      condition: "fair",
-      lastMaintenance: "2024-03-20"
+  const [equipment, setEquipment] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [equipmentRes, projectsRes, usersRes] = await Promise.all([
+        equipmentAPI.getAll(),
+        projectAPI.getAll(),
+        userAPI.getAll()
+      ]);
+      setEquipment(equipmentRes.data);
+      setProjects(projectsRes.data);
+      setUsers(usersRes.data);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      Alert.alert('Error', 'Failed to load data from server');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [assignModalVisible, setAssignModalVisible] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [newEquipment, setNewEquipment] = useState({
+    equipment_id: '',
     name: '',
-    type: 'machinery',
-    location: '',
-    condition: 'good'
+    category: 'Heavy Machinery',
+    model: '',
+    serial_number: '',
+    purchase_date: '',
+    purchase_cost: '',
+    location: ''
+  });
+  const [assignForm, setAssignForm] = useState({
+    current_project: '',
+    assigned_to: '',
+    location: ''
   });
 
-  const getEquipmentIcon = (type) => {
-    switch (type) {
-      case 'heavy_machinery': return '🚜';
-      case 'machinery': return '⚙️';
-      case 'safety': return '🦺';
-      case 'tools': return '🔧';
-      default: return '📦';
-    }
+  const getEquipmentIcon = (category) => {
+    if (category?.toLowerCase().includes('heavy')) return '🚜';
+    if (category?.toLowerCase().includes('lifting')) return '🏗️';
+    if (category?.toLowerCase().includes('safety')) return '🦺';
+    if (category?.toLowerCase().includes('tool')) return '🔧';
+    return '⚙️';
   };
 
   const getStatusColor = (status) => {
@@ -69,77 +67,137 @@ export default function EquipmentInventory({ navigation }) {
     }
   };
 
-  const getConditionColor = (condition) => {
-    switch (condition) {
-      case 'excellent': return '#28a745';
-      case 'good': return '#007bff';
-      case 'fair': return '#ffc107';
-      case 'poor': return '#dc3545';
-      default: return '#6c757d';
+  const addEquipment = async () => {
+    if (!newEquipment.equipment_id || !newEquipment.name) {
+      Alert.alert('Error', 'Please fill required fields (ID and Name)');
+      return;
+    }
+    try {
+      const response = await equipmentAPI.create({
+        ...newEquipment,
+        status: 'available',
+        purchase_cost: parseFloat(newEquipment.purchase_cost) || 0
+      });
+      setEquipment([response.data, ...equipment]);
+      Alert.alert('Success', 'Equipment added successfully');
+      setModalVisible(false);
+      setNewEquipment({
+        equipment_id: '',
+        name: '',
+        category: 'Heavy Machinery',
+        model: '',
+        serial_number: '',
+        purchase_date: '',
+        purchase_cost: '',
+        location: ''
+      });
+    } catch (error) {
+      console.error('Error adding equipment:', error);
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to add equipment');
     }
   };
 
-  const addEquipment = () => {
-    const newId = equipment.length + 1;
-    setEquipment([...equipment, { 
-      ...newEquipment, 
-      id: newId, 
-      status: 'available',
-      lastMaintenance: 'N/A'
-    }]);
-    Alert.alert("Success", "Equipment added successfully");
-    setModalVisible(false);
-    setNewEquipment({
-      name: '',
-      type: 'machinery',
-      location: '',
-      condition: 'good'
+  const openAssignModal = (item) => {
+    setSelectedEquipment(item);
+    setAssignForm({
+      current_project: item.current_project || '',
+      assigned_to: item.assigned_to || '',
+      location: item.location || ''
     });
+    setAssignModalVisible(true);
   };
 
-  const updateStatus = (id, newStatus) => {
-    setEquipment(prev => prev.map(item => 
-      item.id === id ? { ...item, status: newStatus } : item
-    ));
-    Alert.alert("Success", "Equipment status updated");
+  const assignEquipment = async () => {
+    if (!assignForm.current_project || !assignForm.assigned_to) {
+      Alert.alert('Error', 'Please select both project and user');
+      return;
+    }
+    try {
+      const response = await equipmentAPI.update(selectedEquipment.id, {
+        status: 'in_use',
+        current_project: parseInt(assignForm.current_project),
+        assigned_to: parseInt(assignForm.assigned_to),
+        location: assignForm.location || selectedEquipment.location
+      });
+      setEquipment(prev => prev.map(item => 
+        item.id === selectedEquipment.id ? response.data : item
+      ));
+      Alert.alert('Success', 'Equipment assigned successfully');
+      setAssignModalVisible(false);
+    } catch (error) {
+      console.error('Error assigning equipment:', error);
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to assign equipment');
+    }
+  };
+
+  const returnEquipment = async (id) => {
+    try {
+      const response = await equipmentAPI.update(id, {
+        status: 'available',
+        current_project: null,
+        assigned_to: null
+      });
+      setEquipment(prev => prev.map(item => 
+        item.id === id ? response.data : item
+      ));
+      Alert.alert('Success', 'Equipment returned successfully');
+    } catch (error) {
+      console.error('Error returning equipment:', error);
+      Alert.alert('Error', 'Failed to return equipment');
+    }
+  };
+
+  const updateStatus = async (id, newStatus) => {
+    try {
+      const response = await equipmentAPI.update(id, { status: newStatus });
+      setEquipment(prev => prev.map(item => 
+        item.id === id ? response.data : item
+      ));
+      Alert.alert('Success', 'Equipment status updated');
+    } catch (error) {
+      console.error('Error updating status:', error);
+      Alert.alert('Error', 'Failed to update status');
+    }
   };
 
   const renderEquipment = ({ item }) => (
     <View style={styles.equipmentCard}>
       <View style={styles.equipmentHeader}>
-        <Text style={styles.equipmentIcon}>{getEquipmentIcon(item.type)}</Text>
+        <Text style={styles.equipmentIcon}>{getEquipmentIcon(item.category)}</Text>
         <View style={styles.equipmentInfo}>
           <Text style={styles.equipmentName}>{item.name}</Text>
-          <Text style={styles.equipmentLocation}>📍 {item.location}</Text>
+          <Text style={styles.equipmentId}>ID: {item.equipment_id}</Text>
+          <Text style={styles.equipmentLocation}>📍 {item.location || 'Not specified'}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-          <Text style={styles.badgeText}>{item.status.replace('_', ' ').toUpperCase()}</Text>
+          <Text style={styles.badgeText}>{item.status?.replace('_', ' ').toUpperCase()}</Text>
         </View>
       </View>
       
       <View style={styles.equipmentDetails}>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Condition:</Text>
-          <View style={[styles.conditionBadge, { backgroundColor: getConditionColor(item.condition) }]}>
-            <Text style={styles.badgeText}>{item.condition.toUpperCase()}</Text>
-          </View>
-        </View>
-        <Text style={styles.detailText}>Last Maintenance: {item.lastMaintenance}</Text>
+        <Text style={styles.detailText}>Category: {item.category}</Text>
+        {item.model && <Text style={styles.detailText}>Model: {item.model}</Text>}
+        {item.current_project_name && (
+          <Text style={styles.detailText}>Project: {item.current_project_name}</Text>
+        )}
+        {item.assigned_to_name && (
+          <Text style={styles.detailText}>Assigned to: {item.assigned_to_name}</Text>
+        )}
       </View>
 
       <View style={styles.equipmentActions}>
         {item.status === 'available' && (
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => updateStatus(item.id, 'in_use')}
+            onPress={() => openAssignModal(item)}
           >
-            <Text style={styles.actionButtonText}>Use</Text>
+            <Text style={styles.actionButtonText}>Assign</Text>
           </TouchableOpacity>
         )}
         {item.status === 'in_use' && (
           <TouchableOpacity 
             style={[styles.actionButton, { backgroundColor: '#28a745' }]}
-            onPress={() => updateStatus(item.id, 'available')}
+            onPress={() => returnEquipment(item.id)}
           >
             <Text style={styles.actionButtonText}>Return</Text>
           </TouchableOpacity>
@@ -179,6 +237,8 @@ export default function EquipmentInventory({ navigation }) {
         </View>
       </View>
 
+      {loading && <Text style={styles.loadingText}>Loading equipment...</Text>}
+
       {/* Equipment List */}
       <FlatList
         data={equipment}
@@ -194,9 +254,52 @@ export default function EquipmentInventory({ navigation }) {
           
           <TextInput
             style={styles.input}
-            placeholder="Equipment Name"
+            placeholder="Equipment ID (e.g., EQ001) *"
+            value={newEquipment.equipment_id}
+            onChangeText={(text) => setNewEquipment({...newEquipment, equipment_id: text})}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Equipment Name *"
             value={newEquipment.name}
             onChangeText={(text) => setNewEquipment({...newEquipment, name: text})}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Category (e.g., Heavy Machinery)"
+            value={newEquipment.category}
+            onChangeText={(text) => setNewEquipment({...newEquipment, category: text})}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Model"
+            value={newEquipment.model}
+            onChangeText={(text) => setNewEquipment({...newEquipment, model: text})}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Serial Number"
+            value={newEquipment.serial_number}
+            onChangeText={(text) => setNewEquipment({...newEquipment, serial_number: text})}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Purchase Date (YYYY-MM-DD)"
+            value={newEquipment.purchase_date}
+            onChangeText={(text) => setNewEquipment({...newEquipment, purchase_date: text})}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Purchase Cost"
+            value={newEquipment.purchase_cost}
+            onChangeText={(text) => setNewEquipment({...newEquipment, purchase_cost: text})}
+            keyboardType="numeric"
           />
           
           <TextInput
@@ -206,33 +309,77 @@ export default function EquipmentInventory({ navigation }) {
             onChangeText={(text) => setNewEquipment({...newEquipment, location: text})}
           />
 
-          <View style={styles.typeContainer}>
-            <Text style={styles.typeLabel}>Equipment Type:</Text>
-            {['machinery', 'heavy_machinery', 'safety', 'tools'].map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.typeOption,
-                  newEquipment.type === type && styles.selectedType
-                ]}
-                onPress={() => setNewEquipment({...newEquipment, type})}
-              >
-                <Text style={[
-                  styles.typeText,
-                  newEquipment.type === type && styles.selectedTypeText
-                ]}>
-                  {type.replace('_', ' ').charAt(0).toUpperCase() + type.replace('_', ' ').slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
           <View style={styles.modalButtons}>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.createButton} onPress={addEquipment}>
               <Text style={styles.createButtonText}>Add Equipment</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Assign Equipment Modal */}
+      <Modal visible={assignModalVisible} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Assign Equipment: {selectedEquipment?.name}</Text>
+          
+          <Text style={styles.inputLabel}>Select Project *</Text>
+          <ScrollView style={styles.pickerScroll} horizontal showsHorizontalScrollIndicator={false}>
+            {projects.map((project) => (
+              <TouchableOpacity
+                key={project.id}
+                style={[
+                  styles.pickerOption,
+                  assignForm.current_project === project.id && styles.selectedPicker
+                ]}
+                onPress={() => setAssignForm({...assignForm, current_project: project.id})}
+              >
+                <Text style={[
+                  styles.pickerText,
+                  assignForm.current_project === project.id && styles.selectedPickerText
+                ]}>
+                  {project.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={styles.inputLabel}>Assign To User *</Text>
+          <ScrollView style={styles.pickerScroll} horizontal showsHorizontalScrollIndicator={false}>
+            {users.map((user) => (
+              <TouchableOpacity
+                key={user.id}
+                style={[
+                  styles.pickerOption,
+                  assignForm.assigned_to === user.id && styles.selectedPicker
+                ]}
+                onPress={() => setAssignForm({...assignForm, assigned_to: user.id})}
+              >
+                <Text style={[
+                  styles.pickerText,
+                  assignForm.assigned_to === user.id && styles.selectedPickerText
+                ]}>
+                  {user.username}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Location (optional)"
+            value={assignForm.location}
+            onChangeText={(text) => setAssignForm({...assignForm, location: text})}
+          />
+
+          <View style={styles.modalButtons}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setAssignModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.createButton} onPress={assignEquipment}>
+              <Text style={styles.createButtonText}>Assign Equipment</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -319,10 +466,52 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#003366",
   },
+  equipmentId: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
+  },
   equipmentLocation: {
     fontSize: 14,
     color: "#666",
     marginTop: 2,
+  },
+  loadingText: {
+    textAlign: 'center',
+    padding: 20,
+    color: '#666',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#003366',
+    marginBottom: 8,
+    marginTop: 10,
+  },
+  pickerScroll: {
+    maxHeight: 50,
+    marginBottom: 15,
+  },
+  pickerOption: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  selectedPicker: {
+    backgroundColor: '#004AAD',
+    borderColor: '#004AAD',
+  },
+  pickerText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  selectedPickerText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   statusBadge: {
     paddingHorizontal: 8,

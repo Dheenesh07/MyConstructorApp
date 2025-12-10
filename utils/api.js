@@ -5,7 +5,7 @@ const API_BASE_URL = 'https://construct.velandev.in/api/auth/';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -84,6 +84,7 @@ export const taskAPI = {
 export const documentAPI = {
   getAll: () => api.get('documents/'),
   getByProject: (projectId) => api.get(`documents/?project=${projectId}`),
+  create: (document) => api.post('documents/', document),
   upload: (formData) => api.post('documents/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
@@ -99,9 +100,9 @@ export const vendorAPI = {
 
 // Purchase Order API
 export const purchaseOrderAPI = {
-  getAll: () => api.get('purchase-orders/'),
-  create: (po) => api.post('purchase-orders/', po),
-  update: (id, data) => api.patch(`purchase-orders/${id}/`, data),
+  getAll: () => api.get('purchaseorders/'),
+  create: (po) => api.post('purchaseorders/', po),
+  update: (id, data) => api.patch(`purchaseorders/${id}/`, data),
 };
 
 // Budget Management API

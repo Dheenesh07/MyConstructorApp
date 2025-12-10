@@ -55,35 +55,31 @@ export default function WorkerDashboard() {
   const loadTasksForUser = async (userId) => {
     try {
       const response = await taskAPI.getByUser(userId);
-      if (response.data && response.data.length > 0) {
-        setTasks(response.data.map(task => ({
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          status: task.status,
-          dueDate: task.due_date,
-          location: task.location || 'Not specified',
-          instructions: task.instructions || null
-        })));
-      } else {
-        // Fallback to mock data if no real tasks
-        setTasks([
-          { id: 1, title: 'Concrete Pouring - Foundation', description: 'Pour concrete for foundation section A1-A5', priority: 'high', status: 'in_progress', dueDate: '2024-01-15', location: 'Site A - North' }
-        ]);
-      }
+      setTasks(response.data.map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status,
+        dueDate: task.due_date,
+        location: task.location || 'Not specified',
+        instructions: task.instructions || null
+      })));
     } catch (error) {
       console.error('Error loading tasks:', error);
-      // Fallback to mock data on error
-      setTasks([
-        { id: 1, title: 'Concrete Pouring - Foundation', description: 'Pour concrete for foundation section A1-A5', priority: 'high', status: 'in_progress', dueDate: '2024-01-15', location: 'Site A - North' }
-      ]);
+      setTasks([]);
     }
   };
 
   const loadAttendance = async () => {
     try {
-      const response = await attendanceAPI.getAll();
+      // Try to get user-specific attendance if user is loaded
+      const userData = await AsyncStorage.getItem('user');
+      const currentUser = userData ? JSON.parse(userData) : null;
+      
+      const response = currentUser?.id 
+        ? await attendanceAPI.getByUser(currentUser.id)
+        : await attendanceAPI.getAll();
       console.log('Attendance data:', response.data);
       
       // Find today's attendance record
@@ -107,14 +103,14 @@ export default function WorkerDashboard() {
             hours: 0,
             attendanceId: todayRecord.id 
           },
-          thisWeek: { totalHours: 32, daysPresent: 4, daysAbsent: 0 },
-          thisMonth: { totalHours: 168, daysPresent: 21, daysAbsent: 1 }
+          thisWeek: { totalHours: 0, daysPresent: 0, daysAbsent: 0 },
+          thisMonth: { totalHours: 0, daysPresent: 0, daysAbsent: 0 }
         });
       } else {
         setAttendance({
           today: { status: 'Not Checked In', checkIn: null, checkOut: null, hours: 0 },
-          thisWeek: { totalHours: 32, daysPresent: 4, daysAbsent: 0 },
-          thisMonth: { totalHours: 168, daysPresent: 21, daysAbsent: 1 }
+          thisWeek: { totalHours: 0, daysPresent: 0, daysAbsent: 0 },
+          thisMonth: { totalHours: 0, daysPresent: 0, daysAbsent: 0 }
         });
       }
     } catch (error) {
@@ -122,24 +118,21 @@ export default function WorkerDashboard() {
       // Fallback to default state
       setAttendance({
         today: { status: 'Not Checked In', checkIn: null, checkOut: null, hours: 0 },
-        thisWeek: { totalHours: 32, daysPresent: 4, daysAbsent: 0 },
-        thisMonth: { totalHours: 168, daysPresent: 21, daysAbsent: 1 }
+        thisWeek: { totalHours: 0, daysPresent: 0, daysAbsent: 0 },
+        thisMonth: { totalHours: 0, daysPresent: 0, daysAbsent: 0 }
       });
     }
   };
 
   const loadTraining = () => {
-    setTraining([
-      { id: 1, title: 'Basic Safety Training', status: 'Completed', completedDate: '2024-01-08', certificate: true, validUntil: '2025-01-08' },
-      { id: 2, title: 'Concrete Handling Safety', status: 'In Progress', progress: 75, dueDate: '2024-01-20' },
-      { id: 3, title: 'Equipment Operation Safety', status: 'Not Started', dueDate: '2024-01-25' },
-      { id: 4, title: 'First Aid Training', status: 'Completed', completedDate: '2024-01-05', certificate: true, validUntil: '2025-01-05' }
-    ]);
+    // Training data should come from API when available
+    setTraining([]);
   };
 
   const loadInstructionsForUser = async (userId) => {
     try {
       const response = await communicationAPI.getByUser(userId);
+      console.log('Instructions/Communications response:', response.data);
       if (response.data && response.data.length > 0) {
         setInstructions(response.data.map(comm => ({
           id: comm.id,
@@ -148,26 +141,14 @@ export default function WorkerDashboard() {
                 comm.message_type === 'progress_update' ? 'Technical' : 'General',
           date: new Date(comm.timestamp).toLocaleDateString(),
           content: comm.message,
-          isRead: comm.is_read
+          isRead: comm.is_read || false
         })));
       } else {
-        // Fallback to mock data
-        setInstructions([
-          { id: 1, title: 'Daily Safety Briefing', type: 'Safety', date: '2024-01-12', content: 'Today\'s focus: PPE compliance and concrete pouring safety procedures.' },
-          { id: 2, title: 'New Concrete Mix Procedure', type: 'Technical', date: '2024-01-11', content: 'Updated mixing ratios and curing procedures for foundation concrete.' },
-          { id: 3, title: 'Site Access Changes', type: 'General', date: '2024-01-10', content: 'New entry point through Gate B. Gate A closed for maintenance.' },
-          { id: 4, title: 'Weather Alert', type: 'Safety', date: '2024-01-09', content: 'Heavy rain expected. All outdoor concrete work postponed.' }
-        ]);
+        setInstructions([]);
       }
     } catch (error) {
       console.error('Error loading instructions:', error);
-      // Fallback to mock data on error
-      setInstructions([
-        { id: 1, title: 'Daily Safety Briefing', type: 'Safety', date: '2024-01-12', content: 'Today\'s focus: PPE compliance and concrete pouring safety procedures.' },
-        { id: 2, title: 'New Concrete Mix Procedure', type: 'Technical', date: '2024-01-11', content: 'Updated mixing ratios and curing procedures for foundation concrete.' },
-        { id: 3, title: 'Site Access Changes', type: 'General', date: '2024-01-10', content: 'New entry point through Gate B. Gate A closed for maintenance.' },
-        { id: 4, title: 'Weather Alert', type: 'Safety', date: '2024-01-09', content: 'Heavy rain expected. All outdoor concrete work postponed.' }
-      ]);
+      setInstructions([]);
     }
   };
 
@@ -200,8 +181,8 @@ export default function WorkerDashboard() {
     try {
       if (type === 'checkIn') {
         const checkInData = {
-          project: 1, // Default project - should be dynamic
-          check_in_time: new Date().toTimeString().split(' ')[0], // HH:MM:SS format
+          project: 1,
+          check_in_time: new Date().toTimeString().split(' ')[0],
           latitude: 40.7128,
           longitude: -74.0060,
           notes: 'Check-in via mobile app'
@@ -209,8 +190,18 @@ export default function WorkerDashboard() {
         console.log('Check-in data:', checkInData);
         const response = await attendanceAPI.checkIn(checkInData);
         console.log('Check-in response:', response.data);
+        
+        setAttendance(prev => ({
+          ...prev,
+          today: {
+            status: 'Present',
+            checkIn: currentTime,
+            checkOut: null,
+            hours: 0,
+            attendanceId: response.data.id
+          }
+        }));
         Alert.alert('Success', `Checked in at ${currentTime}`);
-        loadAttendance(); // Reload to get updated data
       } else {
         if (attendance.today.attendanceId) {
           const checkInTime = attendance.today.checkIn;
@@ -224,15 +215,26 @@ export default function WorkerDashboard() {
           };
           console.log('Check-out data:', checkOutData);
           await attendanceAPI.checkOut(attendance.today.attendanceId, checkOutData);
+          
+          setAttendance(prev => ({
+            ...prev,
+            today: {
+              ...prev.today,
+              checkOut: currentTime,
+              hours: hoursWorked
+            }
+          }));
           Alert.alert('Success', `Checked out at ${currentTime}. Hours worked: ${hoursWorked}`);
-          loadAttendance(); // Reload to get updated data
         } else {
           Alert.alert('Error', 'No active check-in found');
         }
       }
     } catch (error) {
       console.error('Error marking attendance:', error.response?.data || error);
-      Alert.alert('Error', `Failed to mark attendance: ${error.response?.data?.detail || error.message}`);
+      const errorMsg = error.response?.status === 401 
+        ? 'Attendance requires backend authentication setup. Contact administrator.'
+        : `Failed to mark attendance: ${error.response?.data?.detail || error.message}`;
+      Alert.alert('Attendance Error', errorMsg);
     }
   };
 
@@ -504,47 +506,54 @@ export default function WorkerDashboard() {
               <Text style={styles.pageTitle}>📖 Work Instructions</Text>
             </View>
             
-            {instructions.map(instruction => (
-              <View key={instruction.id} style={styles.instructionCard}>
-                <View style={styles.instructionHeader}>
-                  <Text style={styles.instructionTitle}>{instruction.title}</Text>
-                  <View style={[styles.typeBadge, { 
-                    backgroundColor: instruction.type === 'Safety' ? '#F44336' : 
-                                   instruction.type === 'Technical' ? '#2196F3' : '#FF9800'
-                  }]}>
-                    <Text style={styles.statusText}>{instruction.type}</Text>
-                  </View>
-                </View>
-                
-                <Text style={styles.instructionContent}>{instruction.content}</Text>
-                
-                <View style={styles.instructionFooter}>
-                  <View style={styles.instructionDetailRow}>
-                    <Ionicons name="calendar-outline" size={16} color="#666" />
-                    <Text style={styles.instructionDetailText}>{instruction.date}</Text>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.readButton}
-                    onPress={() => {
-                      console.log('Marking instruction as read:', instruction.title);
-                      Alert.alert(
-                        'Instruction Acknowledged',
-                        `You have marked "${instruction.title}" as read.\n\nThis instruction will be moved to your read items.`,
-                        [{ text: 'OK', style: 'default' }]
-                      );
-                      // Update the instruction status locally
-                      setInstructions(prev => prev.map(inst => 
-                        inst.id === instruction.id 
-                          ? { ...inst, isRead: true }
-                          : inst
-                      ));
-                    }}
-                  >
-                    <Text style={styles.readButtonText}>Mark as Read</Text>
-                  </TouchableOpacity>
-                </View>
+            {instructions.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="document-text-outline" size={64} color="#ccc" />
+                <Text style={styles.emptyStateText}>No instructions available</Text>
+                <Text style={styles.emptyStateSubtext}>Check back later for updates</Text>
               </View>
-            ))}
+            ) : (
+              instructions.map(instruction => (
+                <View key={instruction.id} style={styles.instructionCard}>
+                  <View style={styles.instructionHeader}>
+                    <Text style={styles.instructionTitle}>{instruction.title}</Text>
+                    <View style={[styles.typeBadge, { 
+                      backgroundColor: instruction.type === 'Safety' ? '#F44336' : 
+                                     instruction.type === 'Technical' ? '#2196F3' : '#FF9800'
+                    }]}>
+                      <Text style={styles.statusText}>{instruction.type}</Text>
+                    </View>
+                  </View>
+                  
+                  <Text style={styles.instructionContent}>{instruction.content}</Text>
+                  
+                  <View style={styles.instructionFooter}>
+                    <View style={styles.instructionDetailRow}>
+                      <Ionicons name="calendar-outline" size={16} color="#666" />
+                      <Text style={styles.instructionDetailText}>{instruction.date}</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.readButton}
+                      onPress={() => {
+                        console.log('Marking instruction as read:', instruction.title);
+                        Alert.alert(
+                          'Instruction Acknowledged',
+                          `You have marked "${instruction.title}" as read.\n\nThis instruction will be moved to your read items.`,
+                          [{ text: 'OK', style: 'default' }]
+                        );
+                        setInstructions(prev => prev.map(inst => 
+                          inst.id === instruction.id 
+                            ? { ...inst, isRead: true }
+                            : inst
+                        ));
+                      }}
+                    >
+                      <Text style={styles.readButtonText}>Mark as Read</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
           </ScrollView>
         );
 
@@ -1425,5 +1434,26 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "500",
+  },
+  
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#666",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: "#999",
+    marginTop: 8,
+    textAlign: "center",
   },
 });

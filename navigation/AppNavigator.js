@@ -22,6 +22,8 @@ import SafetyCompliance from "./screens/SafetyCompliance";
 import CommunicationCenter from "./screens/CommunicationCenter";
 import Settings from "./screens/Settings";
 import InvoiceManagement from "./screens/InvoiceManagement";
+import MaterialRequests from "./screens/MaterialRequests";
+import Documents from "./screens/Documents";
 
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
@@ -191,6 +193,16 @@ export default function AppNavigator() {
           name="InvoiceManagement"
           component={InvoiceManagement}
           options={{ title: "Invoice Management" }}
+        />
+        <Stack.Screen
+          name="MaterialRequests"
+          component={MaterialRequests}
+          options={{ title: "Material Requests" }}
+        />
+        <Stack.Screen
+          name="Documents"
+          component={Documents}
+          options={{ title: "Documents" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

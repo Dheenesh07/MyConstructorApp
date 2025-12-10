@@ -33,41 +33,11 @@ export default function UserManagement({ navigation }) {
   const loadUsers = async () => {
     try {
       const response = await userAPI.getAll();
-      setUsers(response.data);
+      setUsers(response.data || []);
     } catch (error) {
-      // Mock data fallback
-      setUsers([
-        {
-          id: 1,
-          username: "admin",
-          email: "admin@construction.com",
-          role: "admin",
-          phone: "+1234567890",
-          employee_id: "EMP001",
-          department: "Management",
-          is_active: true
-        },
-        {
-          id: 2,
-          username: "john_pm",
-          email: "john@construction.com",
-          role: "project_manager",
-          phone: "+1987654321",
-          employee_id: "PM001",
-          department: "Engineering",
-          is_active: true
-        },
-        {
-          id: 3,
-          username: "site_eng1",
-          email: "engineer@site.com",
-          role: "site_engineer",
-          phone: "+1555666777",
-          employee_id: "SE001",
-          department: "Site Operations",
-          is_active: true
-        }
-      ]);
+      console.error('Error loading users:', error);
+      Alert.alert('Error', 'Failed to load users from database');
+      setUsers([]);
     } finally {
       setLoading(false);
     }

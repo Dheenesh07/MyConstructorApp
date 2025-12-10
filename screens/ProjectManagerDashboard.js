@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { userAPI } from '../utils/api';
+import { userAPI, projectAPI, materialAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -55,6 +55,7 @@ export default function ProjectManagerDashboard() {
     address: '',
     tax_id: ''
   });
+  const [materialRequests, setMaterialRequests] = useState([]);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export default function ProjectManagerDashboard() {
     loadTasks();
     loadBudget();
     loadVendors();
+    loadMaterialRequests();
   }, []);
 
   const loadUserData = async () => {
@@ -77,12 +79,26 @@ export default function ProjectManagerDashboard() {
     }
   };
 
-  const loadProjects = () => {
-    setProjects([
-      { id: 1, name: 'Residential Complex A', progress: 65, status: 'In Progress', deadline: '2024-06-15', budget: 2500000, spent: 1625000 },
-      { id: 2, name: 'Office Building B', progress: 25, status: 'In Progress', deadline: '2024-08-30', budget: 5000000, spent: 1250000 },
-      { id: 3, name: 'Shopping Mall C', progress: 100, status: 'Completed', deadline: '2024-01-15', budget: 8000000, spent: 7800000 }
-    ]);
+  const loadProjects = async () => {
+    try {
+      const response = await projectAPI.getAll();
+      if (response.data && response.data.length > 0) {
+        setProjects(response.data.map(project => ({
+          id: project.id,
+          name: project.name,
+          progress: project.progress_percentage || 0,
+          status: project.status,
+          deadline: project.end_date,
+          budget: project.total_budget || 0,
+          spent: project.actual_cost || 0
+        })));
+      } else {
+        setProjects([]);
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      setProjects([]);
+    }
   };
 
   const loadTeam = async () => {
@@ -135,6 +151,16 @@ export default function ProjectManagerDashboard() {
       { id: 2, name: 'Heavy Equipment Rentals', vendor_code: 'VEN002', vendor_type: 'equipment_rental', contact_person: 'Sarah Johnson', email: 'sarah@her.com', phone: '555-0102', address: '456 Oak Ave', tax_id: 'TAX002', rating: 4.2, is_approved: true },
       { id: 3, name: 'Elite Subcontractors', vendor_code: 'VEN003', vendor_type: 'subcontractor', contact_person: 'Mike Davis', email: 'mike@elite.com', phone: '555-0103', address: '789 Pine Rd', tax_id: 'TAX003', rating: 4.8, is_approved: false }
     ]);
+  };
+
+  const loadMaterialRequests = async () => {
+    try {
+      const response = await materialAPI.getRequests();
+      setMaterialRequests(response.data || []);
+    } catch (error) {
+      console.error('Error loading material requests:', error);
+      setMaterialRequests([]);
+    }
   };
 
   const toggleMenu = () => {
@@ -438,6 +464,84 @@ export default function ProjectManagerDashboard() {
           </ScrollView>
         );
 
+      case "Documents":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>📄 Documents</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('Documents')}>
+                <Text style={styles.addButtonText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>Navigate to Documents screen to manage project documents</Text>
+            </View>
+          </ScrollView>
+        );
+
+      case "Communications":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>💬 Communications</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('CommunicationCenter')}>
+                <Text style={styles.addButtonText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>Navigate to Communication Center to send and view messages</Text>
+            </View>
+          </ScrollView>
+        );
+
+      case "Material Requests":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>📦 Material Requests</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('MaterialRequests')}>
+                <Text style={styles.addButtonText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.statsRow}>
+              <View style={styles.statBox}>
+                <Text style={styles.statNumber}>{materialRequests.length}</Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text style={[styles.statNumber, {color: '#FF9800'}]}>{materialRequests.filter(r => r.status === 'pending').length}</Text>
+                <Text style={styles.statLabel}>Pending</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text style={[styles.statNumber, {color: '#4CAF50'}]}>{materialRequests.filter(r => r.status === 'approved').length}</Text>
+                <Text style={styles.statLabel}>Approved</Text>
+              </View>
+            </View>
+            
+            {materialRequests.slice(0, 5).map(request => (
+              <View key={request.id} style={styles.requestCard}>
+                <View style={styles.requestHeader}>
+                  <Text style={styles.requestId}>{request.request_id}</Text>
+                  <View style={[styles.urgencyBadge, {
+                    backgroundColor: request.urgency === 'high' ? '#F44336' : request.urgency === 'medium' ? '#FF9800' : '#4CAF50'
+                  }]}>
+                    <Text style={styles.statusText}>{request.urgency?.toUpperCase()}</Text>
+                  </View>
+                </View>
+                <Text style={styles.requestMaterial}>{request.material_description}</Text>
+                <Text style={styles.requestQuantity}>Qty: {request.quantity} {request.unit}</Text>
+                <Text style={styles.requestCost}>Est. Cost: ${request.estimated_cost?.toLocaleString()}</Text>
+                <View style={[styles.statusBadge, {
+                  backgroundColor: request.status === 'approved' ? '#4CAF50' : '#FF9800'
+                }]}>
+                  <Text style={styles.statusText}>{request.status?.toUpperCase()}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        );
+
       case "Budget Management":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -708,11 +812,11 @@ export default function ProjectManagerDashboard() {
                   <Ionicons name="calendar" size={24} color="#607D8B" />
                   <Text style={styles.toolText}>Calendar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Analytics', 'View project analytics')}>
-                  <Ionicons name="analytics" size={24} color="#FF5722" />
-                  <Text style={styles.toolText}>Analytics</Text>
+                <TouchableOpacity style={styles.toolItem} onPress={() => navigation.navigate('MaterialRequests')}>
+                  <Ionicons name="cube" size={24} color="#FF5722" />
+                  <Text style={styles.toolText}>Materials</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Communication', 'Team communication hub')}>
+                <TouchableOpacity style={styles.toolItem} onPress={() => navigation.navigate('CommunicationCenter')}>
                   <Ionicons name="chatbubbles" size={24} color="#009688" />
                   <Text style={styles.toolText}>Messages</Text>
                 </TouchableOpacity>
@@ -1109,7 +1213,10 @@ export default function ProjectManagerDashboard() {
           { title: "Team Management", icon: "people" },
           { title: "Vendor Management", icon: "business" },
           { title: "Task Assignment", icon: "clipboard" },
-          { title: "Budget Management", icon: "cash" }
+          { title: "Budget Management", icon: "cash" },
+          { title: "Material Requests", icon: "cube" },
+          { title: "Documents", icon: "document-text" },
+          { title: "Communications", icon: "chatbubbles" }
         ].map((item) => (
           <TouchableOpacity key={item.title} onPress={() => handleMenuClick(item.title)} style={[styles.menuItem, activePage === item.title && styles.activeMenuItem]}>
             <View style={styles.menuIconContainer}>
@@ -1742,6 +1849,19 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   
+  statsRow: { flexDirection: "row", justifyContent: "space-around", marginHorizontal: 20, marginBottom: 20 },
+  statBox: { backgroundColor: "#fff", borderRadius: 12, padding: 15, alignItems: "center", flex: 1, marginHorizontal: 5, elevation: 2 },
+  statNumber: { fontSize: 24, fontWeight: "bold", color: "#003366", marginBottom: 4 },
+  statLabel: { fontSize: 12, color: "#666" },
+  
+  requestCard: { backgroundColor: "#fff", borderRadius: 12, padding: 15, marginHorizontal: 20, marginBottom: 15, elevation: 2 },
+  requestHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  requestId: { fontSize: 14, fontWeight: "600", color: "#003366" },
+  urgencyBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  requestMaterial: { fontSize: 14, color: "#333", marginBottom: 4 },
+  requestQuantity: { fontSize: 12, color: "#666", marginBottom: 2 },
+  requestCost: { fontSize: 12, color: "#4CAF50", fontWeight: "600", marginBottom: 8 },
+  
   cardContainer: { paddingHorizontal: 10 },
   
   pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 15 },
@@ -1988,5 +2108,5 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
     lineHeight: 20,
-  },
+  }
 });

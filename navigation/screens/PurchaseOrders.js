@@ -1,46 +1,47 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert } from "react-native";
+import { purchaseOrderAPI, vendorAPI, projectAPI } from "../../utils/api";
 
 export default function PurchaseOrders({ navigation }) {
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      orderNumber: "PO-2024-001",
-      vendor: "Steel Supply Co.",
-      items: "Steel Beams (50 units)",
-      amount: 125000,
-      status: "pending",
-      date: "2024-03-15",
-      deliveryDate: "2024-03-25"
-    },
-    {
-      id: 2,
-      orderNumber: "PO-2024-002",
-      vendor: "Concrete Solutions",
-      items: "Ready Mix Concrete (100 m³)",
-      amount: 85000,
-      status: "approved",
-      date: "2024-03-18",
-      deliveryDate: "2024-03-22"
-    },
-    {
-      id: 3,
-      orderNumber: "PO-2024-003",
-      vendor: "Safety Equipment Ltd",
-      items: "Safety Helmets & Vests",
-      amount: 15000,
-      status: "delivered",
-      date: "2024-03-10",
-      deliveryDate: "2024-03-20"
+  const [orders, setOrders] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [ordersRes, vendorsRes, projectsRes] = await Promise.all([
+        purchaseOrderAPI.getAll(),
+        vendorAPI.getAll(),
+        projectAPI.getAll()
+      ]);
+      setOrders(ordersRes.data || []);
+      setVendors(vendorsRes.data || []);
+      setProjects(projectsRes.data || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      Alert.alert('Error', 'Failed to load purchase orders');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const [modalVisible, setModalVisible] = useState(false);
   const [newOrder, setNewOrder] = useState({
+    po_number: '',
     vendor: '',
-    items: '',
-    amount: '',
-    deliveryDate: ''
+    project: '',
+    requested_by: '',
+    description: '',
+    total_amount: '',
+    tax_amount: '',
+    status: 'draft',
+    order_date: '',
+    expected_delivery_date: ''
   });
 
   const getStatusColor = (status) => {
@@ -53,59 +54,85 @@ export default function PurchaseOrders({ navigation }) {
     }
   };
 
-  const createOrder = () => {
-    const newId = orders.length + 1;
-    const orderNumber = `PO-2024-${String(newId).padStart(3, '0')}`;
-    
-    setOrders([...orders, {
-      ...newOrder,
-      id: newId,
-      orderNumber,
-      status: 'pending',
-      date: new Date().toISOString().split('T')[0],
-      amount: parseFloat(newOrder.amount)
-    }]);
-    
-    Alert.alert("Success", "Purchase order created successfully");
-    setModalVisible(false);
-    setNewOrder({
-      vendor: '',
-      items: '',
-      amount: '',
-      deliveryDate: ''
-    });
+  const createOrder = async () => {
+    if (!newOrder.po_number || !newOrder.vendor || !newOrder.project) {
+      Alert.alert('Error', 'Please fill required fields');
+      return;
+    }
+    try {
+      const payload = {
+        po_number: newOrder.po_number,
+        vendor: parseInt(newOrder.vendor),
+        project: parseInt(newOrder.project),
+        requested_by: parseInt(newOrder.requested_by) || 1,
+        description: newOrder.description,
+        total_amount: parseFloat(newOrder.total_amount) || 0,
+        tax_amount: parseFloat(newOrder.tax_amount) || 0,
+        status: newOrder.status,
+        order_date: newOrder.order_date || new Date().toISOString().split('T')[0],
+        expected_delivery_date: newOrder.expected_delivery_date || null
+      };
+      console.log('Sending payload:', payload);
+      const response = await purchaseOrderAPI.create(payload);
+      setOrders([response.data, ...orders]);
+      Alert.alert("Success", "Purchase order created and saved to database");
+      setModalVisible(false);
+      setNewOrder({
+        po_number: '',
+        vendor: '',
+        project: '',
+        requested_by: '',
+        description: '',
+        total_amount: '',
+        tax_amount: '',
+        status: 'draft',
+        order_date: '',
+        expected_delivery_date: ''
+      });
+    } catch (error) {
+      console.error('Error creating order:', error);
+      console.error('Error response:', error.response?.data);
+      const errorMsg = JSON.stringify(error.response?.data) || error.message;
+      Alert.alert('Error', errorMsg);
+    }
   };
 
-  const updateOrderStatus = (id, newStatus) => {
-    setOrders(prev => prev.map(order => 
-      order.id === id ? { ...order, status: newStatus } : order
-    ));
-    Alert.alert("Success", "Order status updated");
+  const updateOrderStatus = async (id, newStatus) => {
+    try {
+      const response = await purchaseOrderAPI.update(id, { status: newStatus });
+      setOrders(prev => prev.map(order => 
+        order.id === id ? response.data : order
+      ));
+      Alert.alert("Success", "Order status updated in database");
+    } catch (error) {
+      console.error('Error updating status:', error);
+      Alert.alert('Error', 'Failed to update order status');
+    }
   };
 
   const renderOrder = ({ item }) => (
     <View style={styles.orderCard}>
       <View style={styles.orderHeader}>
         <View style={styles.orderInfo}>
-          <Text style={styles.orderNumber}>{item.orderNumber}</Text>
-          <Text style={styles.vendor}>{item.vendor}</Text>
+          <Text style={styles.orderNumber}>{item.po_number}</Text>
+          <Text style={styles.vendor}>{item.vendor_name || `Vendor #${item.vendor}`}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-          <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+          <Text style={styles.statusText}>{item.status?.toUpperCase()}</Text>
         </View>
       </View>
       
-      <Text style={styles.items}>{item.items}</Text>
-      <Text style={styles.amount}>Amount: ${item.amount.toLocaleString()}</Text>
+      <Text style={styles.items}>{item.description}</Text>
+      <Text style={styles.amount}>Amount: ${item.total_amount?.toLocaleString()}</Text>
       
       <View style={styles.orderFooter}>
         <Text style={styles.dates}>
-          Ordered: {item.date} | Delivery: {item.deliveryDate}
+          Ordered: {item.order_date} | Delivery: {item.expected_delivery_date}
         </Text>
       </View>
 
       <View style={styles.orderActions}>
-        {item.status === 'pending' && (
+        {item.status === 'draft' && (
           <>
             <TouchableOpacity 
               style={[styles.actionButton, { backgroundColor: '#28a745' }]}
@@ -173,35 +200,105 @@ export default function PurchaseOrders({ navigation }) {
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Create Purchase Order</Text>
           
+          <ScrollView showsVerticalScrollIndicator={false}>
           <TextInput
             style={styles.input}
-            placeholder="Vendor Name"
-            value={newOrder.vendor}
-            onChangeText={(text) => setNewOrder({...newOrder, vendor: text})}
+            placeholder="PO Number (e.g., PO2024001) *"
+            value={newOrder.po_number}
+            onChangeText={(text) => setNewOrder({...newOrder, po_number: text})}
           />
+          
+          <Text style={styles.inputLabel}>Select Vendor *</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerScroll}>
+            {vendors.map((vendor) => (
+              <TouchableOpacity
+                key={vendor.id}
+                style={[styles.pickerOption, newOrder.vendor === vendor.id && styles.selectedPicker]}
+                onPress={() => setNewOrder({...newOrder, vendor: vendor.id})}
+              >
+                <Text style={[styles.pickerText, newOrder.vendor === vendor.id && styles.selectedPickerText]}>
+                  {vendor.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          <Text style={styles.inputLabel}>Select Project *</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerScroll}>
+            {projects.map((project) => (
+              <TouchableOpacity
+                key={project.id}
+                style={[styles.pickerOption, newOrder.project === project.id && styles.selectedPicker]}
+                onPress={() => setNewOrder({...newOrder, project: project.id})}
+              >
+                <Text style={[styles.pickerText, newOrder.project === project.id && styles.selectedPickerText]}>
+                  {project.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
           
           <TextInput
             style={styles.input}
-            placeholder="Items Description"
-            value={newOrder.items}
-            onChangeText={(text) => setNewOrder({...newOrder, items: text})}
-            multiline
-          />
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Amount ($)"
-            value={newOrder.amount}
-            onChangeText={(text) => setNewOrder({...newOrder, amount: text})}
+            placeholder="Requested By (User ID)"
+            value={newOrder.requested_by}
+            onChangeText={(text) => setNewOrder({...newOrder, requested_by: text})}
             keyboardType="numeric"
           />
           
           <TextInput
             style={styles.input}
-            placeholder="Expected Delivery Date (YYYY-MM-DD)"
-            value={newOrder.deliveryDate}
-            onChangeText={(text) => setNewOrder({...newOrder, deliveryDate: text})}
+            placeholder="Description *"
+            value={newOrder.description}
+            onChangeText={(text) => setNewOrder({...newOrder, description: text})}
+            multiline
           />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Total Amount ($) *"
+            value={newOrder.total_amount}
+            onChangeText={(text) => setNewOrder({...newOrder, total_amount: text})}
+            keyboardType="numeric"
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Tax Amount ($)"
+            value={newOrder.tax_amount}
+            onChangeText={(text) => setNewOrder({...newOrder, tax_amount: text})}
+            keyboardType="numeric"
+          />
+          
+          <Text style={styles.inputLabel}>Status (Optional - defaults to draft)</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerScroll}>
+            {['draft', 'approved', 'delivered', 'cancelled'].map((statusOption) => (
+              <TouchableOpacity
+                key={statusOption}
+                style={[styles.pickerOption, newOrder.status === statusOption && styles.selectedPicker]}
+                onPress={() => setNewOrder({...newOrder, status: statusOption})}
+              >
+                <Text style={[styles.pickerText, newOrder.status === statusOption && styles.selectedPickerText]}>
+                  {statusOption.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Order Date (YYYY-MM-DD)"
+            value={newOrder.order_date}
+            onChangeText={(text) => setNewOrder({...newOrder, order_date: text})}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Expected Delivery Date (YYYY-MM-DD)"
+            value={newOrder.expected_delivery_date}
+            onChangeText={(text) => setNewOrder({...newOrder, expected_delivery_date: text})}
+          />
+          </ScrollView>
 
           <View style={styles.modalButtons}>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
@@ -388,5 +485,37 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#003366',
+    marginBottom: 8,
+    marginTop: 5,
+  },
+  pickerScroll: {
+    flexGrow: 0,
+    marginBottom: 15,
+  },
+  pickerOption: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  selectedPicker: {
+    backgroundColor: '#004AAD',
+    borderColor: '#004AAD',
+  },
+  pickerText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  selectedPickerText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { userAPI, projectAPI, vendorAPI } from '../utils/api';
+import { userAPI, projectAPI, vendorAPI, safetyAPI, qualityAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -29,10 +29,8 @@ export default function AdminDashboard() {
   const [projects, setProjects] = useState([]);
   const [reports, setReports] = useState([]);
   const [vendors, setVendors] = useState([]);
-  const [incidents, setIncidents] = useState([
-    { id: 1, incident_id: 'INC-001', title: 'Minor equipment malfunction - Crane #3', status: 'investigating', reported_date: '2024-01-12', project_name: 'Downtown Complex' },
-    { id: 2, incident_id: 'INC-002', title: 'PPE compliance violation - Worker training', status: 'resolved', reported_date: '2024-01-10', project_name: 'Residential Tower' }
-  ]);
+  const [incidents, setIncidents] = useState([]);
+  const [inspections, setInspections] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -102,6 +100,8 @@ export default function AdminDashboard() {
     loadProjects();
     loadReports();
     loadVendors();
+    loadIncidents();
+    loadInspections();
   }, []);
 
   const loadUserData = async () => {
@@ -137,23 +137,22 @@ export default function AdminDashboard() {
   const loadProjects = async () => {
     try {
       const response = await projectAPI.getAll();
-      setProjects(response.data.map(project => ({
-        id: project.id,
-        name: project.name,
-        status: project.status,
-        progress: project.progress_percentage || 0,
-        budget: project.total_budget || 0,
-        spent: project.actual_cost || 0,
-        manager: project.project_manager_name || 'Not assigned'
-      })));
+      if (response.data && response.data.length > 0) {
+        setProjects(response.data.map(project => ({
+          id: project.id,
+          name: project.name,
+          status: project.status,
+          progress: project.progress_percentage || 0,
+          budget: project.total_budget || 0,
+          spent: project.actual_cost || 0,
+          manager: project.project_manager_name || 'Not assigned'
+        })));
+      } else {
+        setProjects([]);
+      }
     } catch (error) {
       console.error('Error loading projects:', error);
-      setProjects([
-        { id: 1, name: 'Residential Complex A', status: 'active', progress: 65, budget: 2500000, spent: 1625000, manager: 'John Smith' },
-        { id: 2, name: 'Commercial Plaza B', status: 'planning', progress: 15, budget: 3200000, spent: 480000, manager: 'Sarah Wilson' },
-        { id: 3, name: 'Industrial Warehouse C', status: 'completed', progress: 100, budget: 1800000, spent: 1750000, manager: 'Mike Johnson' },
-        { id: 4, name: 'Infrastructure Bridge D', status: 'on_hold', progress: 35, budget: 4500000, spent: 1575000, manager: 'David Brown' }
-      ]);
+      setProjects([]);
     }
   };
 
@@ -177,6 +176,46 @@ export default function AdminDashboard() {
         { id: 3, name: 'Elite Subcontractors', vendor_code: 'VEN003', vendor_type: 'subcontractor', contact_person: 'Mike Davis', email: 'mike@elite.com', phone: '555-0103', address: '789 Pine Rd', tax_id: 'TAX003', rating: 4.8, is_approved: false }
       ]);
     }
+  };
+
+  const loadIncidents = async () => {
+    try {
+      const response = await safetyAPI.getIncidents();
+      setIncidents(response.data || []);
+    } catch (error) {
+      console.error('Error loading incidents:', error);
+      setIncidents([]);
+    }
+  };
+
+  const loadInspections = async () => {
+    try {
+      const response = await qualityAPI.getInspections();
+      setInspections(response.data || []);
+    } catch (error) {
+      console.error('Error loading inspections:', error);
+      setInspections([]);
+    }
+  };
+
+  const calculateComplianceRate = () => {
+    if (inspections.length === 0) return 0;
+    const passedInspections = inspections.filter(i => i.status === 'passed').length;
+    return Math.round((passedInspections / inspections.length) * 100);
+  };
+
+  const calculateDaysSafe = () => {
+    if (incidents.length === 0) return 0;
+    const sortedIncidents = incidents.sort((a, b) => 
+      new Date(b.incident_date) - new Date(a.incident_date)
+    );
+    const lastIncident = sortedIncidents[0];
+    if (!lastIncident || !lastIncident.incident_date) return 0;
+    const lastIncidentDate = new Date(lastIncident.incident_date);
+    const today = new Date();
+    const diffTime = Math.abs(today - lastIncidentDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   const toggleMenu = () => {
@@ -630,6 +669,48 @@ export default function AdminDashboard() {
           </ScrollView>
         );
 
+      case "Material Requests":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>📦 Material Requests</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('MaterialRequests')}>
+                <Ionicons name="cube" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>Manage Requests</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.managementCard}>
+              <Text style={styles.managementTitle}>Material Request Management</Text>
+              <Text style={styles.managementDescription}>Create, approve, and track material requests</Text>
+              <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('MaterialRequests')}>
+                <Text style={styles.managementButtonText}>Open Material Requests</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        );
+
+      case "Purchase Orders":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>🛒 Purchase Orders</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('PurchaseOrders')}>
+                <Ionicons name="cart" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>Manage Orders</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.managementCard}>
+              <Text style={styles.managementTitle}>Purchase Order Management</Text>
+              <Text style={styles.managementDescription}>Create, approve, and track purchase orders</Text>
+              <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('PurchaseOrders')}>
+                <Text style={styles.managementButtonText}>Open Purchase Orders</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        );
+
       case "Invoice Management":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -693,6 +774,27 @@ export default function AdminDashboard() {
           </ScrollView>
         );
 
+      case "Documents":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>📄 Documents</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('Documents')}>
+                <Ionicons name="document-text" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>Manage Documents</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.managementCard}>
+              <Text style={styles.managementTitle}>Document Management</Text>
+              <Text style={styles.managementDescription}>Upload, organize, and manage project documents, blueprints, and reports</Text>
+              <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('Documents')}>
+                <Text style={styles.managementButtonText}>Open Documents</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        );
+
       case "Document Management":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -714,21 +816,42 @@ export default function AdminDashboard() {
           </ScrollView>
         );
 
+      case "Communication Center":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>💬 Communication Center</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('CommunicationCenter')}>
+                <Ionicons name="chatbubbles" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>Open Messages</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.managementCard}>
+              <Text style={styles.managementTitle}>Team Communications</Text>
+              <Text style={styles.managementDescription}>Send and receive messages, progress updates, safety alerts, and issue reports</Text>
+              <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('CommunicationCenter')}>
+                <Text style={styles.managementButtonText}>Open Communication Center</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        );
+
       case "Safety & Compliance":
         return (
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
               <Text style={styles.pageTitle}>🛡️ Safety & Compliance</Text>
-              <TouchableOpacity style={styles.addButton} onPress={() => setIncidentModalVisible(true)}>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('SafetyCompliance')}>
                 <Ionicons name="shield-checkmark" size={20} color="#fff" />
-                <Text style={styles.addButtonText}>Report Incident</Text>
+                <Text style={styles.addButtonText}>Manage Safety</Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.safetyStats}>
               <View style={styles.safetyStatCard}>
                 <Ionicons name="shield-checkmark" size={24} color="#4CAF50" />
-                <Text style={styles.safetyStatNumber}>98%</Text>
+                <Text style={styles.safetyStatNumber}>{calculateComplianceRate()}%</Text>
                 <Text style={styles.safetyStatLabel}>Compliance Rate</Text>
               </View>
               <View style={styles.safetyStatCard}>
@@ -738,8 +861,8 @@ export default function AdminDashboard() {
               </View>
               <View style={styles.safetyStatCard}>
                 <Ionicons name="calendar" size={24} color="#2196F3" />
-                <Text style={styles.safetyStatNumber}>45</Text>
-                <Text style={styles.safetyStatLabel}>Days Safe</Text>
+                <Text style={styles.safetyStatNumber}>{calculateDaysSafe()}</Text>
+                <Text style={styles.safetyStatLabel}>Days Since Last Incident</Text>
               </View>
             </View>
             
@@ -762,21 +885,13 @@ export default function AdminDashboard() {
               ))}
             </View>
             
-            <View style={styles.complianceCard}>
-              <Text style={styles.complianceTitle}>Compliance Checklist</Text>
-              <View style={styles.complianceItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <Text style={styles.complianceText}>Safety Training - All personnel certified</Text>
+            <TouchableOpacity style={styles.managementCard} onPress={() => navigation.navigate('SafetyCompliance')}>
+              <Text style={styles.managementTitle}>Full Safety Management</Text>
+              <Text style={styles.managementDescription}>View all incidents, inspections, and compliance details</Text>
+              <View style={styles.managementButton}>
+                <Text style={styles.managementButtonText}>Open Safety & Compliance</Text>
               </View>
-              <View style={styles.complianceItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <Text style={styles.complianceText}>Equipment Inspection - Monthly check completed</Text>
-              </View>
-              <View style={styles.complianceItem}>
-                <Ionicons name="alert-circle" size={20} color="#FF9800" />
-                <Text style={styles.complianceText}>Fire Safety Drill - Due in 5 days</Text>
-              </View>
-            </View>
+            </TouchableOpacity>
           </ScrollView>
         );
 
@@ -1844,11 +1959,15 @@ export default function AdminDashboard() {
             { title: "User Management", icon: "people" },
             { title: "Task Management", icon: "clipboard" },
             { title: "Vendor Management", icon: "business" },
+            { title: "Material Requests", icon: "cube" },
+            { title: "Purchase Orders", icon: "cart" },
             { title: "Invoice Management", icon: "receipt" },
             { title: "Budget & Finance", icon: "cash" },
             { title: "Equipment Management", icon: "build" },
             { title: "Document Management", icon: "folder" },
+            { title: "Documents", icon: "document-text" },
             { title: "Safety & Compliance", icon: "shield-checkmark" },
+            { title: "Communication Center", icon: "chatbubbles" },
             { title: "Reports & Analytics", icon: "bar-chart" },
             { title: "System Settings", icon: "settings" }
           ].map((item) => (

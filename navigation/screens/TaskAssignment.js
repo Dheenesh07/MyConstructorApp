@@ -32,31 +32,11 @@ export default function TaskAssignment({ navigation }) {
   const loadTasks = async () => {
     try {
       const response = await taskAPI.getAll();
-      setTasks(response.data);
+      setTasks(response.data || []);
     } catch (error) {
-      // Mock data fallback
-      setTasks([
-        {
-          id: 1,
-          title: "Foundation Excavation",
-          description: "Excavate foundation area according to blueprints",
-          assigned_to: { username: "worker1", id: 2 },
-          priority: "high",
-          status: "in_progress",
-          start_date: "2024-03-15",
-          due_date: "2024-03-30"
-        },
-        {
-          id: 2,
-          title: "Steel Framework Installation",
-          description: "Install main steel framework structure",
-          assigned_to: { username: "engineer1", id: 3 },
-          priority: "high",
-          status: "not_started",
-          start_date: "2024-04-01",
-          due_date: "2024-04-15"
-        }
-      ]);
+      console.error('Error loading tasks:', error);
+      Alert.alert('Error', 'Failed to load tasks from database');
+      setTasks([]);
     } finally {
       setLoading(false);
     }
@@ -65,25 +45,20 @@ export default function TaskAssignment({ navigation }) {
   const loadUsers = async () => {
     try {
       const response = await userAPI.getAll();
-      setUsers(response.data);
+      setUsers(response.data || []);
     } catch (error) {
-      setUsers([
-        { id: 1, username: "admin", role: "admin" },
-        { id: 2, username: "worker1", role: "worker" },
-        { id: 3, username: "engineer1", role: "site_engineer" }
-      ]);
+      console.error('Error loading users:', error);
+      setUsers([]);
     }
   };
 
   const loadProjects = async () => {
     try {
       const response = await projectAPI.getAll();
-      setProjects(response.data);
+      setProjects(response.data || []);
     } catch (error) {
-      setProjects([
-        { id: 1, name: "Downtown Office Complex", project_code: "PROJ001" },
-        { id: 2, name: "Residential Tower A", project_code: "PROJ002" }
-      ]);
+      console.error('Error loading projects:', error);
+      setProjects([]);
     }
   };
 
