@@ -47,11 +47,11 @@ export default function DocumentManagement({ navigation }) {
 
   const getDocumentIcon = (type) => {
     switch (type) {
-      case 'blueprint': return '📐';
-      case 'report': return '📊';
-      case 'specification': return '📋';
-      case 'contract': return '📄';
-      default: return '📁';
+      case 'blueprint': return 'document-text';
+      case 'report': return 'stats-chart';
+      case 'specification': return 'clipboard';
+      case 'contract': return 'document';
+      default: return 'folder';
     }
   };
 
@@ -164,7 +164,7 @@ export default function DocumentManagement({ navigation }) {
   const renderDocument = ({ item }) => (
     <View style={styles.documentCard}>
       <View style={styles.documentHeader}>
-        <Text style={styles.documentIcon}>{getDocumentIcon(item.document_type || item.type)}</Text>
+        <Ionicons name={getDocumentIcon(item.document_type || item.type)} size={24} color="#003366" style={styles.documentIcon} />
         <View style={styles.documentInfo}>
           <Text style={styles.documentName}>{item.file_name || item.description || item.name}</Text>
           <Text style={styles.documentProject}>{item.project_name || item.project}</Text>
@@ -188,7 +188,10 @@ export default function DocumentManagement({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>📁 Document Management</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons name="folder" size={24} color="#003366" />
+          <Text style={styles.title}>Document Management</Text>
+        </View>
         <TouchableOpacity style={styles.uploadButton} onPress={uploadDocument}>
           <Text style={styles.uploadButtonText}>+ Upload</Text>
         </TouchableOpacity>
@@ -321,6 +324,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
@@ -400,7 +408,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   documentIcon: {
-    fontSize: 24,
     marginRight: 15,
   },
   documentInfo: {

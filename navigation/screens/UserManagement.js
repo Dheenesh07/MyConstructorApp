@@ -78,14 +78,14 @@ export default function UserManagement({ navigation }) {
 
   const getRoleIcon = (role) => {
     switch (role) {
-      case 'admin': return '🏗️';
-      case 'project_manager': return '📋';
-      case 'site_engineer': return '👷';
-      case 'foreman': return '👷‍♂️';
-      case 'worker': return '👷‍♀️';
-      case 'safety_officer': return '🦺';
-      case 'quality_inspector': return '🔍';
-      default: return '👤';
+      case 'admin': return 'construct';
+      case 'project_manager': return 'clipboard';
+      case 'site_engineer': return 'hammer';
+      case 'foreman': return 'person';
+      case 'worker': return 'people';
+      case 'safety_officer': return 'shield-checkmark';
+      case 'quality_inspector': return 'search';
+      default: return 'person';
     }
   };
 
@@ -93,7 +93,7 @@ export default function UserManagement({ navigation }) {
     <View style={styles.userCard}>
       <View style={styles.userHeader}>
         <View style={styles.userInfo}>
-          <Text style={styles.userIcon}>{getRoleIcon(item.role)}</Text>
+          <Ionicons name={getRoleIcon(item.role)} size={24} color="#003366" style={styles.userIcon} />
           <View>
             <Text style={styles.username}>{item.username}</Text>
             <Text style={styles.email}>{item.email}</Text>
@@ -122,7 +122,10 @@ export default function UserManagement({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>👥 User Management</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons name="people" size={24} color="#003366" />
+          <Text style={styles.title}>User Management</Text>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Text style={styles.addButtonText}>+ Add User</Text>
         </TouchableOpacity>
@@ -241,6 +244,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
@@ -299,7 +307,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userIcon: {
-    fontSize: 24,
     marginRight: 10,
   },
   username: {

@@ -140,7 +140,10 @@ export default function CommunicationCenter() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>💬 Communications</Text>
+        <View style={styles.headerTitleContainer}>
+          <Ionicons name="chatbubbles" size={24} color="#003366" />
+          <Text style={styles.headerTitle}>Communications</Text>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Text style={styles.addButtonText}>+ Send Message</Text>
         </TouchableOpacity>
@@ -275,6 +278,11 @@ export default function CommunicationCenter() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f9fc', padding: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#003366' },
   addButton: { backgroundColor: '#004AAD', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 8 },
   addButtonText: { color: '#fff', fontWeight: '600' },

@@ -203,7 +203,10 @@ export default function InvoiceManagement() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>📄 Invoice Management</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons name="document-text" size={24} color="#003366" />
+          <Text style={styles.title}>Invoice Management</Text>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Ionicons name="add" size={20} color="#fff" />
           <Text style={styles.addButtonText}>Create Invoice</Text>
@@ -516,6 +519,11 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#fff',
     elevation: 2,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 24,

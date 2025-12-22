@@ -125,7 +125,10 @@ export default function AttendanceTracking() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>⏰ Attendance Tracking</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons name="time" size={24} color="#fff" />
+          <Text style={styles.title}>Attendance Tracking</Text>
+        </View>
       </View>
 
       <ScrollView
@@ -228,6 +231,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#003366',
     padding: 20,
     paddingTop: 40,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 24,

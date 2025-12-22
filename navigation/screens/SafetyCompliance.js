@@ -265,7 +265,10 @@ export default function SafetyCompliance({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🦺 Safety & Compliance</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons name="shield-checkmark" size={24} color="#003366" />
+          <Text style={styles.title}>Safety & Compliance</Text>
+        </View>
         <TouchableOpacity 
           style={styles.addButton} 
           onPress={() => activeTab === 'incidents' ? setModalVisible(true) : setInspectionModalVisible(true)}
@@ -643,6 +646,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 24,

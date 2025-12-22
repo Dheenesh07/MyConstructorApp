@@ -151,7 +151,10 @@ export default function MaterialRequests({ route }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>📋 Material Requests</Text>
+        <View style={styles.headerTitleContainer}>
+          <Ionicons name="cube" size={24} color="#003366" />
+          <Text style={styles.title}>Material Requests</Text>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Text style={styles.addButtonText}>+ New Request</Text>
         </TouchableOpacity>
@@ -310,6 +313,11 @@ export default function MaterialRequests({ route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f9fc', padding: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: { fontSize: 24, fontWeight: 'bold', color: '#003366' },
   addButton: { backgroundColor: '#004AAD', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 8 },
   addButtonText: { color: '#fff', fontWeight: '600' },

@@ -163,7 +163,10 @@ export default function PurchaseOrders({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🛒 Purchase Orders</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons name="cart" size={24} color="#003366" />
+          <Text style={styles.title}>Purchase Orders</Text>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Text style={styles.addButtonText}>+ New Order</Text>
         </TouchableOpacity>
@@ -325,6 +328,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 24,

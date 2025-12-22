@@ -75,7 +75,7 @@ export default function ReportsAnalytics({ navigation }) {
 
   const StatCard = ({ title, value, icon, color = "#004AAD" }) => (
     <View style={[styles.statCard, { borderLeftColor: color }]}>
-      <Text style={styles.statIcon}>{icon}</Text>
+      <Ionicons name={icon} size={24} color={color} style={styles.statIcon} />
       <View style={styles.statContent}>
         <Text style={styles.statValue}>{value}</Text>
         <Text style={styles.statTitle}>{title}</Text>
@@ -91,7 +91,10 @@ export default function ReportsAnalytics({ navigation }) {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>📊 Reports & Analytics</Text>
+      <View style={styles.titleContainer}>
+        <Ionicons name="stats-chart" size={24} color="#003366" />
+        <Text style={styles.title}>Reports & Analytics</Text>
+      </View>
 
       {/* Key Metrics */}
       <View style={styles.section}>
@@ -100,28 +103,28 @@ export default function ReportsAnalytics({ navigation }) {
         <StatCard
           title="Total Projects"
           value={analytics.totalProjects}
-          icon="🏗️"
+          icon="construct"
           color="#007bff"
         />
         
         <StatCard
           title="Active Projects"
           value={analytics.activeProjects}
-          icon="🚧"
+          icon="hammer"
           color="#28a745"
         />
         
         <StatCard
           title="Completed Tasks"
           value={analytics.completedTasks}
-          icon="✅"
+          icon="checkmark-circle"
           color="#ffc107"
         />
         
         <StatCard
           title="Total Users"
           value={analytics.totalUsers}
-          icon="👥"
+          icon="people"
           color="#6f42c1"
         />
       </View>
@@ -155,7 +158,7 @@ export default function ReportsAnalytics({ navigation }) {
         <Text style={styles.sectionTitle}>Quick Reports</Text>
         
         <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>📈</Text>
+          <Ionicons name="trending-up" size={24} color="#003366" style={styles.actionIcon} />
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Project Performance</Text>
             <Text style={styles.actionDesc}>View detailed project metrics</Text>
@@ -163,7 +166,7 @@ export default function ReportsAnalytics({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>💰</Text>
+          <Ionicons name="cash" size={24} color="#003366" style={styles.actionIcon} />
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Budget Analysis</Text>
             <Text style={styles.actionDesc}>Track expenses and budget utilization</Text>
@@ -171,7 +174,7 @@ export default function ReportsAnalytics({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>⏱️</Text>
+          <Ionicons name="time" size={24} color="#003366" style={styles.actionIcon} />
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Time Tracking</Text>
             <Text style={styles.actionDesc}>Analyze time spent on tasks</Text>
@@ -179,7 +182,7 @@ export default function ReportsAnalytics({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>🦺</Text>
+          <Ionicons name="shield-checkmark" size={24} color="#003366" style={styles.actionIcon} />
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Safety Reports</Text>
             <Text style={styles.actionDesc}>View safety incidents and compliance</Text>
@@ -209,11 +212,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f9fc",
     padding: 20,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#003366",
-    marginBottom: 20,
   },
   section: {
     marginBottom: 25,
@@ -235,7 +243,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
   },
   statIcon: {
-    fontSize: 24,
     marginRight: 15,
   },
   statContent: {
@@ -315,7 +322,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   actionIcon: {
-    fontSize: 24,
     marginRight: 15,
   },
   actionContent: {

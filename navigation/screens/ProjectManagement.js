@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput, Dimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 import { projectAPI, equipmentAPI, materialAPI } from "../../utils/api";
@@ -102,7 +103,10 @@ export default function ProjectManagement({ navigation, route }) {
       
       {equipment.filter(e => e.current_project === item.id).length > 0 && (
         <View style={styles.equipmentSection}>
-          <Text style={styles.equipmentTitle}>🛠️ Assigned Equipment ({equipment.filter(e => e.current_project === item.id).length})</Text>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="build" size={16} color="#003366" />
+            <Text style={styles.equipmentTitle}>Assigned Equipment ({equipment.filter(e => e.current_project === item.id).length})</Text>
+          </View>
           {equipment.filter(e => e.current_project === item.id).map(eq => (
             <Text key={eq.id} style={styles.equipmentItem}>• {eq.name} - {eq.status}</Text>
           ))}
@@ -111,7 +115,10 @@ export default function ProjectManagement({ navigation, route }) {
       
       {materialRequests.filter(r => r.project === item.id).length > 0 && (
         <View style={styles.materialSection}>
-          <Text style={styles.materialTitle}>📦 Material Requests ({materialRequests.filter(r => r.project === item.id).length})</Text>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="cube" size={16} color="#003366" />
+            <Text style={styles.materialTitle}>Material Requests ({materialRequests.filter(r => r.project === item.id).length})</Text>
+          </View>
           {materialRequests.filter(r => r.project === item.id).slice(0, 3).map(req => (
             <View key={req.id} style={styles.materialItem}>
               <Text style={styles.materialDesc}>• {req.material_description}</Text>
@@ -139,7 +146,10 @@ export default function ProjectManagement({ navigation, route }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🏗️ Project Management</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons name="construct" size={24} color="#003366" />
+          <Text style={styles.title}>Project Management</Text>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Text style={styles.addButtonText}>+ Add Project</Text>
         </TouchableOpacity>
@@ -238,10 +248,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#003366",
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 5,
   },
   addButton: {
     backgroundColor: "#004AAD",

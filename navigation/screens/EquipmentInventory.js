@@ -50,11 +50,11 @@ export default function EquipmentInventory({ navigation }) {
   });
 
   const getEquipmentIcon = (category) => {
-    if (category?.toLowerCase().includes('heavy')) return '🚜';
-    if (category?.toLowerCase().includes('lifting')) return '🏗️';
-    if (category?.toLowerCase().includes('safety')) return '🦺';
-    if (category?.toLowerCase().includes('tool')) return '🔧';
-    return '⚙️';
+    if (category?.toLowerCase().includes('heavy')) return 'construct';
+    if (category?.toLowerCase().includes('lifting')) return 'arrow-up-circle';
+    if (category?.toLowerCase().includes('safety')) return 'shield-checkmark';
+    if (category?.toLowerCase().includes('tool')) return 'build';
+    return 'settings';
   };
 
   const getStatusColor = (status) => {
@@ -163,7 +163,7 @@ export default function EquipmentInventory({ navigation }) {
   const renderEquipment = ({ item }) => (
     <View style={styles.equipmentCard}>
       <View style={styles.equipmentHeader}>
-        <Text style={styles.equipmentIcon}>{getEquipmentIcon(item.category)}</Text>
+        <Ionicons name={getEquipmentIcon(item.category)} size={24} color="#003366" style={styles.equipmentIcon} />
         <View style={styles.equipmentInfo}>
           <Text style={styles.equipmentName}>{item.name}</Text>
           <Text style={styles.equipmentId}>ID: {item.equipment_id}</Text>
@@ -215,7 +215,10 @@ export default function EquipmentInventory({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🛠️ Equipment & Inventory</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons name="build" size={24} color="#003366" />
+          <Text style={styles.title}>Equipment & Inventory</Text>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Text style={styles.addButtonText}>+ Add Equipment</Text>
         </TouchableOpacity>
@@ -400,6 +403,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
@@ -455,7 +463,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   equipmentIcon: {
-    fontSize: 24,
     marginRight: 15,
   },
   equipmentInfo: {
