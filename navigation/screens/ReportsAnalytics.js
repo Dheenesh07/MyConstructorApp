@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { projectAPI, taskAPI, userAPI } from "../../utils/api";
 
 const { width } = Dimensions.get("window");
@@ -92,7 +93,7 @@ export default function ReportsAnalytics({ navigation }) {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.titleContainer}>
-        <Ionicons name="stats-chart" size={24} color="#003366" />
+        <Ionicons name="stats-chart" size={24} color="#003366" style={{marginRight: 8}} />
         <Text style={styles.title}>Reports & Analytics</Text>
       </View>
 
@@ -215,7 +216,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     marginBottom: 20,
   },
   title: {

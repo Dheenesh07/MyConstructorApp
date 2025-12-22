@@ -126,7 +126,7 @@ export default function AttendanceTracking() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Ionicons name="time" size={24} color="#fff" />
+          <Ionicons name="time" size={24} color="#fff" style={{marginRight: 8}} />
           <Text style={styles.title}>Attendance Tracking</Text>
         </View>
       </View>
@@ -235,7 +235,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   title: {
     fontSize: 24,

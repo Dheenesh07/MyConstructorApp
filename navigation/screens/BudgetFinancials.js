@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, RefreshControl } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { projectAPI, budgetAPI } from "../../utils/api";
 
 export default function BudgetFinancials({ navigation }) {
@@ -203,7 +204,7 @@ export default function BudgetFinancials({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Ionicons name="cash" size={24} color="#003366" />
+          <Ionicons name="cash" size={24} color="#003366" style={{marginRight: 8}} />
           <Text style={styles.title}>Budget & Financials</Text>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
@@ -311,7 +312,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   title: {
     fontSize: 24,

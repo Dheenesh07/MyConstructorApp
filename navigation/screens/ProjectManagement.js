@@ -104,7 +104,7 @@ export default function ProjectManagement({ navigation, route }) {
       {equipment.filter(e => e.current_project === item.id).length > 0 && (
         <View style={styles.equipmentSection}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="build" size={16} color="#003366" />
+            <Ionicons name="build" size={16} color="#003366" style={{marginRight: 6}} />
             <Text style={styles.equipmentTitle}>Assigned Equipment ({equipment.filter(e => e.current_project === item.id).length})</Text>
           </View>
           {equipment.filter(e => e.current_project === item.id).map(eq => (
@@ -116,7 +116,7 @@ export default function ProjectManagement({ navigation, route }) {
       {materialRequests.filter(r => r.project === item.id).length > 0 && (
         <View style={styles.materialSection}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="cube" size={16} color="#003366" />
+            <Ionicons name="cube" size={16} color="#003366" style={{marginRight: 6}} />
             <Text style={styles.materialTitle}>Material Requests ({materialRequests.filter(r => r.project === item.id).length})</Text>
           </View>
           {materialRequests.filter(r => r.project === item.id).slice(0, 3).map(req => (
@@ -147,7 +147,7 @@ export default function ProjectManagement({ navigation, route }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Ionicons name="construct" size={24} color="#003366" />
+          <Ionicons name="construct" size={24} color="#003366" style={{marginRight: 8}} />
           <Text style={styles.title}>Project Management</Text>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
@@ -251,7 +251,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   title: {
     fontSize: 24,
@@ -261,7 +260,6 @@ const styles = StyleSheet.create({
   sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     marginBottom: 5,
   },
   addButton: {

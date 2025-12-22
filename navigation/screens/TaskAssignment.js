@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, Picker, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { taskAPI, userAPI, projectAPI } from "../../utils/api";
 
 export default function TaskAssignment({ navigation }) {
@@ -193,7 +194,7 @@ export default function TaskAssignment({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Ionicons name="clipboard" size={24} color="#003366" />
+          <Ionicons name="clipboard" size={24} color="#003366" style={{marginRight: 8}} />
           <Text style={styles.title}>Task Assignment</Text>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
@@ -341,7 +342,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   title: {
     fontSize: 24,

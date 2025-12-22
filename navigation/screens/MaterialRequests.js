@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, ScrollView, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { materialAPI, projectAPI, taskAPI, userAPI } from '../../utils/api';
 
 export default function MaterialRequests({ route }) {
@@ -152,7 +153,7 @@ export default function MaterialRequests({ route }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTitleContainer}>
-          <Ionicons name="cube" size={24} color="#003366" />
+          <Ionicons name="cube" size={24} color="#003366" style={{marginRight: 8}} />
           <Text style={styles.title}>Material Requests</Text>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
@@ -316,7 +317,6 @@ const styles = StyleSheet.create({
   headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   title: { fontSize: 24, fontWeight: 'bold', color: '#003366' },
   addButton: { backgroundColor: '#004AAD', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 8 },

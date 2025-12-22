@@ -79,7 +79,7 @@ export default function VendorProcurement() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Ionicons name="construct" size={24} color="#003366" />
+          <Ionicons name="construct" size={24} color="#003366" style={{marginRight: 8}} />
           <Text style={styles.title}>Vendor & Procurement</Text>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
@@ -221,7 +221,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   title: { fontSize: 24, fontWeight: "bold", color: "#003366" },
   addButton: { flexDirection: "row", alignItems: "center", backgroundColor: "#004AAD", paddingHorizontal: 15, paddingVertical: 8, borderRadius: 8 },

@@ -189,7 +189,7 @@ export default function DocumentManagement({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Ionicons name="folder" size={24} color="#003366" />
+          <Ionicons name="folder" size={24} color="#003366" style={{marginRight: 8}} />
           <Text style={styles.title}>Document Management</Text>
         </View>
         <TouchableOpacity style={styles.uploadButton} onPress={uploadDocument}>
@@ -327,7 +327,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   title: {
     fontSize: 24,

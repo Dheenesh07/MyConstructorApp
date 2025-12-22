@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, FlatList } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { safetyAPI, qualityAPI, projectAPI, taskAPI, userAPI } from "../../utils/api";
 
 export default function SafetyCompliance({ navigation }) {
@@ -266,7 +267,7 @@ export default function SafetyCompliance({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Ionicons name="shield-checkmark" size={24} color="#003366" />
+          <Ionicons name="shield-checkmark" size={24} color="#003366" style={{marginRight: 8}} />
           <Text style={styles.title}>Safety & Compliance</Text>
         </View>
         <TouchableOpacity 
@@ -650,7 +651,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   title: {
     fontSize: 24,
