@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { userAPI, projectAPI, vendorAPI, safetyAPI, qualityAPI } from '../utils/api';
+import { userAPI, projectAPI, vendorAPI, safetyAPI, qualityAPI, budgetAPI, purchaseOrderAPI, invoiceAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -31,6 +31,9 @@ export default function AdminDashboard() {
   const [vendors, setVendors] = useState([]);
   const [incidents, setIncidents] = useState([]);
   const [inspections, setInspections] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -102,6 +105,9 @@ export default function AdminDashboard() {
     loadVendors();
     loadIncidents();
     loadInspections();
+    loadBudgets();
+    loadPurchaseOrders();
+    loadInvoices();
   }, []);
 
   const loadUserData = async () => {
@@ -198,6 +204,36 @@ export default function AdminDashboard() {
     }
   };
 
+  const loadBudgets = async () => {
+    try {
+      const response = await budgetAPI.getAll();
+      setBudgets(response.data || []);
+    } catch (error) {
+      console.error('Error loading budgets:', error);
+      setBudgets([]);
+    }
+  };
+
+  const loadPurchaseOrders = async () => {
+    try {
+      const response = await purchaseOrderAPI.getAll();
+      setPurchaseOrders(response.data || []);
+    } catch (error) {
+      console.error('Error loading purchase orders:', error);
+      setPurchaseOrders([]);
+    }
+  };
+
+  const loadInvoices = async () => {
+    try {
+      const response = await invoiceAPI.getAll();
+      setInvoices(response.data || []);
+    } catch (error) {
+      console.error('Error loading invoices:', error);
+      setInvoices([]);
+    }
+  };
+
   const calculateComplianceRate = () => {
     if (inspections.length === 0) return 0;
     const passedInspections = inspections.filter(i => i.status === 'passed').length;
@@ -216,6 +252,24 @@ export default function AdminDashboard() {
     const diffTime = Math.abs(today - lastIncidentDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const calculateTotalRevenue = () => {
+    return invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+  };
+
+  const calculateBudgetEfficiency = () => {
+    if (budgets.length === 0) return 0;
+    const totalAllocated = budgets.reduce((sum, b) => sum + (b.allocated_amount || 0), 0);
+    const totalSpent = budgets.reduce((sum, b) => sum + (b.spent_amount || 0), 0);
+    if (totalAllocated === 0) return 0;
+    return Math.round((1 - (totalSpent / totalAllocated)) * 100);
+  };
+
+  const getPendingApprovals = () => {
+    const pendingPOs = purchaseOrders.filter(po => po.status === 'draft' || po.status === 'pending').length;
+    const pendingVendors = vendors.filter(v => !v.is_approved).length;
+    return pendingPOs + pendingVendors;
   };
 
   const toggleMenu = () => {
@@ -1039,12 +1093,12 @@ export default function AdminDashboard() {
                     <Ionicons name="cash" size={28} color="#FF9800" />
                     <View style={styles.kpiTrend}>
                       <Ionicons name="trending-up" size={16} color="#4CAF50" />
-                      <Text style={[styles.kpiTrendText, { color: '#4CAF50' }]}>+8.5%</Text>
+                      <Text style={[styles.kpiTrendText, { color: '#4CAF50' }]}>{invoices.length}</Text>
                     </View>
                   </View>
-                  <Text style={styles.kpiNumber}>₹2.4M</Text>
-                  <Text style={styles.kpiLabel}>Monthly Revenue</Text>
-                  <Text style={styles.kpiSubtext}>₹28.8M annual projection</Text>
+                  <Text style={styles.kpiNumber}>₹{(calculateTotalRevenue() / 1000000).toFixed(1)}M</Text>
+                  <Text style={styles.kpiLabel}>Total Revenue</Text>
+                  <Text style={styles.kpiSubtext}>{invoices.length} invoices processed</Text>
                 </View>
 
                 <View style={[styles.kpiCard, { borderLeftColor: '#9C27B0' }]}>
@@ -1052,7 +1106,7 @@ export default function AdminDashboard() {
                     <Ionicons name="business" size={28} color="#9C27B0" />
                     <View style={styles.kpiTrend}>
                       <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                      <Text style={[styles.kpiTrendText, { color: '#4CAF50' }]}>98%</Text>
+                      <Text style={[styles.kpiTrendText, { color: '#4CAF50' }]}>{vendors.filter(v => v.is_approved).length}</Text>
                     </View>
                   </View>
                   <Text style={styles.kpiNumber}>{vendors.length}</Text>
@@ -1062,65 +1116,60 @@ export default function AdminDashboard() {
               </View>
             </View>
 
-            {/* Executive Alerts & Notifications */}
             <View style={styles.alertsSection}>
               <Text style={styles.sectionTitle}>🚨 Executive Alerts & Notifications</Text>
               <View style={styles.alertsContainer}>
-                <View style={[styles.alertCard, { borderLeftColor: '#FF5722' }]}>
-                  <View style={styles.alertIcon}>
-                    <Ionicons name="warning" size={24} color="#FF5722" />
+                {budgets.some(b => (b.spent_amount / b.allocated_amount) > 0.9) && (
+                  <View style={[styles.alertCard, { borderLeftColor: '#FF5722' }]}>
+                    <View style={styles.alertIcon}>
+                      <Ionicons name="warning" size={24} color="#FF5722" />
+                    </View>
+                    <View style={styles.alertContent}>
+                      <Text style={styles.alertTitle}>Budget Alert</Text>
+                      <Text style={styles.alertText}>{budgets.filter(b => (b.spent_amount / b.allocated_amount) > 0.9).length} budget(s) exceeding 90% utilization</Text>
+                      <Text style={styles.alertTime}>Real-time</Text>
+                    </View>
                   </View>
-                  <View style={styles.alertContent}>
-                    <Text style={styles.alertTitle}>Budget Variance Alert</Text>
-                    <Text style={styles.alertText}>Project Alpha exceeds budget by 12% - Requires immediate attention</Text>
-                    <Text style={styles.alertTime}>2 hours ago</Text>
-                  </View>
-                  <TouchableOpacity style={styles.alertAction}>
-                    <Ionicons name="chevron-forward" size={16} color="#666" />
-                  </TouchableOpacity>
-                </View>
+                )}
 
-                <View style={[styles.alertCard, { borderLeftColor: '#FF9800' }]}>
-                  <View style={styles.alertIcon}>
-                    <Ionicons name="time" size={24} color="#FF9800" />
+                {getPendingApprovals() > 0 && (
+                  <View style={[styles.alertCard, { borderLeftColor: '#FF9800' }]}>
+                    <View style={styles.alertIcon}>
+                      <Ionicons name="time" size={24} color="#FF9800" />
+                    </View>
+                    <View style={styles.alertContent}>
+                      <Text style={styles.alertTitle}>Pending Approvals</Text>
+                      <Text style={styles.alertText}>{getPendingApprovals()} items awaiting approval</Text>
+                      <Text style={styles.alertTime}>Real-time</Text>
+                    </View>
                   </View>
-                  <View style={styles.alertContent}>
-                    <Text style={styles.alertTitle}>Pending Approvals</Text>
-                    <Text style={styles.alertText}>3 user access requests and 2 vendor applications awaiting approval</Text>
-                    <Text style={styles.alertTime}>4 hours ago</Text>
-                  </View>
-                  <TouchableOpacity style={styles.alertAction}>
-                    <Ionicons name="chevron-forward" size={16} color="#666" />
-                  </TouchableOpacity>
-                </View>
+                )}
 
-                <View style={[styles.alertCard, { borderLeftColor: '#4CAF50' }]}>
-                  <View style={styles.alertIcon}>
-                    <Ionicons name="shield-checkmark" size={24} color="#4CAF50" />
+                {incidents.filter(i => i.status !== 'resolved' && i.status !== 'closed').length > 0 && (
+                  <View style={[styles.alertCard, { borderLeftColor: '#F44336' }]}>
+                    <View style={styles.alertIcon}>
+                      <Ionicons name="alert-circle" size={24} color="#F44336" />
+                    </View>
+                    <View style={styles.alertContent}>
+                      <Text style={styles.alertTitle}>Open Safety Incidents</Text>
+                      <Text style={styles.alertText}>{incidents.filter(i => i.status !== 'resolved' && i.status !== 'closed').length} incident(s) require attention</Text>
+                      <Text style={styles.alertTime}>Real-time</Text>
+                    </View>
                   </View>
-                  <View style={styles.alertContent}>
-                    <Text style={styles.alertTitle}>System Backup Complete</Text>
-                    <Text style={styles.alertText}>Daily backup completed successfully - All data secured</Text>
-                    <Text style={styles.alertTime}>6 hours ago</Text>
-                  </View>
-                  <TouchableOpacity style={styles.alertAction}>
-                    <Ionicons name="checkmark" size={16} color="#4CAF50" />
-                  </TouchableOpacity>
-                </View>
+                )}
 
-                <View style={[styles.alertCard, { borderLeftColor: '#2196F3' }]}>
-                  <View style={styles.alertIcon}>
-                    <Ionicons name="calendar" size={24} color="#2196F3" />
+                {projects.filter(p => p.progress < 50 && p.status === 'active').length > 0 && (
+                  <View style={[styles.alertCard, { borderLeftColor: '#2196F3' }]}>
+                    <View style={styles.alertIcon}>
+                      <Ionicons name="calendar" size={24} color="#2196F3" />
+                    </View>
+                    <View style={styles.alertContent}>
+                      <Text style={styles.alertTitle}>Project Progress</Text>
+                      <Text style={styles.alertText}>{projects.filter(p => p.progress < 50 && p.status === 'active').length} project(s) below 50% completion</Text>
+                      <Text style={styles.alertTime}>Real-time</Text>
+                    </View>
                   </View>
-                  <View style={styles.alertContent}>
-                    <Text style={styles.alertTitle}>Upcoming Milestones</Text>
-                    <Text style={styles.alertText}>5 project milestones due this week - Review progress status</Text>
-                    <Text style={styles.alertTime}>Today</Text>
-                  </View>
-                  <TouchableOpacity style={styles.alertAction}>
-                    <Ionicons name="chevron-forward" size={16} color="#666" />
-                  </TouchableOpacity>
-                </View>
+                )}
               </View>
             </View>
 
@@ -1168,7 +1217,7 @@ export default function AdminDashboard() {
                   <Text style={styles.controlTitle}>Financial Control</Text>
                   <Text style={styles.controlSubtitle}>Budget & Analytics</Text>
                   <View style={styles.controlMetric}>
-                    <Text style={styles.controlMetricValue}>94%</Text>
+                    <Text style={styles.controlMetricValue}>{calculateBudgetEfficiency()}%</Text>
                     <Text style={styles.controlMetricLabel}>Budget Efficiency</Text>
                   </View>
                 </TouchableOpacity>
@@ -1183,7 +1232,7 @@ export default function AdminDashboard() {
                   <Text style={styles.controlTitle}>Safety & Compliance</Text>
                   <Text style={styles.controlSubtitle}>Risk Management</Text>
                   <View style={styles.controlMetric}>
-                    <Text style={styles.controlMetricValue}>98%</Text>
+                    <Text style={styles.controlMetricValue}>{calculateComplianceRate()}%</Text>
                     <Text style={styles.controlMetricLabel}>Compliance Rate</Text>
                   </View>
                 </TouchableOpacity>

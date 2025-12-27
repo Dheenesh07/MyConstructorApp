@@ -60,6 +60,10 @@ export default function BeemjiLogin({ navigation }) {
       if (refresh) await AsyncStorage.setItem("refresh", refresh);
       await AsyncStorage.setItem("user", JSON.stringify(user));
 
+      // Verify token was saved
+      const savedToken = await AsyncStorage.getItem("access");
+      console.log('✅ Token saved successfully:', savedToken ? 'YES' : 'NO');
+
       const dashboardRoute = getDashboardRoute(user.role);
       if (dashboardRoute) {
         navigation.replace(dashboardRoute);

@@ -16,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { taskAPI, documentAPI, equipmentAPI, vendorAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -28,6 +29,7 @@ export default function EngineerDashboard() {
   const [drawings, setDrawings] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [reports, setReports] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -73,6 +75,7 @@ export default function EngineerDashboard() {
         loadDrawings();
         loadEquipment();
         loadReports();
+        loadVendors();
       } catch (error) {
         console.error('Error initializing dashboard:', error);
       } finally {
@@ -93,39 +96,92 @@ export default function EngineerDashboard() {
     }
   };
 
-  const loadTasks = () => {
-    setTasks([
-      { id: 1, title: 'Foundation Design Review', priority: 'High', status: 'In Progress', dueDate: '2024-01-15', progress: 75 },
-      { id: 2, title: 'Structural Analysis - Block A', priority: 'High', status: 'Pending', dueDate: '2024-01-18', progress: 0 },
-      { id: 3, title: 'MEP Coordination', priority: 'Medium', status: 'In Progress', dueDate: '2024-01-20', progress: 45 },
-      { id: 4, title: 'Site Survey Verification', priority: 'Medium', status: 'Completed', dueDate: '2024-01-12', progress: 100 }
-    ]);
+  const loadTasks = async () => {
+    try {
+      const response = await taskAPI.getAll();
+      setTasks(response.data.map(task => ({
+        id: task.id,
+        title: task.title,
+        priority: task.priority,
+        status: task.status,
+        dueDate: task.due_date,
+        progress: task.progress_percentage || 0
+      })));
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      setTasks([]);
+    }
   };
 
-  const loadDrawings = () => {
-    setDrawings([
-      { id: 1, name: 'Foundation Plan - Rev 3', type: 'Structural', status: 'Approved', lastModified: '2024-01-10', size: '2.4 MB' },
-      { id: 2, name: 'Electrical Layout - Floor 1', type: 'Electrical', status: 'Under Review', lastModified: '2024-01-12', size: '1.8 MB' },
-      { id: 3, name: 'Plumbing Schematic', type: 'Plumbing', status: 'Draft', lastModified: '2024-01-11', size: '1.2 MB' },
-      { id: 4, name: 'HVAC System Layout', type: 'HVAC', status: 'Approved', lastModified: '2024-01-09', size: '3.1 MB' }
-    ]);
+  const loadDrawings = async () => {
+    try {
+      const response = await documentAPI.getAll();
+      setDrawings(response.data.map(doc => ({
+        id: doc.id,
+        name: doc.title || doc.filename,
+        type: doc.document_type,
+        status: doc.status || 'Draft',
+        lastModified: doc.uploaded_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        size: doc.file_size || 'N/A'
+      })));
+    } catch (error) {
+      console.error('Error loading drawings:', error);
+      setDrawings([]);
+    }
   };
 
-  const loadEquipment = () => {
-    setEquipment([
-      { id: 1, name: 'Tower Crane TC-01', status: 'Operational', location: 'Site A - North', lastMaintenance: '2024-01-08', nextMaintenance: '2024-02-08' },
-      { id: 2, name: 'Concrete Mixer CM-02', status: 'Maintenance', location: 'Equipment Yard', lastMaintenance: '2024-01-10', nextMaintenance: '2024-01-17' },
-      { id: 3, name: 'Excavator EX-03', status: 'Operational', location: 'Site A - South', lastMaintenance: '2024-01-05', nextMaintenance: '2024-02-05' },
-      { id: 4, name: 'Welding Machine WM-04', status: 'Operational', location: 'Workshop', lastMaintenance: '2024-01-07', nextMaintenance: '2024-02-07' }
-    ]);
+  const loadEquipment = async () => {
+    try {
+      const response = await equipmentAPI.getAll();
+      setEquipment(response.data.map(equip => ({
+        id: equip.id,
+        name: equip.name,
+        status: equip.status,
+        location: equip.location || 'Not specified',
+        lastMaintenance: equip.last_maintenance_date || 'N/A',
+        nextMaintenance: equip.next_maintenance_date || 'N/A'
+      })));
+    } catch (error) {
+      console.error('Error loading equipment:', error);
+      setEquipment([]);
+    }
   };
 
-  const loadReports = () => {
-    setReports([
-      { id: 1, title: 'Weekly Progress Report', type: 'Progress', date: '2024-01-12', status: 'Submitted' },
-      { id: 2, title: 'Material Quality Assessment', type: 'Quality', date: '2024-01-10', status: 'Draft' },
-      { id: 3, title: 'Safety Compliance Review', type: 'Safety', date: '2024-01-08', status: 'Submitted' }
-    ]);
+  const loadReports = async () => {
+    try {
+      const response = await documentAPI.getAll();
+      // Show all documents as reports, or filter by specific types if needed
+      setReports(response.data.map(doc => ({
+        id: doc.id,
+        title: doc.title || doc.filename,
+        type: doc.document_type || 'General',
+        date: doc.uploaded_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+        status: doc.status || 'Draft',
+        description: doc.description
+      })));
+    } catch (error) {
+      console.error('Error loading reports:', error);
+      setReports([]);
+    }
+  };
+
+  const loadVendors = async () => {
+    try {
+      const response = await vendorAPI.getAll();
+      setVendors(response.data.map(vendor => ({
+        id: vendor.id,
+        name: vendor.name,
+        code: vendor.vendor_code,
+        type: vendor.vendor_type?.toUpperCase() || 'VENDOR',
+        contact: vendor.contact_person,
+        email: vendor.email,
+        phone: vendor.phone,
+        rating: vendor.rating || 0
+      })));
+    } catch (error) {
+      console.error('Error loading vendors:', error);
+      setVendors([]);
+    }
   };
 
   const toggleMenu = () => {
@@ -432,83 +488,54 @@ export default function EngineerDashboard() {
               <Text style={styles.pageTitle}>🏢 Vendor Management</Text>
             </View>
             
-            <View style={styles.vendorCard}>
-              <View style={styles.vendorHeader}>
-                <Text style={styles.vendorName}>Steel & Concrete Supply</Text>
-                <View style={styles.ratingContainer}>
-                  <Ionicons name="star" size={16} color="#FFD700" />
-                  <Text style={styles.ratingText}>4.5</Text>
+            {vendors.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="business-outline" size={64} color="#ccc" />
+                <Text style={styles.emptyStateText}>No vendors available</Text>
+                <Text style={styles.emptyStateSubtext}>Vendors will appear here once added</Text>
+              </View>
+            ) : (
+              vendors.map(vendor => (
+                <View key={vendor.id} style={styles.vendorCard}>
+                  <View style={styles.vendorHeader}>
+                    <Text style={styles.vendorName}>{vendor.name}</Text>
+                    {vendor.rating > 0 && (
+                      <View style={styles.ratingContainer}>
+                        <Ionicons name="star" size={16} color="#FFD700" />
+                        <Text style={styles.ratingText}>{vendor.rating}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.vendorCode}>Code: {vendor.code}</Text>
+                  <Text style={styles.vendorType}>{vendor.type}</Text>
+                  <Text style={styles.vendorContact}>Contact: {vendor.contact}</Text>
+                  <Text style={styles.vendorEmail}>Email: {vendor.email}</Text>
+                  <Text style={styles.vendorPhone}>Phone: {vendor.phone}</Text>
+                  <View style={styles.vendorActions}>
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, { backgroundColor: '#e8f5e8' }]} 
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        Alert.alert('Quote Request', `Quote request sent to ${vendor.name}. They will respond within 24 hours.`);
+                      }}
+                    >
+                      <Ionicons name="document-text" size={16} color="#4caf50" />
+                      <Text style={[styles.actionBtnText, { color: '#4caf50' }]}>Request Quote</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, { backgroundColor: '#e3f2fd' }]} 
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        Alert.alert('Contact Info', `${vendor.contact}\n${vendor.phone}\n${vendor.email}`);
+                      }}
+                    >
+                      <Ionicons name="call" size={16} color="#1976d2" />
+                      <Text style={[styles.actionBtnText, { color: '#1976d2' }]}>Contact</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-              <Text style={styles.vendorCode}>Code: VEN001</Text>
-              <Text style={styles.vendorType}>MATERIAL SUPPLIER</Text>
-              <Text style={styles.vendorContact}>Contact: John Smith</Text>
-              <Text style={styles.vendorEmail}>Email: john@steelconcrete.com</Text>
-              <Text style={styles.vendorPhone}>Phone: 555-0101</Text>
-              <View style={styles.vendorActions}>
-                <TouchableOpacity 
-                  style={[styles.actionBtn, { backgroundColor: '#e8f5e8' }]} 
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    console.log('Request Quote pressed');
-                    Alert.alert('Quote Request Sent', 'Quote request sent to Steel & Concrete Supply. They will respond within 24 hours.');
-                  }}
-                >
-                  <Ionicons name="document-text" size={16} color="#4caf50" />
-                  <Text style={[styles.actionBtnText, { color: '#4caf50' }]}>Request Quote</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.actionBtn, { backgroundColor: '#e3f2fd' }]} 
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    console.log('Contact Vendor pressed');
-                    Alert.alert('Contact Info', 'John Smith - 555-0101\njohn@steelconcrete.com');
-                  }}
-                >
-                  <Ionicons name="call" size={16} color="#1976d2" />
-                  <Text style={[styles.actionBtnText, { color: '#1976d2' }]}>Contact</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            
-            <View style={styles.vendorCard}>
-              <View style={styles.vendorHeader}>
-                <Text style={styles.vendorName}>Elite Electrical Services</Text>
-                <View style={styles.ratingContainer}>
-                  <Ionicons name="star" size={16} color="#FFD700" />
-                  <Text style={styles.ratingText}>4.8</Text>
-                </View>
-              </View>
-              <Text style={styles.vendorCode}>Code: VEN003</Text>
-              <Text style={styles.vendorType}>SUBCONTRACTOR</Text>
-              <Text style={styles.vendorContact}>Contact: Mike Davis</Text>
-              <Text style={styles.vendorEmail}>Email: mike@elite.com</Text>
-              <Text style={styles.vendorPhone}>Phone: 555-0103</Text>
-              <View style={styles.vendorActions}>
-                <TouchableOpacity 
-                  style={[styles.actionBtn, { backgroundColor: '#fff3e0' }]} 
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    console.log('Schedule Work pressed');
-                    Alert.alert('Work Scheduled', 'Electrical work scheduled with Elite Electrical Services for next Monday.');
-                  }}
-                >
-                  <Ionicons name="calendar" size={16} color="#ff9800" />
-                  <Text style={[styles.actionBtnText, { color: '#ff9800' }]}>Schedule Work</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.actionBtn, { backgroundColor: '#e3f2fd' }]} 
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    console.log('Contact Vendor pressed');
-                    Alert.alert('Contact Info', 'Mike Davis - 555-0103\nmike@elite.com');
-                  }}
-                >
-                  <Ionicons name="call" size={16} color="#1976d2" />
-                  <Text style={[styles.actionBtnText, { color: '#1976d2' }]}>Contact</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+              ))
+            )}
           </ScrollView>
         );
 
@@ -523,46 +550,54 @@ export default function EngineerDashboard() {
               </TouchableOpacity>
             </View>
             
-            {reports.map(report => (
-              <View key={report.id} style={styles.reportCard}>
-                <View style={styles.reportHeader}>
-                  <Text style={styles.reportTitle}>{report.title}</Text>
-                  <View style={[styles.statusBadge, { 
-                    backgroundColor: report.status === 'Submitted' ? '#4CAF50' : '#FF9800'
-                  }]}>
-                    <Text style={styles.statusText}>{report.status}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.reportDetails}>
-                  <View style={styles.reportDetailRow}>
-                    <Ionicons name="folder-outline" size={16} color="#666" />
-                    <Text style={styles.reportDetailText}>Type: {report.type}</Text>
-                  </View>
-                  <View style={styles.reportDetailRow}>
-                    <Ionicons name="calendar-outline" size={16} color="#666" />
-                    <Text style={styles.reportDetailText}>Date: {report.date}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.reportActions}>
-                  <TouchableOpacity style={styles.viewButton} onPress={() => viewReport(report)}>
-                    <Text style={styles.viewButtonText}>View Report</Text>
-                  </TouchableOpacity>
-                  {report.status === 'Draft' && (
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => {
-                      const updatedReports = reports.map(r => 
-                        r.id === report.id ? {...r, status: 'Submitted'} : r
-                      );
-                      setReports(updatedReports);
-                      Alert.alert('Success', 'Report submitted successfully!');
-                    }}>
-                      <Text style={styles.actionBtnText}>Submit</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+            {reports.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="document-text-outline" size={64} color="#ccc" />
+                <Text style={styles.emptyStateText}>No reports available</Text>
+                <Text style={styles.emptyStateSubtext}>Create your first technical report</Text>
               </View>
-            ))}
+            ) : (
+              reports.map(report => (
+                <View key={report.id} style={styles.reportCard}>
+                  <View style={styles.reportHeader}>
+                    <Text style={styles.reportTitle}>{report.title}</Text>
+                    <View style={[styles.statusBadge, { 
+                      backgroundColor: report.status === 'Submitted' ? '#4CAF50' : '#FF9800'
+                    }]}>
+                      <Text style={styles.statusText}>{report.status}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.reportDetails}>
+                    <View style={styles.reportDetailRow}>
+                      <Ionicons name="folder-outline" size={16} color="#666" />
+                      <Text style={styles.reportDetailText}>Type: {report.type}</Text>
+                    </View>
+                    <View style={styles.reportDetailRow}>
+                      <Ionicons name="calendar-outline" size={16} color="#666" />
+                      <Text style={styles.reportDetailText}>Date: {report.date}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.reportActions}>
+                    <TouchableOpacity style={styles.viewButton} onPress={() => viewReport(report)}>
+                      <Text style={styles.viewButtonText}>View Report</Text>
+                    </TouchableOpacity>
+                    {report.status === 'Draft' && (
+                      <TouchableOpacity style={styles.actionBtn} onPress={() => {
+                        const updatedReports = reports.map(r => 
+                          r.id === report.id ? {...r, status: 'Submitted'} : r
+                        );
+                        setReports(updatedReports);
+                        Alert.alert('Success', 'Report submitted successfully!');
+                      }}>
+                        <Text style={styles.actionBtnText}>Submit</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))
+            )}
           </ScrollView>
         );
 
@@ -661,47 +696,40 @@ export default function EngineerDashboard() {
             <View style={styles.technicalPriorities}>
               <Text style={styles.sectionTitle}>⚡ Technical Priorities</Text>
               <View style={styles.prioritiesContainer}>
-                <View style={[styles.priorityCard, { borderLeftColor: '#F44336' }]}>
-                  <View style={styles.priorityIcon}>
-                    <Ionicons name="warning" size={24} color="#F44336" />
+                {tasks.length === 0 ? (
+                  <View style={styles.emptyPriorities}>
+                    <Text style={styles.emptyPrioritiesText}>No priority tasks at the moment</Text>
                   </View>
-                  <View style={styles.priorityContent}>
-                    <Text style={styles.priorityTitle}>Foundation Inspection</Text>
-                    <Text style={styles.priorityText}>Structural integrity check due tomorrow</Text>
-                    <Text style={styles.priorityProject}>Block A - Critical Priority</Text>
-                  </View>
-                  <TouchableOpacity style={styles.priorityAction}>
-                    <Ionicons name="chevron-forward" size={20} color="#F44336" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={[styles.priorityCard, { borderLeftColor: '#FF9800' }]}>
-                  <View style={styles.priorityIcon}>
-                    <Ionicons name="time" size={24} color="#FF9800" />
-                  </View>
-                  <View style={styles.priorityContent}>
-                    <Text style={styles.priorityTitle}>Drawing Approval</Text>
-                    <Text style={styles.priorityText}>Structural drawings pending review</Text>
-                    <Text style={styles.priorityProject}>2 days overdue - Action required</Text>
-                  </View>
-                  <TouchableOpacity style={styles.priorityAction}>
-                    <Ionicons name="document-text" size={20} color="#FF9800" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={[styles.priorityCard, { borderLeftColor: '#4CAF50' }]}>
-                  <View style={styles.priorityIcon}>
-                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                  </View>
-                  <View style={styles.priorityContent}>
-                    <Text style={styles.priorityTitle}>MEP Coordination</Text>
-                    <Text style={styles.priorityText}>Systems integration meeting completed</Text>
-                    <Text style={styles.priorityProject}>All systems aligned - On schedule</Text>
-                  </View>
-                  <TouchableOpacity style={styles.priorityAction}>
-                    <Ionicons name="checkmark" size={20} color="#4CAF50" />
-                  </TouchableOpacity>
-                </View>
+                ) : (
+                  tasks
+                    .filter(task => task.status !== 'Completed' && task.status !== 'completed')
+                    .slice(0, 3)
+                    .map((task, index) => {
+                      const priorityColor = task.priority === 'High' || task.priority === 'high' ? '#F44336' : 
+                                          task.priority === 'Medium' || task.priority === 'medium' ? '#FF9800' : '#4CAF50';
+                      const priorityIcon = task.priority === 'High' || task.priority === 'high' ? 'warning' : 
+                                         task.priority === 'Medium' || task.priority === 'medium' ? 'time' : 'checkmark-circle';
+                      
+                      return (
+                        <View key={task.id} style={[styles.priorityCard, { borderLeftColor: priorityColor }]}>
+                          <View style={styles.priorityIcon}>
+                            <Ionicons name={priorityIcon} size={24} color={priorityColor} />
+                          </View>
+                          <View style={styles.priorityContent}>
+                            <Text style={styles.priorityTitle}>{task.title}</Text>
+                            <Text style={styles.priorityText}>{task.status} - {task.progress}% complete</Text>
+                            <Text style={styles.priorityProject}>Due: {task.dueDate} - {task.priority} Priority</Text>
+                          </View>
+                          <TouchableOpacity 
+                            style={styles.priorityAction}
+                            onPress={() => setActivePage('Technical Tasks')}
+                          >
+                            <Ionicons name="chevron-forward" size={20} color={priorityColor} />
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })
+                )}
               </View>
             </View>
 
@@ -783,23 +811,74 @@ export default function EngineerDashboard() {
                   <Ionicons name="business" size={24} color="#673AB7" />
                   <Text style={styles.toolText}>Vendors</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('CAD Tools', 'Launch CAD software')}>
+                <TouchableOpacity style={styles.toolItem} onPress={() => {
+                  Alert.alert(
+                    '🎨 CAD Tools',
+                    'Engineering CAD Software:\n\n• AutoCAD - 2D/3D design\n• Revit - BIM modeling\n• SketchUp - 3D visualization\n• Civil 3D - Infrastructure design\n\nSelect your preferred CAD software to launch.',
+                    [
+                      { text: 'AutoCAD', onPress: () => Alert.alert('AutoCAD', 'Launching AutoCAD...') },
+                      { text: 'Revit', onPress: () => Alert.alert('Revit', 'Launching Revit...') },
+                      { text: 'Close', style: 'cancel' }
+                    ]
+                  );
+                }}>
                   <Ionicons name="shapes" size={24} color="#795548" />
                   <Text style={styles.toolText}>CAD Tools</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Calculator', 'Engineering calculator')}>
+                <TouchableOpacity style={styles.toolItem} onPress={() => {
+                  Alert.alert(
+                    '🔢 Engineering Calculator',
+                    'Construction Calculators:\n\n• Concrete Volume Calculator\n• Steel Weight Calculator\n• Load Bearing Calculator\n• Material Quantity Estimator\n• Cost Calculator\n\nExample: Concrete Volume\nLength × Width × Depth\n10m × 5m × 0.15m = 7.5 m³',
+                    [
+                      { text: 'Concrete Calc', onPress: () => Alert.alert('Concrete Calculator', 'Enter dimensions:\nLength (m): ___\nWidth (m): ___\nDepth (m): ___\n\nFormula: L × W × D = Volume (m³)') },
+                      { text: 'Steel Calc', onPress: () => Alert.alert('Steel Calculator', 'Steel Weight Formula:\nWeight = Volume × Density\nDensity of Steel = 7850 kg/m³') },
+                      { text: 'Close', style: 'cancel' }
+                    ]
+                  );
+                }}>
                   <Ionicons name="calculator" size={24} color="#607D8B" />
                   <Text style={styles.toolText}>Calculator</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Specifications', 'View technical specs')}>
+                <TouchableOpacity style={styles.toolItem} onPress={() => {
+                  Alert.alert(
+                    '📚 Technical Specifications',
+                    'Engineering Standards & Specs:\n\n📋 Building Codes:\n• IS 456 - Concrete structures\n• IS 800 - Steel structures\n• IS 1893 - Earthquake resistant\n\n📐 Material Standards:\n• Concrete: M20, M25, M30\n• Steel: Fe 415, Fe 500\n• Cement: OPC 43, OPC 53\n\n🔧 Quality Standards:\n• ISO 9001 - Quality management\n• IS 383 - Coarse & fine aggregates',
+                    [
+                      { text: 'View Codes', onPress: () => Alert.alert('Building Codes', 'IS 456:2000 - Plain and Reinforced Concrete\nIS 800:2007 - General Construction in Steel\nIS 1893:2016 - Earthquake Resistant Design') },
+                      { text: 'Material Specs', onPress: () => Alert.alert('Material Specifications', 'Concrete Grades: M15, M20, M25, M30, M35, M40\nSteel Grades: Fe 415, Fe 500, Fe 550\nCement Types: OPC 33, OPC 43, OPC 53') },
+                      { text: 'Close', style: 'cancel' }
+                    ]
+                  );
+                }}>
                   <Ionicons name="library" size={24} color="#FF5722" />
                   <Text style={styles.toolText}>Specs</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Measurements', 'Site measurement tools')}>
+                <TouchableOpacity style={styles.toolItem} onPress={() => {
+                  Alert.alert(
+                    '📏 Measurement Tools',
+                    'Site Measurement Instruments:\n\n📐 Distance Measurement:\n• Laser Distance Meter\n• Measuring Tape\n• Total Station\n\n📊 Level Measurement:\n• Spirit Level\n• Laser Level\n• Theodolite\n\n🎯 Area Calculation:\n• GPS Survey\n• Digital Planimeter\n\nTip: Always verify measurements twice for accuracy.',
+                    [
+                      { text: 'Laser Meter', onPress: () => Alert.alert('Laser Distance Meter', 'Range: 0.05m - 200m\nAccuracy: ±1.5mm\nFeatures: Area, Volume, Pythagoras') },
+                      { text: 'Total Station', onPress: () => Alert.alert('Total Station', 'Precision: 2" angular accuracy\nRange: 5000m\nUse: Surveying, Layout, As-built') },
+                      { text: 'Close', style: 'cancel' }
+                    ]
+                  );
+                }}>
                   <Ionicons name="resize" size={24} color="#009688" />
                   <Text style={styles.toolText}>Measure</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.toolItem} onPress={() => Alert.alert('Quality Check', 'Quality assurance tools')}>
+                <TouchableOpacity style={styles.toolItem} onPress={() => {
+                  Alert.alert(
+                    '✅ Quality Assurance',
+                    'Quality Control Checklist:\n\n🔍 Material Testing:\n• Concrete slump test\n• Cube strength test\n• Steel tensile test\n• Aggregate sieve analysis\n\n📋 Workmanship Check:\n• Reinforcement placement\n• Concrete cover\n• Formwork alignment\n• Curing procedures\n\n📊 Documentation:\n• Test reports\n• Inspection records\n• Non-conformance reports',
+                    [
+                      { text: 'Concrete Tests', onPress: () => Alert.alert('Concrete Testing', 'Slump Test: 25-100mm\nCube Test: 7, 14, 28 days\nTarget Strength: fck + 1.65σ\nAcceptance: ≥ fck + 0.825σ') },
+                      { text: 'Steel Tests', onPress: () => Alert.alert('Steel Testing', 'Tensile Strength Test\nBend Test\nRebend Test\nChemical Analysis\nAcceptance as per IS 1786') },
+                      { text: 'Inspection', onPress: () => Alert.alert('Quality Inspection', 'Daily Checklist:\n☑ Material quality\n☑ Workmanship\n☑ Dimensions\n☑ Safety compliance\n☑ Documentation') },
+                      { text: 'Close', style: 'cancel' }
+                    ]
+                  );
+                }}>
                   <Ionicons name="checkmark-done" size={24} color="#4CAF50" />
                   <Text style={styles.toolText}>Quality</Text>
                 </TouchableOpacity>
@@ -1270,8 +1349,26 @@ export default function EngineerDashboard() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f4f7fc" },
-  header: { flexDirection: "row", alignItems: "center", backgroundColor: "#003366", padding: 15 },
-  headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold", marginLeft: 10 },
+  header: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#003366", 
+    paddingTop: 50,
+    paddingBottom: 15,
+    paddingHorizontal: 15,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  headerTitle: { 
+    color: "#fff", 
+    fontSize: 18, 
+    fontWeight: "bold", 
+    marginLeft: 15,
+    flex: 1,
+  },
   fullContainer: { flex: 1, backgroundColor: "#f4f7fc" },
   
   // Professional Engineer Header Styles
@@ -1280,7 +1377,7 @@ const styles = StyleSheet.create({
   },
   engineerGradient: {
     backgroundColor: "#003366",
-    paddingVertical: 30,
+    paddingVertical: 35,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
@@ -1289,57 +1386,65 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+    alignItems: "center",
   },
   engineerContent: {
     alignItems: "center",
+    width: "100%",
   },
   engineerIcon: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
-    borderWidth: 2,
-    borderColor: "rgba(255, 215, 0, 0.4)",
+    borderWidth: 3,
+    borderColor: "rgba(255, 215, 0, 0.5)",
   },
   engineerGreeting: {
     fontSize: 16,
     color: "#FFD700",
-    fontWeight: "500",
-    marginBottom: 5,
-  },
-  engineerName: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#fff",
+    fontWeight: "600",
     marginBottom: 8,
     textAlign: "center",
   },
-  engineerRole: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
+  engineerName: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 10,
     textAlign: "center",
-    marginBottom: 15,
+  },
+  engineerRole: {
+    fontSize: 15,
+    color: "rgba(255, 255, 255, 0.85)",
+    textAlign: "center",
+    marginBottom: 18,
+    fontWeight: "500",
   },
   engineerDateCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
     borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   engineerDate: {
     color: "#fff",
     fontSize: 13,
     fontWeight: "600",
+    textAlign: "center",
   },
   engineerTime: {
     color: "#B3D9FF",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
-    marginTop: 2,
+    marginTop: 3,
+    textAlign: "center",
   },
 
   // Engineering Metrics Section
@@ -2220,5 +2325,36 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#003366",
     marginBottom: 10,
+  },
+  
+  // Empty state styles
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#666",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: "#999",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  emptyPriorities: {
+    padding: 20,
+    alignItems: "center",
+  },
+  emptyPrioritiesText: {
+    fontSize: 14,
+    color: "#999",
+    textAlign: "center",
   },
 });

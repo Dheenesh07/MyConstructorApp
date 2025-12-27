@@ -40,25 +40,17 @@ export default function AttendanceTracking() {
   const loadAttendances = async () => {
     setLoading(true);
     try {
-      // Debug: Check token before API call
-      const token = await AsyncStorage.getItem('access');
-      console.log('Token before attendance API call:', token ? 'EXISTS' : 'MISSING');
-      
       const response = await attendanceAPI.getAll();
-      console.log('Attendance response:', response.data);
-      setAttendances(response.data);
+      setAttendances(response.data || []);
       
       // Check if there's a check-in today without check-out
       const today = new Date().toISOString().split('T')[0];
-      const todayRecord = response.data.find(att => 
-        att.check_in_time?.startsWith(today) && !att.check_out_time
+      const todayRecord = (response.data || []).find(att => 
+        att.date === today && att.check_in_time && !att.check_out_time
       );
       setTodayAttendance(todayRecord);
     } catch (error) {
       console.error('Error loading attendances:', error);
-      console.error('Error response data:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      // Don't show error alert, just use empty data
       setAttendances([]);
     } finally {
       setLoading(false);
@@ -79,24 +71,30 @@ export default function AttendanceTracking() {
       return;
     }
 
+    if (!user) {
+      Alert.alert('Error', 'User not found. Please login again.');
+      return;
+    }
+
     const location = getCurrentLocation();
+    const now = new Date();
     const checkInData = {
-      project: projects[0].id, // Use first project or let user select
-      check_in_time: new Date().toTimeString().split(' ')[0], // HH:MM:SS
-      latitude: location.latitude,
-      longitude: location.longitude,
+      user: user.id || user.user_id,
+      project: projects[0].id,
+      date: now.toISOString().split('T')[0],
+      check_in_time: now.toTimeString().split(' ')[0],
+      latitude: location.latitude.toString(),
+      longitude: location.longitude.toString(),
       notes: 'Check-in via mobile app'
     };
 
     try {
-      console.log('Check-in data:', checkInData);
       const response = await attendanceAPI.checkIn(checkInData);
-      console.log('Check-in response:', response.data);
       Alert.alert('Success', 'Checked in successfully!');
       loadAttendances();
     } catch (error) {
       console.error('Check-in error:', error.response?.data || error);
-      Alert.alert('Error', `Failed to check in: ${error.response?.data?.detail || error.message}`);
+      Alert.alert('Error', `Failed to check in: ${JSON.stringify(error.response?.data) || error.message}`);
     }
   };
 

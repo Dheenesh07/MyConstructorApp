@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, 
 import { Ionicons } from "@expo/vector-icons";
 import { documentAPI, projectAPI } from "../../utils/api";
 import * as DocumentPicker from 'expo-document-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function DocumentManagement({ navigation }) {
   const [documents, setDocuments] = useState([]);
@@ -104,28 +105,35 @@ export default function DocumentManagement({ navigation }) {
 
     setLoading(true);
     try {
-      const formData = new FormData();
       const file = selectedFile.assets ? selectedFile.assets[0] : selectedFile;
+      const formData = new FormData();
       
-      console.log('📤 Uploading file:', {
-        name: file.name,
-        type: file.mimeType,
-        size: file.size,
-        project: uploadForm.project,
-        document_type: uploadForm.document_type
-      });
+      // Get current user ID from AsyncStorage
+      const userStr = await AsyncStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const userId = user?.id || user?.user_id || 1;
       
       formData.append('file', {
         uri: file.uri,
-        type: file.mimeType || 'application/pdf',
+        type: file.mimeType || 'application/octet-stream',
         name: file.name
       });
-      formData.append('project', uploadForm.project);
+      formData.append('project', String(uploadForm.project));
+      formData.append('document_type', uploadForm.document_type);
+      formData.append('title', file.name.split('.')[0]);
       formData.append('filename', file.name);
       formData.append('description', uploadForm.description || file.name);
+      formData.append('version', '1.0');
+      formData.append('uploaded_by', String(userId));
+
+      console.log('Uploading with data:', {
+        project: uploadForm.project,
+        document_type: uploadForm.document_type,
+        filename: file.name,
+        uploaded_by: userId
+      });
 
       const response = await documentAPI.upload(formData);
-      console.log('✅ Upload success:', response.data);
       
       Alert.alert('Success', 'Document uploaded successfully!');
       setUploadModalVisible(false);
@@ -133,11 +141,10 @@ export default function DocumentManagement({ navigation }) {
       setUploadForm({ project: '', document_type: 'blueprint', description: '' });
       loadDocuments();
     } catch (error) {
-      console.error('❌ Upload error:', {
+      console.error('Upload error details:', {
         message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config
+        response: error.response?.data,
+        status: error.response?.status
       });
       
       let errorMsg = 'Failed to upload document';
@@ -148,8 +155,10 @@ export default function DocumentManagement({ navigation }) {
             .map(([key, value]) => `${key}: ${Array.isArray(value) ? value[0] : value}`)
             .join('\n');
         } else {
-          errorMsg = data;
+          errorMsg = String(data);
         }
+      } else if (error.message) {
+        errorMsg = error.message;
       }
       
       Alert.alert('Upload Failed', errorMsg);
@@ -259,27 +268,53 @@ export default function DocumentManagement({ navigation }) {
           </TouchableOpacity>
 
           <Text style={styles.inputLabel}>Select Project *</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectSelector}>
+          <View style={styles.projectList}>
             {projects.map((project) => (
               <TouchableOpacity
                 key={project.id}
                 style={[
-                  styles.projectOption,
-                  uploadForm.project === project.id && styles.selectedProject
+                  styles.projectItem,
+                  uploadForm.project === project.id && styles.selectedProjectItem
                 ]}
                 onPress={() => setUploadForm({...uploadForm, project: project.id})}
               >
+                <View style={styles.projectItemContent}>
+                  <Text style={[
+                    styles.projectItemText,
+                    uploadForm.project === project.id && styles.selectedProjectItemText
+                  ]}>
+                    {project.name}
+                  </Text>
+                  {uploadForm.project === project.id && (
+                    <Ionicons name="checkmark-circle" size={20} color="#004AAD" />
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+
+
+          <Text style={styles.inputLabel}>Document Type *</Text>
+          <View style={styles.typeContainer}>
+            {['blueprint', 'report', 'specification', 'contract'].map((type) => (
+              <TouchableOpacity
+                key={type}
+                style={[
+                  styles.typeOption,
+                  uploadForm.document_type === type && styles.selectedType
+                ]}
+                onPress={() => setUploadForm({...uploadForm, document_type: type})}
+              >
                 <Text style={[
-                  styles.projectText,
-                  uploadForm.project === project.id && styles.selectedProjectText
+                  styles.typeOptionText,
+                  uploadForm.document_type === type && styles.selectedTypeText
                 ]}>
-                  {project.name}
+                  {type.toUpperCase()}
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
-
-
+          </View>
 
           <TextInput
             style={styles.input}
@@ -515,28 +550,38 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 15,
   },
-  projectSelector: {
-    marginBottom: 15,
+  projectList: {
+    marginBottom: 20,
+    maxHeight: 200,
   },
-  projectOption: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginRight: 10,
+  projectItem: {
+    backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#ddd',
+    borderRadius: 8,
+    marginBottom: 10,
+    overflow: 'hidden',
   },
-  selectedProject: {
-    backgroundColor: '#004AAD',
+  selectedProjectItem: {
     borderColor: '#004AAD',
+    borderWidth: 2,
+    backgroundColor: '#F0F7FF',
   },
-  projectText: {
-    fontSize: 14,
-    color: '#666',
+  projectItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
   },
-  selectedProjectText: {
-    color: '#fff',
+  projectItemText: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '500',
+    flex: 1,
+  },
+  selectedProjectItemText: {
+    color: '#004AAD',
+    fontWeight: '600',
   },
   typeContainer: {
     flexDirection: 'row',
