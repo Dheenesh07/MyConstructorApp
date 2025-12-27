@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput, RefreshControl } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { documentAPI, projectAPI } from "../../utils/api";
 import * as DocumentPicker from 'expo-document-picker';
 

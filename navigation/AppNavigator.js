@@ -24,6 +24,7 @@ import Settings from "./screens/Settings";
 import InvoiceManagement from "./screens/InvoiceManagement";
 import MaterialRequests from "./screens/MaterialRequests";
 import Documents from "./screens/Documents";
+import AttendanceTracking from "./screens/AttendanceTracking";
 
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
@@ -203,6 +204,11 @@ export default function AppNavigator() {
           name="Documents"
           component={Documents}
           options={{ title: "Documents" }}
+        />
+        <Stack.Screen
+          name="AttendanceTracking"
+          component={AttendanceTracking}
+          options={{ title: "Attendance Tracking" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { qualityAPI, taskAPI } from '../utils/api';
+import { safetyAPI, taskAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -102,33 +102,21 @@ export default function QualityInspectorDashboard() {
 
   const loadInspections = async () => {
     try {
-      const response = await qualityAPI.getInspections();
-      setInspections(response.data.map(inspection => ({
-        id: inspection.id,
-        title: inspection.inspection_type + ' - ' + (inspection.task_title || 'General'),
-        date: inspection.inspection_date?.split('T')[0] || inspection.created_at?.split('T')[0],
-        type: inspection.inspection_type,
-        location: inspection.location || 'Not specified',
-        result: inspection.result,
-        score: inspection.score || 0,
-        inspector: inspection.inspector_name || 'Quality Inspector',
-        notes: inspection.notes || ''
+      const response = await safetyAPI.getIncidents();
+      setInspections(response.data.map(incident => ({
+        id: incident.id,
+        title: incident.title,
+        date: incident.incident_date?.split('T')[0] || incident.created_at?.split('T')[0],
+        type: incident.severity,
+        location: incident.location_details || 'Not specified',
+        result: incident.status === 'resolved' ? 'Pass' : 'Pending',
+        score: incident.severity === 'minor' ? 90 : 60,
+        inspector: incident.reported_by_name || 'Safety Officer',
+        notes: incident.description || ''
       })));
     } catch (error) {
-      console.error('Error loading inspections:', error);
-      setInspections([
-        {
-          id: 1,
-          title: 'Concrete Strength Test - Foundation',
-          date: '2024-01-12',
-          type: 'material',
-          location: 'Site A - Block A',
-          result: 'pass',
-          score: 95,
-          inspector: 'Quality Inspector',
-          notes: 'Concrete meets specified strength requirements'
-        }
-      ]);
+      console.error('Error loading incidents:', error);
+      setInspections([]);
     }
   };
 
@@ -330,15 +318,18 @@ export default function QualityInspectorDashboard() {
       return;
     }
     try {
-      const response = await qualityAPI.createInspection({
-        inspection_type: inspectionForm.type,
-        scheduled_date: new Date().toISOString().split('T')[0],
-        status: inspectionForm.result === 'Pass' ? 'passed' : 'failed',
-        observations: inspectionForm.notes,
-        score: inspectionForm.result === 'Pass' ? 90 : 60,
-        inspector: user.id,
+      const incidentId = `INC${Date.now().toString().slice(-8)}`;
+      const response = await safetyAPI.reportIncident({
+        incident_id: incidentId,
         project: 1,
-        task: 1
+        title: inspectionForm.title,
+        description: inspectionForm.notes || '',
+        severity: inspectionForm.type === 'Material' ? 'minor' : 'major',
+        location_details: inspectionForm.location,
+        injured_person: '',
+        reported_by: user.id,
+        incident_date: new Date().toISOString(),
+        status: 'reported'
       });
       const newInspection = {
         id: response.data.id,
@@ -348,16 +339,16 @@ export default function QualityInspectorDashboard() {
         location: inspectionForm.location,
         result: inspectionForm.result,
         score: inspectionForm.result === 'Pass' ? 90 : 60,
-        inspector: 'Quality Inspector',
+        inspector: 'Safety Officer',
         notes: inspectionForm.notes
       };
       setInspections([newInspection, ...inspections]);
       setInspectionForm({ title: '', location: '', type: 'Material', notes: '', result: 'Pass' });
       setModalVisible(false);
-      Alert.alert('Success', 'Inspection report submitted successfully!');
+      Alert.alert('Success', 'Safety incident reported successfully!');
     } catch (error) {
-      console.error('Error submitting inspection:', error);
-      Alert.alert('Error', 'Failed to submit inspection report');
+      console.error('Error submitting incident:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to report incident');
     }
   };
 
@@ -447,17 +438,17 @@ export default function QualityInspectorDashboard() {
 
   const renderContent = () => {
     switch (activePage) {
-      case "Quality Inspections":
+      case "Safety Incidents":
         return (
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
-              <Text style={styles.pageTitle}>🔍 Quality Inspections</Text>
+              <Text style={styles.pageTitle}>⚠️ Safety Incidents</Text>
               <TouchableOpacity 
                 style={styles.addButton}
                 onPress={() => openModal('inspection')}
               >
                 <Ionicons name="add" size={20} color="#fff" />
-                <Text style={styles.addButtonText}>New Inspection</Text>
+                <Text style={styles.addButtonText}>Report Incident</Text>
               </TouchableOpacity>
             </View>
             
@@ -777,9 +768,9 @@ export default function QualityInspectorDashboard() {
                 <View style={styles.qualityIcon}>
                   <Ionicons name="checkmark-circle" size={40} color="#FFD700" />
                 </View>
-                <Text style={styles.welcomeTitle}>Quality Excellence!</Text>
-                <Text style={styles.welcomeName}>{user?.first_name || user?.username || 'Quality Inspector'}</Text>
-                <Text style={styles.welcomeSubtitle}>Ensuring standards and delivering excellence in every inspection</Text>
+                <Text style={styles.welcomeTitle}>Safety Excellence!</Text>
+                <Text style={styles.welcomeName}>{user?.first_name || user?.username || 'Safety Officer'}</Text>
+                <Text style={styles.welcomeSubtitle}>Ensuring safety and preventing incidents on every site</Text>
                 <View style={styles.dateTimeContainer}>
                   <Ionicons name="calendar-outline" size={16} color="#fff" />
                   <Text style={styles.dateTimeText}>{new Date().toLocaleDateString('en-US', { 
@@ -791,7 +782,7 @@ export default function QualityInspectorDashboard() {
                 </View>
                 <View style={styles.shiftContainer}>
                   <Ionicons name="shield-checkmark-outline" size={16} color="#fff" />
-                  <Text style={styles.shiftText}>Quality Inspector Portal</Text>
+                  <Text style={styles.shiftText}>Safety Officer Portal</Text>
                 </View>
               </View>
             </View>
@@ -865,7 +856,7 @@ export default function QualityInspectorDashboard() {
           <Ionicons name="menu" size={28} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {activePage === "Dashboard" ? "Quality Inspector Dashboard" : activePage}
+          {activePage === "Dashboard" ? "Safety Officer Dashboard" : activePage}
         </Text>
       </View>
 
@@ -1243,32 +1234,61 @@ export default function QualityInspectorDashboard() {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.modalButton, styles.submitButton]} 
-                onPress={() => {
+                onPress={async () => {
                   if (!inspectionData.checklist_items) {
                     Alert.alert('Error', 'Please fill checklist items');
                     return;
                   }
                   
-                  const updatedSchedule = schedule.map(s => 
-                    s.id === currentInspection.id ? {...s, status: inspectionData.status === 'in_progress' ? 'In Progress' : inspectionData.status.replace('_', ' ')} : s
-                  );
-                  setSchedule(updatedSchedule);
-                  
-                  const newInspection = {
-                    id: inspections.length + 1,
-                    title: currentInspection.title,
-                    date: new Date().toISOString().split('T')[0],
-                    type: currentInspection.type,
-                    location: currentInspection.location,
-                    result: inspectionData.status === 'passed' ? 'Pass' : inspectionData.status === 'failed' ? 'Fail' : 'Pending',
-                    score: parseInt(inspectionData.score) || 0,
-                    inspector: 'Quality Inspector',
-                    notes: inspectionData.observations
-                  };
-                  setInspections([newInspection, ...inspections]);
-                  
-                  setInspectionModalVisible(false);
-                  Alert.alert('Success', 'Inspection completed and saved!');
+                  try {
+                    // Update incident via API
+                    const updateData = {
+                      status: inspectionData.status === 'passed' ? 'resolved' : 
+                              inspectionData.status === 'failed' ? 'under_investigation' : 'reported',
+                      description: `${inspectionData.observations}\n\nDefects: ${inspectionData.defects_found}\n\nRecommendations: ${inspectionData.recommendations}`
+                    };
+                    
+                    console.log('Updating incident:', updateData);
+                    await safetyAPI.updateIncident(currentInspection.id, updateData);
+                    
+                    const updatedSchedule = schedule.map(s => 
+                      s.id === currentInspection.id ? {...s, status: inspectionData.status === 'in_progress' ? 'In Progress' : inspectionData.status.replace('_', ' ')} : s
+                    );
+                    setSchedule(updatedSchedule);
+                    
+                    const newInspection = {
+                      id: inspections.length + 1,
+                      title: currentInspection.title,
+                      date: new Date().toISOString().split('T')[0],
+                      type: currentInspection.type,
+                      location: currentInspection.location,
+                      result: inspectionData.status === 'passed' ? 'Pass' : inspectionData.status === 'failed' ? 'Fail' : 'Pending',
+                      score: parseInt(inspectionData.score) || 0,
+                      inspector: 'Safety Officer',
+                      notes: inspectionData.observations
+                    };
+                    setInspections([newInspection, ...inspections]);
+                    
+                    setInspectionModalVisible(false);
+                    Alert.alert('Success', 'Inspection completed and saved!');
+                  } catch (error) {
+                    console.error('Error updating incident:', error.response?.data || error.message);
+                    let errorMsg = 'Failed to update incident';
+                    if (error.response?.data) {
+                      const errorData = error.response.data;
+                      if (typeof errorData === 'string') {
+                        errorMsg = errorData;
+                      } else if (errorData.detail) {
+                        errorMsg = errorData.detail;
+                      } else {
+                        const errors = Object.entries(errorData)
+                          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+                          .join('\n');
+                        errorMsg = errors || 'Failed to update incident';
+                      }
+                    }
+                    Alert.alert('Error', errorMsg);
+                  }
                 }}
               >
                 <Text style={styles.submitButtonText}>Complete Inspection</Text>
@@ -1343,9 +1363,9 @@ export default function QualityInspectorDashboard() {
 
         {[
           { title: "Dashboard", icon: "home" },
-          { title: "Quality Inspections", icon: "search" },
+          { title: "Safety Incidents", icon: "alert-circle" },
           { title: "Test Reports", icon: "document-text" },
-          { title: "Non-Conformance", icon: "alert-circle" },
+          { title: "Non-Conformance", icon: "warning" },
           { title: "Quality Standards", icon: "library" },
           { title: "Inspection Schedule", icon: "calendar" }
         ].map((item) => (
@@ -1401,18 +1421,25 @@ const styles = StyleSheet.create({
   alertTitle: { fontSize: 14, fontWeight: "600", color: "#C62828" },
   alertDescription: { fontSize: 12, color: "#B71C1C", marginTop: 2 },
   
-  statsContainer: { flexDirection: "row", paddingHorizontal: 20, marginBottom: 20 },
+  statsContainer: { 
+    flexDirection: "row", 
+    paddingHorizontal: 15, 
+    marginBottom: 15,
+    justifyContent: 'space-between',
+  },
   statCard: {
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
-    marginHorizontal: 5,
+    borderRadius: 10,
+    padding: 10,
+    marginHorizontal: 3,
     alignItems: "center",
+    justifyContent: "center",
     elevation: 2,
+    minHeight: 70,
   },
-  statNumber: { fontSize: 24, fontWeight: "bold", color: "#003366" },
-  statLabel: { fontSize: 12, color: "#666", marginTop: 4 },
+  statNumber: { fontSize: 20, fontWeight: "bold", color: "#003366" },
+  statLabel: { fontSize: 9, color: "#666", marginTop: 4, textAlign: "center" },
   
   sectionTitle: { fontSize: 18, fontWeight: "600", color: "#003366", paddingHorizontal: 20, marginBottom: 10 },
   

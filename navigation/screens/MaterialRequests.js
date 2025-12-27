@@ -55,7 +55,16 @@ export default function MaterialRequests({ route }) {
     }
     setIsSubmitting(true);
     try {
+      // Generate request_id (format: MR + YYYYMMDD + random 3 digits)
+      const now = new Date();
+      const dateStr = now.getFullYear() + 
+        String(now.getMonth() + 1).padStart(2, '0') + 
+        String(now.getDate()).padStart(2, '0');
+      const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const request_id = `MR${dateStr}${randomNum}`;
+      
       const payload = {
+        request_id: request_id,
         project: parseInt(requestForm.project),
         task: requestForm.task ? parseInt(requestForm.task) : null,
         requested_by: parseInt(requestForm.requested_by),
@@ -64,8 +73,9 @@ export default function MaterialRequests({ route }) {
         unit: requestForm.unit,
         estimated_cost: requestForm.estimated_cost ? parseFloat(requestForm.estimated_cost) : null,
         urgency: requestForm.urgency,
-        required_date: requestForm.required_date || null
+        required_date: requestForm.required_date.trim() || null
       };
+      console.log('Creating material request:', payload);
       const response = await materialAPI.createRequest(payload);
       setRequests([response.data, ...requests]);
       setModalVisible(false);
@@ -76,14 +86,28 @@ export default function MaterialRequests({ route }) {
         estimated_cost: '',
         urgency: 'medium',
         required_date: '',
-        project: '',
+        project: projectId || '',
         task: '',
         requested_by: ''
       });
       Alert.alert('Success', `Material request ${response.data.request_id} created successfully!`);
     } catch (error) {
-      console.error('Error creating request:', error);
-      Alert.alert('Error', `Failed to create request: ${error.response?.data?.detail || error.message}`);
+      console.error('Error creating request:', error.response?.data || error.message);
+      let errorMsg = 'Failed to create request';
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'string') {
+          errorMsg = errorData;
+        } else if (errorData.detail) {
+          errorMsg = errorData.detail;
+        } else {
+          const errors = Object.entries(errorData)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          errorMsg = errors || 'Failed to create request';
+        }
+      }
+      Alert.alert('Error', errorMsg);
     } finally {
       setIsSubmitting(false);
     }

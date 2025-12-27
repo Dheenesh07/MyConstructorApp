@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get("window");
 import { projectAPI, equipmentAPI, materialAPI } from "../../utils/api";
@@ -20,6 +21,8 @@ export default function ProjectManagement({ navigation, route }) {
     project_type: 'commercial',
     description: '',
     location: '',
+    latitude: '',
+    longitude: '',
     total_budget: '',
     start_date: '',
     end_date: ''
@@ -40,8 +43,8 @@ export default function ProjectManagement({ navigation, route }) {
     try {
       const [projectsRes, equipmentRes, materialRes] = await Promise.all([
         projectAPI.getAll(),
-        equipmentAPI.getAll(),
-        materialAPI.getRequests()
+        equipmentAPI.getAll().catch(() => ({ data: [] })),
+        materialAPI.getRequests().catch(() => ({ data: [] }))
       ]);
       if (projectsRes.data && projectsRes.data.length > 0) {
         setProjects(projectsRes.data);
@@ -51,7 +54,7 @@ export default function ProjectManagement({ navigation, route }) {
       setEquipment(equipmentRes.data || []);
       setMaterialRequests(materialRes.data || []);
     } catch (error) {
-      console.error('Error loading projects:', error);
+      console.error('Error loading projects:', error.response?.data || error.message);
       setProjects([]);
       setEquipment([]);
       setMaterialRequests([]);
@@ -61,13 +64,78 @@ export default function ProjectManagement({ navigation, route }) {
   };
 
   const createProject = async () => {
+    // Validate required fields
+    if (!newProject.name || !newProject.project_code || !newProject.client) {
+      Alert.alert("Validation Error", "Please fill in Project Name, Project Code, and Client Name");
+      return;
+    }
+
     try {
-      await projectAPI.create(newProject);
+      // Get current user ID
+      const userStr = await AsyncStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      
+      if (!user?.id) {
+        Alert.alert("Error", "User not found. Please login again.");
+        return;
+      }
+
+      const projectData = {
+        name: newProject.name,
+        project_code: newProject.project_code,
+        client: newProject.client,
+        project_manager: user.id,
+        project_type: newProject.project_type || 'commercial',
+        description: newProject.description || '',
+        location: newProject.location || '',
+        latitude: newProject.latitude ? parseFloat(newProject.latitude) : null,
+        longitude: newProject.longitude ? parseFloat(newProject.longitude) : null,
+        status: 'planning',
+        start_date: newProject.start_date.trim() || null,
+        end_date: newProject.end_date.trim() || null,
+        total_budget: newProject.total_budget ? parseFloat(newProject.total_budget) : 0
+      };
+      
+      console.log('Creating project with data:', projectData);
+      const response = await projectAPI.create(projectData);
+      console.log('Project created:', response.data);
+      
       Alert.alert("Success", "Project created successfully");
       setModalVisible(false);
+      setNewProject({
+        name: '',
+        project_code: '',
+        client: '',
+        project_type: 'commercial',
+        description: '',
+        location: '',
+        latitude: '',
+        longitude: '',
+        total_budget: '',
+        start_date: '',
+        end_date: ''
+      });
       loadProjects();
     } catch (error) {
-      Alert.alert("Error", "Failed to create project");
+      console.error('Error creating project:', error.response?.data || error.message);
+      
+      let errorMsg = "Failed to create project";
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'string') {
+          errorMsg = errorData;
+        } else if (errorData.detail) {
+          errorMsg = errorData.detail;
+        } else {
+          // Format field-specific errors
+          const errors = Object.entries(errorData)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          errorMsg = errors || "Failed to create project";
+        }
+      }
+      
+      Alert.alert("Error", errorMsg);
     }
   };
 
@@ -213,6 +281,32 @@ export default function ProjectManagement({ navigation, route }) {
               placeholder="Location"
               value={newProject.location}
               onChangeText={(text) => setNewProject({...newProject, location: text})}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Latitude (optional)"
+              value={newProject.latitude}
+              onChangeText={(text) => setNewProject({...newProject, latitude: text})}
+              keyboardType="decimal-pad"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Longitude (optional)"
+              value={newProject.longitude}
+              onChangeText={(text) => setNewProject({...newProject, longitude: text})}
+              keyboardType="decimal-pad"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Start Date (YYYY-MM-DD)"
+              value={newProject.start_date}
+              onChangeText={(text) => setNewProject({...newProject, start_date: text})}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="End Date (YYYY-MM-DD)"
+              value={newProject.end_date}
+              onChangeText={(text) => setNewProject({...newProject, end_date: text})}
             />
             <TextInput
               style={styles.input}

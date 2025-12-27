@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { equipmentAPI, projectAPI, userAPI } from '../../utils/api';
 
 export default function EquipmentInventory({ navigation }) {

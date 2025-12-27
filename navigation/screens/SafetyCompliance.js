@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { safetyAPI, qualityAPI, projectAPI, taskAPI, userAPI } from "../../utils/api";
+import { safetyAPI, projectAPI, userAPI } from "../../utils/api";
 
 export default function SafetyCompliance({ navigation }) {
   const [incidents, setIncidents] = useState([]);
-  const [inspections, setInspections] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [inspectionModalVisible, setInspectionModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('incidents');
   const [newIncident, setNewIncident] = useState({
     title: '',
     type: 'minor',
@@ -28,17 +24,13 @@ export default function SafetyCompliance({ navigation }) {
 
   const loadSafetyData = async () => {
     try {
-      const [incidentsRes, inspectionsRes, projectsRes, tasksRes, usersRes] = await Promise.all([
+      const [incidentsRes, projectsRes, usersRes] = await Promise.all([
         safetyAPI.getIncidents(),
-        qualityAPI.getInspections(),
         projectAPI.getAll(),
-        taskAPI.getAll(),
         userAPI.getAll()
       ]);
       setIncidents(incidentsRes.data || []);
-      setInspections(inspectionsRes.data || []);
       setProjects(projectsRes.data || []);
-      setTasks(tasksRes.data || []);
       setUsers(usersRes.data || []);
     } catch (error) {
       console.error('Error loading safety data:', error);
@@ -112,25 +104,6 @@ export default function SafetyCompliance({ navigation }) {
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const [newInspection, setNewInspection] = useState({
-    inspection_type: '',
-    project: '',
-    task: '',
-    inspector: '',
-    scheduled_date: '',
-    checklist_items: ''
-  });
-
-  const [inspectionUpdateModalVisible, setInspectionUpdateModalVisible] = useState(false);
-  const [selectedInspection, setSelectedInspection] = useState(null);
-  const [inspectionUpdateForm, setInspectionUpdateForm] = useState({
-    status: 'passed',
-    actual_date: '',
-    observations: '',
-    score: '',
-    recommendations: ''
-  });
-
   const openUpdateModal = (incident) => {
     setSelectedIncident(incident);
     setUpdateForm({
@@ -165,66 +138,6 @@ export default function SafetyCompliance({ navigation }) {
     }
   };
 
-  const scheduleInspection = async () => {
-    if (!newInspection.inspection_type || !newInspection.project || !newInspection.inspector || !newInspection.scheduled_date) {
-      Alert.alert('Error', 'Please fill all required fields');
-      return;
-    }
-    try {
-      const payload = {
-        inspection_id: `QI${Date.now()}`,
-        project: parseInt(newInspection.project),
-        task: newInspection.task ? parseInt(newInspection.task) : null,
-        inspector: parseInt(newInspection.inspector),
-        inspection_type: newInspection.inspection_type,
-        scheduled_date: newInspection.scheduled_date,
-        checklist_items: newInspection.checklist_items
-      };
-      console.log('Sending inspection payload:', payload);
-      const response = await qualityAPI.createInspection(payload);
-      setInspections([response.data, ...inspections]);
-      Alert.alert('Success', 'Inspection scheduled successfully');
-      setInspectionModalVisible(false);
-      setNewInspection({ inspection_type: '', project: '', task: '', inspector: '', scheduled_date: '', checklist_items: '' });
-    } catch (error) {
-      console.error('Error scheduling inspection:', error);
-      console.error('Error response:', error.response?.data);
-      console.log('Inspection payload sent:', JSON.stringify(payload, null, 2));
-      Alert.alert('Error', `Failed to schedule inspection: ${error.response?.data?.detail || error.message}`);
-    }
-  };
-
-  const openInspectionUpdateModal = (inspection) => {
-    setSelectedInspection(inspection);
-    setInspectionUpdateForm({
-      status: inspection.status || 'passed',
-      actual_date: '',
-      observations: '',
-      score: '',
-      recommendations: ''
-    });
-    setInspectionUpdateModalVisible(true);
-  };
-
-  const updateInspectionResult = async () => {
-    try {
-      const payload = {
-        status: inspectionUpdateForm.status,
-        actual_date: inspectionUpdateForm.actual_date,
-        observations: inspectionUpdateForm.observations,
-        score: inspectionUpdateForm.score ? parseInt(inspectionUpdateForm.score) : null,
-        recommendations: inspectionUpdateForm.recommendations
-      };
-      const response = await qualityAPI.updateInspection(selectedInspection.id, payload);
-      setInspections(inspections.map(insp => insp.id === selectedInspection.id ? response.data : insp));
-      Alert.alert('Success', 'Inspection updated successfully');
-      setInspectionUpdateModalVisible(false);
-    } catch (error) {
-      console.error('Error updating inspection:', error);
-      Alert.alert('Error', 'Failed to update inspection');
-    }
-  };
-
   const renderIncident = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -245,24 +158,6 @@ export default function SafetyCompliance({ navigation }) {
     </View>
   );
 
-  const renderInspection = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.inspection_type || item.area}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-          <Text style={styles.badgeText}>{(item.status || 'scheduled').toUpperCase()}</Text>
-        </View>
-      </View>
-      <Text style={styles.cardDetail}>👤 Inspector: {item.inspector}</Text>
-      <Text style={styles.cardDetail}>📅 Scheduled: {item.scheduled_date}</Text>
-      {item.actual_date && <Text style={styles.cardDetail}>✅ Completed: {item.actual_date}</Text>}
-      {item.score && <Text style={styles.cardDetail}>📊 Score: {item.score}%</Text>}
-      <TouchableOpacity style={styles.updateButton} onPress={() => openInspectionUpdateModal(item)}>
-        <Text style={styles.updateButtonText}>Update Result</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -272,11 +167,9 @@ export default function SafetyCompliance({ navigation }) {
         </View>
         <TouchableOpacity 
           style={styles.addButton} 
-          onPress={() => activeTab === 'incidents' ? setModalVisible(true) : setInspectionModalVisible(true)}
+          onPress={() => setModalVisible(true)}
         >
-          <Text style={styles.addButtonText}>
-            {activeTab === 'incidents' ? '+ Report Incident' : '+ Schedule Inspection'}
-          </Text>
+          <Text style={styles.addButtonText}>+ Report Incident</Text>
         </TouchableOpacity>
       </View>
 
@@ -291,35 +184,15 @@ export default function SafetyCompliance({ navigation }) {
           <Text style={styles.statLabel}>Resolved</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{inspections.filter(i => i.status === 'passed').length}</Text>
-          <Text style={styles.statLabel}>Passed Inspections</Text>
+          <Text style={styles.statNumber}>{incidents.filter(i => i.status === 'reported' || i.status === 'investigating').length}</Text>
+          <Text style={styles.statLabel}>Open</Text>
         </View>
-      </View>
-
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'incidents' && styles.activeTab]}
-          onPress={() => setActiveTab('incidents')}
-        >
-          <Text style={[styles.tabText, activeTab === 'incidents' && styles.activeTabText]}>
-            Incidents
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'inspections' && styles.activeTab]}
-          onPress={() => setActiveTab('inspections')}
-        >
-          <Text style={[styles.tabText, activeTab === 'inspections' && styles.activeTabText]}>
-            Inspections
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Content */}
       <FlatList
-        data={activeTab === 'incidents' ? incidents : inspections}
-        renderItem={activeTab === 'incidents' ? renderIncident : renderInspection}
+        data={incidents}
+        renderItem={renderIncident}
         keyExtractor={(item) => item.id.toString()}
         style={styles.list}
       />
@@ -352,8 +225,8 @@ export default function SafetyCompliance({ navigation }) {
             ))}
           </ScrollView>
           
-          <View style={styles.typeContainer}>
-            <Text style={styles.typeLabel}>Incident Severity *</Text>
+          <Text style={styles.typeLabel}>Incident Severity *</Text>
+          <View style={styles.typeRow}>
             {['minor', 'major', 'critical'].map((type) => (
               <TouchableOpacity
                 key={type}
@@ -423,8 +296,8 @@ export default function SafetyCompliance({ navigation }) {
           <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={styles.incidentInfo}>Incident: {selectedIncident?.title}</Text>
           
-          <View style={styles.typeContainer}>
-            <Text style={styles.typeLabel}>Status *</Text>
+          <Text style={styles.typeLabel}>Status *</Text>
+          <View style={styles.typeRow}>
             {['reported', 'investigating', 'resolved', 'closed'].map((status) => (
               <TouchableOpacity
                 key={status}
@@ -475,163 +348,6 @@ export default function SafetyCompliance({ navigation }) {
           </View>
         </View>
       </Modal>
-
-      {/* Schedule Inspection Modal */}
-      <Modal visible={inspectionModalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Schedule Quality Inspection</Text>
-          
-          <ScrollView showsVerticalScrollIndicator={false}>
-          <TextInput
-            style={styles.input}
-            placeholder="Inspection Type *"
-            value={newInspection.inspection_type}
-            onChangeText={(text) => setNewInspection({...newInspection, inspection_type: text})}
-          />
-          
-          <Text style={styles.typeLabel}>Select Project *</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectScroll}>
-            {projects.map((project) => (
-              <TouchableOpacity
-                key={project.id}
-                style={[styles.typeOption, newInspection.project === project.id && styles.selectedType]}
-                onPress={() => setNewInspection({...newInspection, project: project.id})}
-              >
-                <Text style={[styles.typeText, newInspection.project === project.id && styles.selectedTypeText]}>
-                  {project.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          
-          <Text style={styles.typeLabel}>Select Task (Optional)</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectScroll}>
-            {tasks.map((task) => (
-              <TouchableOpacity
-                key={task.id}
-                style={[styles.typeOption, newInspection.task === task.id && styles.selectedType]}
-                onPress={() => setNewInspection({...newInspection, task: task.id})}
-              >
-                <Text style={[styles.typeText, newInspection.task === task.id && styles.selectedTypeText]}>
-                  {task.title}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          
-          <Text style={styles.typeLabel}>Select Inspector *</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectScroll}>
-            {users.map((user) => (
-              <TouchableOpacity
-                key={user.id}
-                style={[styles.typeOption, newInspection.inspector === user.id && styles.selectedType]}
-                onPress={() => setNewInspection({...newInspection, inspector: user.id})}
-              >
-                <Text style={[styles.typeText, newInspection.inspector === user.id && styles.selectedTypeText]}>
-                  {user.username}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Scheduled Date (YYYY-MM-DD) *"
-            value={newInspection.scheduled_date}
-            onChangeText={(text) => setNewInspection({...newInspection, scheduled_date: text})}
-          />
-          
-          <TextInput
-            style={[styles.input, { height: 100 }]}
-            placeholder="Checklist Items (e.g., 1. Check concrete\n2. Verify rebar)"
-            value={newInspection.checklist_items}
-            onChangeText={(text) => setNewInspection({...newInspection, checklist_items: text})}
-            multiline
-          />
-          </ScrollView>
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setInspectionModalVisible(false)}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.createButton} onPress={scheduleInspection}>
-              <Text style={styles.createButtonText}>Schedule</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Update Inspection Result Modal */}
-      <Modal visible={inspectionUpdateModalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Update Inspection Result</Text>
-          
-          <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={styles.incidentInfo}>Inspection: {selectedInspection?.inspection_type}</Text>
-          
-          <View style={styles.typeContainer}>
-            <Text style={styles.typeLabel}>Status *</Text>
-            {['passed', 'failed', 'pending'].map((status) => (
-              <TouchableOpacity
-                key={status}
-                style={[
-                  styles.typeOption,
-                  inspectionUpdateForm.status === status && styles.selectedType
-                ]}
-                onPress={() => setInspectionUpdateForm({...inspectionUpdateForm, status})}
-              >
-                <Text style={[
-                  styles.typeText,
-                  inspectionUpdateForm.status === status && styles.selectedTypeText
-                ]}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Actual Date (YYYY-MM-DD)"
-            value={inspectionUpdateForm.actual_date}
-            onChangeText={(text) => setInspectionUpdateForm({...inspectionUpdateForm, actual_date: text})}
-          />
-          
-          <TextInput
-            style={[styles.input, { height: 80 }]}
-            placeholder="Observations"
-            value={inspectionUpdateForm.observations}
-            onChangeText={(text) => setInspectionUpdateForm({...inspectionUpdateForm, observations: text})}
-            multiline
-          />
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Score (0-100)"
-            value={inspectionUpdateForm.score}
-            onChangeText={(text) => setInspectionUpdateForm({...inspectionUpdateForm, score: text})}
-            keyboardType="numeric"
-          />
-          
-          <TextInput
-            style={[styles.input, { height: 80 }]}
-            placeholder="Recommendations"
-            value={inspectionUpdateForm.recommendations}
-            onChangeText={(text) => setInspectionUpdateForm({...inspectionUpdateForm, recommendations: text})}
-            multiline
-          />
-          </ScrollView>
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setInspectionUpdateModalVisible(false)}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.createButton} onPress={updateInspectionResult}>
-              <Text style={styles.createButtonText}>Update</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -640,56 +356,60 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f9fc",
-    padding: 20,
+    padding: 15,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#003366",
   },
   addButton: {
     backgroundColor: "#dc3545",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   addButtonText: {
     color: "#fff",
     fontWeight: "600",
+    fontSize: 12,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   statCard: {
     backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
+    padding: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 5,
+    justifyContent: 'center',
+    width: '31%',
     elevation: 2,
+    height: 70,
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#dc3545",
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: "#666",
-    marginTop: 5,
+    marginTop: 4,
+    textAlign: 'center',
+    numberOfLines: 2,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -768,9 +488,6 @@ const styles = StyleSheet.create({
     color: "#003366",
     marginBottom: 20,
   },
-  typeContainer: {
-    marginBottom: 15,
-  },
   projectScroll: {
     flexGrow: 0,
     marginBottom: 15,
@@ -781,6 +498,11 @@ const styles = StyleSheet.create({
     color: "#003366",
     marginBottom: 10,
   },
+  typeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 15,
+  },
   typeOption: {
     backgroundColor: "#fff",
     borderWidth: 1,
@@ -788,6 +510,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 8,
+    marginRight: 8,
     marginBottom: 8,
   },
   selectedType: {

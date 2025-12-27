@@ -14,13 +14,13 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('access');
-  console.log('🔑 Token from storage:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-    console.log('✅ Authorization header set');
-  } else {
-    console.log('❌ No token found in AsyncStorage');
+  try {
+    const token = await AsyncStorage.getItem('access');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (error) {
+    console.error('Error reading token:', error);
   }
   return config;
 });
@@ -30,12 +30,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await AsyncStorage.removeItem('access');
-      await AsyncStorage.removeItem('refresh');
-    }
-    // Log network errors for debugging
-    if (error.code === 'ERR_NETWORK') {
-      console.log('Network error - server may be down or CORS not configured');
+      // Token expired or invalid - could implement refresh logic here
     }
     return Promise.reject(error);
   }
@@ -43,10 +38,7 @@ api.interceptors.response.use(
 
 // Authentication API
 export const authAPI = {
-  login: (credentials) => {
-    console.log('Login API call with:', credentials);
-    return api.post('login/', credentials);
-  },
+  login: (credentials) => api.post('login/', credentials),
   register: (userData) => api.post('signup/', userData),
   refreshToken: (refresh) => api.post('token/refresh/', { refresh }),
 };

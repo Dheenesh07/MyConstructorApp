@@ -9,12 +9,18 @@ import {
   Easing,
   Alert,
   ActivityIndicator,
+  Image,
+  Platform,
+  Dimensions,
 } from "react-native";
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import Svg, { Circle, Line } from "react-native-svg";
 import api, { authAPI } from "../utils/api";
 import { getRoleDisplayInfo, getDashboardRoute } from "../utils/rolePermissions";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { width, height } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isMobile = width < 768;
 export default function BeemjiLogin({ navigation }) {
   const spinValue = useRef(new Animated.Value(0)).current;
   const [username, setUsername] = useState("");
@@ -49,7 +55,7 @@ export default function BeemjiLogin({ navigation }) {
     try {
       const response = await authAPI.login({ username, password });
       const { user, access, refresh } = response.data;
-
+      
       await AsyncStorage.setItem("access", access);
       if (refresh) await AsyncStorage.setItem("refresh", refresh);
       await AsyncStorage.setItem("user", JSON.stringify(user));
@@ -61,10 +67,6 @@ export default function BeemjiLogin({ navigation }) {
         Alert.alert("Error", "Invalid user role");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      console.error("Error response:", error.response?.data);
-      console.error("Request data:", { username, password: '***' });
-      
       let errorMsg = "Unable to login. Please try again.";
       
       if (error.response?.data) {
@@ -97,93 +99,76 @@ export default function BeemjiLogin({ navigation }) {
 
   return (
     <View style={styles.container}>
-      
-      {/* ✅ Animated Ashoka Chakra */}
-      <Animated.View style={{ transform: [{ rotate }] }}>
-        <Svg height="150" width="150" viewBox="0 0 120 120">
-          <Circle cx="60" cy="60" r="50" stroke="#004AAD" strokeWidth="3" fill="none" />
-
-          {[...Array(24)].map((_, i) => {
-            const angle = (i * 15 * Math.PI) / 180;
-            const x1 = 60 + 5 * Math.cos(angle);
-            const y1 = 60 + 5 * Math.sin(angle);
-            const x2 = 60 + 45 * Math.cos(angle);
-            const y2 = 60 + 45 * Math.sin(angle);
-
-            return (
-              <Line
-                key={i}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="#004AAD"
-                strokeWidth="1.5"
-              />
-            );
-          })}
-
-          <Circle cx="60" cy="60" r="4" fill="#004AAD" />
-        </Svg>
-      </Animated.View>
-
-      {/* ✅ Title */}
-      <Text style={styles.title}>Beemji Builders</Text>
-
-      {/* ✅ Input Fields */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          placeholder="Username"
-          placeholderTextColor="#999"
-          value={username}
-          onChangeText={setUsername}
-          style={styles.input}
+      <View style={styles.contentContainer}>
+        {/* Logo */}
+        <Image 
+          source={require('../assets/beemji logo ai.png')} 
+          style={styles.logo}
+          resizeMode="contain"
         />
-        <View style={styles.passwordContainer}>
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#999"
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
-            style={styles.passwordInput}
-          />
-          <TouchableOpacity
-            style={styles.eyeIcon}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <Icon
-              name={showPassword ? "visibility" : "visibility-off"}
-              size={24}
-              color="#666"
+
+        {/* Title */}
+        <Text style={styles.title}>Beemji Builders</Text>
+
+        {/* Input Fields */}
+        <View style={styles.inputContainer}>
+          <View style={styles.inputWrapper}>
+            <Icon name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+            <TextInput
+              placeholder="Username"
+              placeholderTextColor="#999"
+              value={username}
+              onChangeText={setUsername}
+              style={styles.input}
             />
+          </View>
+          <View style={styles.inputWrapper}>
+            <Icon name="lock-outline" size={20} color="#666" style={styles.inputIcon} />
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#999"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+              style={styles.passwordInput}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <Icon
+                name={showPassword ? "visibility" : "visibility-off"}
+                size={20}
+                color="#666"
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Login Button */}
+        <TouchableOpacity 
+          style={[styles.button, isLoading && styles.buttonDisabled]} 
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>Login</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Signup Link */}
+        <View style={styles.signupContainer}>
+          <Text style={styles.signupText}>Don't have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+            <Text style={styles.signupLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ✅ Login Button */}
-      <TouchableOpacity 
-        style={[styles.button, isLoading && styles.buttonDisabled]} 
-        onPress={handleLogin}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="#fff" size="small" />
-        ) : (
-          <Text style={styles.buttonText}>Login</Text>
-        )}
-      </TouchableOpacity>
-
-      {/* Signup Link */}
-      <View style={styles.signupContainer}>
-        <Text style={styles.signupText}>Don't have an account? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-          <Text style={styles.signupLink}>Sign Up</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.footer}>Empowering Construction with Precision</Text>
-      
+      {!isWeb && <Text style={styles.footer}>Empowering Construction with Precision</Text>}
+      {isWeb && <Text style={styles.webFooter}>Empowering Construction with Precision</Text>}
 
     </View>
   );
@@ -194,57 +179,75 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f9fc",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contentContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: isWeb ? 50 : 30,
+    paddingVertical: 40,
+    maxWidth: isWeb ? 420 : '90%',
+    width: '100%',
+  },
+  logo: {
+    width: isWeb ? 180 : (isMobile ? 280 : 320),
+    height: isWeb ? 180 : (isMobile ? 280 : 320),
+    marginBottom: isWeb ? 10 : -40,
   },
   title: {
-    fontSize: 26,
-    fontWeight: "700",
+    fontSize: isWeb ? 28 : 32,
+    fontWeight: "bold",
     color: "#003366",
-    marginTop: 15,
+    marginBottom: 25,
   },
   inputContainer: {
-    width: "80%",
-    marginTop: 30,
+    width: "100%",
+    marginBottom: 20,
   },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "#dce3f0",
-    fontSize: 16,
-    color: "#003366",
-  },
-  passwordContainer: {
+  inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 10,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: "#dce3f0",
+    borderColor: "#ddd",
+    paddingHorizontal: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 15,
+    fontSize: 16,
+    color: "#003366",
   },
   passwordInput: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
+    paddingVertical: 15,
     fontSize: 16,
     color: "#003366",
   },
   eyeIcon: {
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    padding: 10,
   },
   button: {
     backgroundColor: "#004AAD",
-    paddingVertical: 14,
+    paddingVertical: 15,
     borderRadius: 10,
-    width: "80%",
+    width: "100%",
     alignItems: "center",
+    shadowColor: "#004AAD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
     elevation: 4,
   },
   buttonDisabled: {
@@ -254,18 +257,26 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "bold",
   },
   footer: {
-    marginTop: 20,
-    color: "#666",
-    fontSize: 14,
+    position: 'absolute',
+    bottom: 20,
+    color: "#999",
+    fontSize: 11,
+    textAlign: "center",
+  },
+  webFooter: {
+    color: "#999",
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 25,
   },
 
   signupContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 15,
+    marginTop: 20,
   },
   signupText: {
     fontSize: 14,

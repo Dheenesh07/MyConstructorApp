@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, Picker, ScrollView } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { taskAPI, userAPI, projectAPI } from "../../utils/api";
 
 export default function TaskAssignment({ navigation }) {
@@ -70,14 +71,33 @@ export default function TaskAssignment({ navigation }) {
     }
     
     try {
+      // Get current user
+      const userStr = await AsyncStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      
+      if (!user?.id) {
+        Alert.alert("Error", "User not found. Please login again.");
+        return;
+      }
+
+      // Generate task_code
+      const taskCode = `T${Date.now().toString().slice(-6)}`;
+      
       const taskData = {
-        ...newTask,
         project: parseInt(newTask.project),
+        task_code: taskCode,
+        title: newTask.title,
+        description: newTask.description || '',
         assigned_to: newTask.assigned_to ? parseInt(newTask.assigned_to) : null,
-        estimated_hours: parseFloat(newTask.estimated_hours) || 0,
-        start_date: newTask.start_date,
-        due_date: newTask.due_date
+        created_by: user.id,
+        status: newTask.status || 'not_started',
+        priority: newTask.priority || 'medium',
+        start_date: newTask.start_date || null,
+        due_date: newTask.due_date || null,
+        estimated_hours: parseFloat(newTask.estimated_hours) || 0
       };
+      
+      console.log('Creating task:', taskData);
       
       if (editingTask) {
         await taskAPI.update(editingTask.id, taskData);
@@ -102,8 +122,22 @@ export default function TaskAssignment({ navigation }) {
       });
       loadTasks();
     } catch (error) {
-      console.error('Task operation error:', error);
-      Alert.alert("Error", editingTask ? "Failed to update task" : "Failed to create task");
+      console.error('Task operation error:', error.response?.data || error.message);
+      let errorMsg = editingTask ? 'Failed to update task' : 'Failed to create task';
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'string') {
+          errorMsg = errorData;
+        } else if (errorData.detail) {
+          errorMsg = errorData.detail;
+        } else {
+          const errors = Object.entries(errorData)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          errorMsg = errors || errorMsg;
+        }
+      }
+      Alert.alert("Error", errorMsg);
     }
   };
 
@@ -151,7 +185,13 @@ export default function TaskAssignment({ navigation }) {
     }
   };
 
-  const renderTask = ({ item }) => (
+  const renderTask = ({ item }) => {
+    // Get assigned user details
+    const assignedUser = typeof item.assigned_to === 'object' 
+      ? item.assigned_to 
+      : users.find(u => u.id === item.assigned_to);
+    
+    return (
     <View style={styles.taskCard}>
       <View style={styles.taskHeader}>
         <Text style={styles.taskTitle}>{item.title}</Text>
@@ -160,7 +200,7 @@ export default function TaskAssignment({ navigation }) {
         </View>
       </View>
       <Text style={styles.taskDescription}>{item.description}</Text>
-      <Text style={styles.assignedTo}>Assigned to: {item.assigned_to?.username || 'Unassigned'}</Text>
+      <Text style={styles.assignedTo}>Assigned to: {assignedUser?.username || item.assigned_to_name || 'Unassigned'}</Text>
       <View style={styles.taskFooter}>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
           <Text style={styles.badgeText}>{item.status?.replace('_', ' ').toUpperCase()}</Text>
@@ -188,7 +228,8 @@ export default function TaskAssignment({ navigation }) {
         </TouchableOpacity>
       </View>
     </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -236,18 +277,19 @@ export default function TaskAssignment({ navigation }) {
           />
           <View style={styles.pickerContainer}>
             <Text style={styles.pickerLabel}>Project *</Text>
-            <View style={styles.picker}>
-              <Picker
-                selectedValue={newTask.project}
-                onValueChange={(value) => setNewTask({...newTask, project: value})}
-                style={styles.pickerStyle}
-              >
-                <Picker.Item label="Select Project" value={null} />
-                {projects.map(project => (
-                  <Picker.Item key={project.id} label={`${project.project_code} - ${project.name}`} value={project.id} />
-                ))}
-              </Picker>
-            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectScroll}>
+              {projects.map(project => (
+                <TouchableOpacity
+                  key={project.id}
+                  style={[styles.projectOption, newTask.project === project.id && styles.selectedProject]}
+                  onPress={() => setNewTask({...newTask, project: project.id})}
+                >
+                  <Text style={[styles.projectText, newTask.project === project.id && styles.selectedProjectText]}>
+                    {project.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
           <TextInput
             style={styles.input}
@@ -270,33 +312,35 @@ export default function TaskAssignment({ navigation }) {
           />
           <View style={styles.pickerContainer}>
             <Text style={styles.pickerLabel}>Priority:</Text>
-            <View style={styles.picker}>
-              <Picker
-                selectedValue={newTask.priority}
-                onValueChange={(value) => setNewTask({...newTask, priority: value})}
-                style={styles.pickerStyle}
-              >
-                <Picker.Item label="Low" value="low" />
-                <Picker.Item label="Medium" value="medium" />
-                <Picker.Item label="High" value="high" />
-                <Picker.Item label="Critical" value="critical" />
-              </Picker>
+            <View style={styles.priorityOptions}>
+              {['low', 'medium', 'high', 'critical'].map(priority => (
+                <TouchableOpacity
+                  key={priority}
+                  style={[styles.priorityOption, newTask.priority === priority && styles.selectedPriority]}
+                  onPress={() => setNewTask({...newTask, priority})}
+                >
+                  <Text style={[styles.priorityText, newTask.priority === priority && styles.selectedPriorityText]}>
+                    {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
           <View style={styles.pickerContainer}>
             <Text style={styles.pickerLabel}>Assign to User:</Text>
-            <View style={styles.picker}>
-              <Picker
-                selectedValue={newTask.assigned_to}
-                onValueChange={(value) => setNewTask({...newTask, assigned_to: value})}
-                style={styles.pickerStyle}
-              >
-                <Picker.Item label="Select User" value={null} />
-                {users.map(user => (
-                  <Picker.Item key={user.id} label={user.username} value={user.id} />
-                ))}
-              </Picker>
-            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectScroll}>
+              {users.map(user => (
+                <TouchableOpacity
+                  key={user.id}
+                  style={[styles.projectOption, newTask.assigned_to === user.id && styles.selectedProject]}
+                  onPress={() => setNewTask({...newTask, assigned_to: user.id})}
+                >
+                  <Text style={[styles.projectText, newTask.assigned_to === user.id && styles.selectedProjectText]}>
+                    {user.username}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
           <View style={styles.modalButtons}>
             <TouchableOpacity style={styles.cancelButton} onPress={() => {
@@ -489,16 +533,57 @@ const styles = StyleSheet.create({
   pickerLabel: {
     fontSize: 16,
     color: "#003366",
-    marginBottom: 5,
+    marginBottom: 8,
   },
-  picker: {
-    backgroundColor: "#fff",
+  projectScroll: {
+    maxHeight: 50,
+  },
+  projectOption: {
+    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     borderRadius: 8,
+    marginRight: 8,
     borderWidth: 1,
     borderColor: "#ddd",
   },
-  pickerStyle: {
-    height: 50,
+  selectedProject: {
+    backgroundColor: "#004AAD",
+    borderColor: "#004AAD",
+  },
+  projectText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  selectedProjectText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  priorityOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  priorityOption: {
+    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  selectedPriority: {
+    backgroundColor: "#004AAD",
+    borderColor: "#004AAD",
+  },
+  priorityText: {
+    fontSize: 12,
+    color: "#666",
+  },
+  selectedPriorityText: {
+    color: "#fff",
+    fontWeight: "600",
   },
   textArea: {
     height: 100,

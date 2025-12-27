@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput, ScrollView } from "react-native";
+import * as DocumentPicker from 'expo-document-picker';
+import { projectAPI } from '../../../utils/api';
 
 
 export default function DocumentManagement() {
@@ -23,34 +25,80 @@ export default function DocumentManagement() {
   ]);
 
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState('');
+  const [documentName, setDocumentName] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      const response = await projectAPI.getAll();
+      setProjects(response.data);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  };
+
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true
+      });
+      
+      if (result.type === 'success' || !result.canceled) {
+        const file = result.assets ? result.assets[0] : result;
+        setSelectedFile(file);
+        if (!documentName.trim()) {
+          setDocumentName(file.name.split('.')[0]);
+        }
+        Alert.alert('File Selected', `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert('Error', 'Failed to pick document');
+    }
+  };
 
   const uploadDocument = () => {
     setUploadModalVisible(true);
   };
 
-  const pickDocument = () => {
-    const documentTypes = [
-      { type: 'blueprint', name: 'Project Blueprint', ext: '.dwg' },
-      { type: 'contract', name: 'Construction Contract', ext: '.pdf' },
-      { type: 'permit', name: 'Building Permit', ext: '.pdf' },
-      { type: 'safety_report', name: 'Safety Report', ext: '.pdf' },
-      { type: 'progress_report', name: 'Progress Report', ext: '.pdf' },
-      { type: 'invoice', name: 'Project Invoice', ext: '.pdf' }
-    ];
-    
-    const randomDoc = documentTypes[Math.floor(Math.random() * documentTypes.length)];
+  const saveDocument = () => {
+    if (!selectedProject) {
+      Alert.alert('Error', 'Please select a project');
+      return;
+    }
+    if (!selectedFile) {
+      Alert.alert('Error', 'Please select a file');
+      return;
+    }
+    if (!documentName.trim()) {
+      Alert.alert('Error', 'Please enter document name');
+      return;
+    }
+
+    const selectedProj = projects.find(p => p.id === selectedProject);
     
     const newDoc = {
       id: documents.length + 1,
-      name: `${randomDoc.name} ${documents.length + 1}${randomDoc.ext}`,
-      type: randomDoc.type,
-      size: `${(Math.random() * 4 + 1).toFixed(1)} MB`,
+      name: documentName,
+      type: selectedFile.mimeType?.includes('pdf') ? 'report' : 'blueprint',
+      size: `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`,
       date: new Date().toISOString().split('T')[0],
-      project: 'Admin Upload'
+      project: selectedProj?.name || 'Unknown Project',
+      filePath: selectedFile.uri
     };
     setDocuments([...documents, newDoc]);
     setUploadModalVisible(false);
-    Alert.alert('Success', `${randomDoc.name} uploaded successfully`);
+    setDocumentName('');
+    setSelectedProject('');
+    setSelectedFile(null);
+    Alert.alert('Success', 'Document uploaded successfully');
   };
 
   const getDocumentIcon = (type) => {
@@ -105,16 +153,55 @@ export default function DocumentManagement() {
 
       <Modal visible={uploadModalVisible} animationType="slide">
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Upload Document</Text>
-          <TouchableOpacity style={styles.filePickerButton} onPress={pickDocument}>
-            <Text style={styles.filePickerText}>📎 Click to Upload Random Document</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.cancelButton} 
-            onPress={() => setUploadModalVisible(false)}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
+          <ScrollView contentContainerStyle={styles.modalContent}>
+            <Text style={styles.modalTitle}>Upload Document</Text>
+            
+            <Text style={styles.label}>Document Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter document name"
+              value={documentName}
+              onChangeText={setDocumentName}
+            />
+
+            <Text style={styles.label}>Select Project *</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectScroll}>
+              {projects.map((project) => (
+                <TouchableOpacity
+                  key={project.id}
+                  style={[styles.projectOption, selectedProject === project.id && styles.selectedProject]}
+                  onPress={() => setSelectedProject(project.id)}
+                >
+                  <Text style={[styles.projectText, selectedProject === project.id && styles.selectedProjectText]}>
+                    {project.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.filePickerButton} onPress={pickDocument}>
+              <Text style={styles.filePickerText}>📎 {selectedFile ? selectedFile.name : 'Pick File'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.uploadButton, !selectedFile && styles.disabledButton]} 
+              onPress={saveDocument}
+              disabled={!selectedFile}
+            >
+              <Text style={styles.uploadButtonText}>Upload Document</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={() => {
+                setUploadModalVisible(false);
+                setDocumentName('');
+                setSelectedProject('');
+                setSelectedFile(null);
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -210,9 +297,54 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    padding: 20,
     backgroundColor: "#f5f9fc",
+  },
+  modalContent: {
+    padding: 20,
+    paddingTop: 60,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 8,
+    marginTop: 15,
+  },
+  input: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#dce3f0",
+    fontSize: 16,
+  },
+  projectScroll: {
+    maxHeight: 30,
+    marginBottom: 15,
+  },
+  projectOption: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 5,
+    marginRight: 6,
+    height: 26,
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  selectedProject: {
+    backgroundColor: "#004AAD",
+    borderColor: "#004AAD",
+  },
+  projectText: {
+    fontSize: 12,
+    color: "#666",
+  },
+  selectedProjectText: {
+    color: "#fff",
+    fontWeight: '600',
   },
   modalTitle: {
     fontSize: 24,
@@ -222,11 +354,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   filePickerButton: {
-    backgroundColor: "#004AAD",
-    padding: 20,
+    backgroundColor: "#6c757d",
+    padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 20,
+    marginTop: 30,
+    marginBottom: 15,
+  },
+  uploadButton: {
+    backgroundColor: "#004AAD",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
+    opacity: 0.6,
   },
   filePickerText: {
     color: "#fff",

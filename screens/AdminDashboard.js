@@ -669,6 +669,27 @@ export default function AdminDashboard() {
           </ScrollView>
         );
 
+      case "Attendance Tracking":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>⏰ Attendance Tracking</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AttendanceTracking')}>
+                <Ionicons name="time" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>View Attendance</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.managementCard}>
+              <Text style={styles.managementTitle}>Employee Attendance</Text>
+              <Text style={styles.managementDescription}>Track check-in/check-out times and monitor employee attendance records</Text>
+              <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('AttendanceTracking')}>
+                <Text style={styles.managementButtonText}>Open Attendance Tracking</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        );
+
       case "Material Requests":
         return (
           <ScrollView style={styles.fullContainer}>
@@ -779,7 +800,7 @@ export default function AdminDashboard() {
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
               <Text style={styles.pageTitle}>📄 Documents</Text>
-              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('Documents')}>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('DocumentManagement')}>
                 <Ionicons name="document-text" size={20} color="#fff" />
                 <Text style={styles.addButtonText}>Manage Documents</Text>
               </TouchableOpacity>
@@ -788,29 +809,8 @@ export default function AdminDashboard() {
             <View style={styles.managementCard}>
               <Text style={styles.managementTitle}>Document Management</Text>
               <Text style={styles.managementDescription}>Upload, organize, and manage project documents, blueprints, and reports</Text>
-              <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('Documents')}>
-                <Text style={styles.managementButtonText}>Open Documents</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        );
-
-      case "Document Management":
-        return (
-          <ScrollView style={styles.fullContainer}>
-            <View style={styles.pageHeader}>
-              <Text style={styles.pageTitle}>📁 Document Management</Text>
-              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('DocumentManagement')}>
-                <Ionicons name="folder" size={20} color="#fff" />
-                <Text style={styles.addButtonText}>Manage Documents</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.managementCard}>
-              <Text style={styles.managementTitle}>File System Control</Text>
-              <Text style={styles.managementDescription}>Organize, store, and manage all project documents</Text>
               <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('DocumentManagement')}>
-                <Text style={styles.managementButtonText}>Open Document Management</Text>
+                <Text style={styles.managementButtonText}>Open Documents</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -1202,8 +1202,8 @@ export default function AdminDashboard() {
                   <Ionicons name="build" size={24} color="#607D8B" />
                   <Text style={styles.quickAccessText}>Equipment</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.quickAccessItem} onPress={() => setActivePage('Document Management')}>
-                  <Ionicons name="folder" size={24} color="#795548" />
+                <TouchableOpacity style={styles.quickAccessItem} onPress={() => setActivePage('Documents')}>
+                  <Ionicons name="document-text" size={24} color="#795548" />
                   <Text style={styles.quickAccessText}>Documents</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.quickAccessItem} onPress={() => setActivePage('Reports & Analytics')}>
@@ -1958,13 +1958,13 @@ export default function AdminDashboard() {
             { title: "Project Management", icon: "briefcase" },
             { title: "User Management", icon: "people" },
             { title: "Task Management", icon: "clipboard" },
+            { title: "Attendance Tracking", icon: "time" },
             { title: "Vendor Management", icon: "business" },
             { title: "Material Requests", icon: "cube" },
             { title: "Purchase Orders", icon: "cart" },
             { title: "Invoice Management", icon: "receipt" },
             { title: "Budget & Finance", icon: "cash" },
             { title: "Equipment Management", icon: "build" },
-            { title: "Document Management", icon: "folder" },
             { title: "Documents", icon: "document-text" },
             { title: "Safety & Compliance", icon: "shield-checkmark" },
             { title: "Communication Center", icon: "chatbubbles" },
@@ -2610,30 +2610,31 @@ const styles = StyleSheet.create({
   // Safety & Compliance styles
   safetyStats: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     marginBottom: 20,
   },
   safetyStatCard: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 8,
+    padding: 10,
     alignItems: "center",
+    justifyContent: "center",
     elevation: 2,
-    flex: 1,
-    marginHorizontal: 5,
+    width: '30%',
+    height: 85,
   },
   safetyStatNumber: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#003366",
-    marginTop: 5,
   },
   safetyStatLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: "#666",
     marginTop: 4,
     textAlign: "center",
+    numberOfLines: 2,
   },
   incidentCard: {
     backgroundColor: "#fff",

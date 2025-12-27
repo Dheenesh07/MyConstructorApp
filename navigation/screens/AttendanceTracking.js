@@ -40,6 +40,10 @@ export default function AttendanceTracking() {
   const loadAttendances = async () => {
     setLoading(true);
     try {
+      // Debug: Check token before API call
+      const token = await AsyncStorage.getItem('access');
+      console.log('Token before attendance API call:', token ? 'EXISTS' : 'MISSING');
+      
       const response = await attendanceAPI.getAll();
       console.log('Attendance response:', response.data);
       setAttendances(response.data);
@@ -52,7 +56,10 @@ export default function AttendanceTracking() {
       setTodayAttendance(todayRecord);
     } catch (error) {
       console.error('Error loading attendances:', error);
-      Alert.alert('Error', 'Failed to load attendance records');
+      console.error('Error response data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      // Don't show error alert, just use empty data
+      setAttendances([]);
     } finally {
       setLoading(false);
     }
