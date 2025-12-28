@@ -601,6 +601,27 @@ export default function EngineerDashboard() {
           </ScrollView>
         );
 
+      case "Attendance Tracking":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>⏰ Attendance Tracking</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AttendanceTracking')}>
+                <Ionicons name="time" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>View Attendance</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.managementCard}>
+              <Text style={styles.managementTitle}>Employee Attendance</Text>
+              <Text style={styles.managementDescription}>Track check-in/check-out times and monitor attendance records</Text>
+              <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('AttendanceTracking')}>
+                <Text style={styles.managementButtonText}>Open Attendance Tracking</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        );
+
       case "Logout":
         setLogoutModalVisible(true);
         setActivePage("Dashboard");
@@ -1324,7 +1345,8 @@ export default function EngineerDashboard() {
           { title: "Drawings & Documents", icon: "document-text" },
           { title: "Equipment Management", icon: "build" },
           { title: "Vendor Management", icon: "business" },
-          { title: "Technical Reports", icon: "bar-chart" }
+          { title: "Technical Reports", icon: "bar-chart" },
+          { title: "Attendance Tracking", icon: "time" }
         ].map((item) => (
           <TouchableOpacity key={item.title} onPress={() => handleMenuClick(item.title)} style={[styles.menuItem, activePage === item.title && styles.activeMenuItem]}>
             <View style={styles.menuIconContainer}>
@@ -2328,6 +2350,12 @@ const styles = StyleSheet.create({
   },
   
   // Empty state styles
+  managementCard: { backgroundColor: "#fff", borderRadius: 12, padding: 20, marginHorizontal: 20, marginBottom: 15, elevation: 2, alignItems: "center" },
+  managementTitle: { fontSize: 18, fontWeight: "600", color: "#003366", marginBottom: 8 },
+  managementDescription: { fontSize: 14, color: "#666", textAlign: "center", marginBottom: 15, lineHeight: 20 },
+  managementButton: { backgroundColor: "#003366", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
+  managementButtonText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  
   emptyState: {
     flex: 1,
     alignItems: "center",

@@ -594,6 +594,23 @@ export default function ProjectManagerDashboard() {
           </ScrollView>
         );
 
+      case "Attendance Tracking":
+        return (
+          <ScrollView style={styles.fullContainer}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>⏰ Attendance Tracking</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AttendanceTracking')}>
+                <Ionicons name="time" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>View Attendance</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>Navigate to Attendance Tracking to monitor team attendance</Text>
+            </View>
+          </ScrollView>
+        );
+
       case "Logout":
         setLogoutModalVisible(true);
         setActivePage("Dashboard");
@@ -1216,7 +1233,8 @@ export default function ProjectManagerDashboard() {
           { title: "Budget Management", icon: "cash" },
           { title: "Material Requests", icon: "cube" },
           { title: "Documents", icon: "document-text" },
-          { title: "Communications", icon: "chatbubbles" }
+          { title: "Communications", icon: "chatbubbles" },
+          { title: "Attendance Tracking", icon: "time" }
         ].map((item) => (
           <TouchableOpacity key={item.title} onPress={() => handleMenuClick(item.title)} style={[styles.menuItem, activePage === item.title && styles.activeMenuItem]}>
             <View style={styles.menuIconContainer}>
@@ -2108,5 +2126,12 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
     lineHeight: 20,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 50,
+    paddingHorizontal: 20,
   }
 });

@@ -2,6 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = 'https://construct.velandev.in/api/auth/';
+const API_KEY = 'construct-api-key-2024';
 
 // Create axios instance
 const api = axios.create({
@@ -10,6 +11,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'X-API-Key': API_KEY,
   },
 });
 
@@ -19,13 +21,16 @@ const getAuthHeaders = async () => {
     const token = await AsyncStorage.getItem('access');
     if (!token) {
       console.warn('⚠️ No token found in AsyncStorage');
-      return {};
+      return { 'X-API-Key': API_KEY };
     }
     console.log('✅ Token retrieved:', token.substring(0, 20) + '...');
-    return { Authorization: `Bearer ${token}` };
+    return { 
+      'Authorization': `Bearer ${token}`,
+      'X-API-Key': API_KEY 
+    };
   } catch (error) {
     console.error('❌ Error getting token:', error);
-    return {};
+    return { 'X-API-Key': API_KEY };
   }
 };
 
@@ -117,7 +122,8 @@ export const documentAPI = {
     return api.post('documents/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'X-API-Key': API_KEY
       },
       timeout: 60000
     });

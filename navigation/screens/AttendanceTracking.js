@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, RefreshControl, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import MapView, { Marker } from 'react-native-maps';
 import { attendanceAPI, projectAPI } from '../../utils/api';
 
 export default function AttendanceTracking() {
@@ -10,6 +12,8 @@ export default function AttendanceTracking() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [todayAttendance, setTodayAttendance] = useState(null);
+  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
 
   useEffect(() => {
     loadUserData();
@@ -40,15 +44,20 @@ export default function AttendanceTracking() {
   const loadAttendances = async () => {
     setLoading(true);
     try {
-      const response = await attendanceAPI.getAll();
-      setAttendances(response.data || []);
-      
-      // Check if there's a check-in today without check-out
-      const today = new Date().toISOString().split('T')[0];
-      const todayRecord = (response.data || []).find(att => 
-        att.date === today && att.check_in_time && !att.check_out_time
-      );
-      setTodayAttendance(todayRecord);
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const currentUser = JSON.parse(userData);
+        const userId = currentUser.id || currentUser.user_id;
+        const response = await attendanceAPI.getByUser(userId);
+        setAttendances(response.data || []);
+        
+        // Check if there's a check-in today without check-out
+        const today = new Date().toISOString().split('T')[0];
+        const todayRecord = (response.data || []).find(att => 
+          att.date === today && att.check_in_time && !att.check_out_time
+        );
+        setTodayAttendance(todayRecord);
+      }
     } catch (error) {
       console.error('Error loading attendances:', error);
       setAttendances([]);
@@ -57,15 +66,35 @@ export default function AttendanceTracking() {
     }
   };
 
-  const getCurrentLocation = () => {
-    // Mock location - in production, use expo-location
-    return {
-      latitude: 40.7128,
-      longitude: -74.0060
-    };
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required for attendance tracking.');
+        return null;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      return {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      };
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Location Error', 'Could not fetch your location. Please enable location services.');
+      return null;
+    }
   };
 
   const handleCheckIn = async () => {
+    if (todayAttendance) {
+      Alert.alert('Already Checked In', 'You have already checked in today.');
+      return;
+    }
+
     if (!projects.length) {
       Alert.alert('Error', 'No projects available. Please contact admin.');
       return;
@@ -76,50 +105,60 @@ export default function AttendanceTracking() {
       return;
     }
 
-    const location = getCurrentLocation();
+    const location = await getCurrentLocation();
+    if (!location) return;
+
+    setCurrentLocation(location);
+    setMapModalVisible(true);
+  };
+
+  const confirmCheckIn = async () => {
     const now = new Date();
     const checkInData = {
       user: user.id || user.user_id,
       project: projects[0].id,
-      date: now.toISOString().split('T')[0],
       check_in_time: now.toTimeString().split(' ')[0],
-      latitude: location.latitude.toString(),
-      longitude: location.longitude.toString(),
-      notes: 'Check-in via mobile app'
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude
     };
 
     try {
-      const response = await attendanceAPI.checkIn(checkInData);
-      Alert.alert('Success', 'Checked in successfully!');
+      await attendanceAPI.checkIn(checkInData);
+      Alert.alert('Success', `Checked in at ${checkInData.check_in_time}`);
+      setMapModalVisible(false);
       loadAttendances();
     } catch (error) {
       console.error('Check-in error:', error.response?.data || error);
-      Alert.alert('Error', `Failed to check in: ${JSON.stringify(error.response?.data) || error.message}`);
+      Alert.alert('Error', `Failed to check in: ${error.response?.data?.detail || error.message}`);
     }
   };
 
   const handleCheckOut = async () => {
     if (!todayAttendance) {
-      Alert.alert('Error', 'No active check-in found');
+      Alert.alert('Error', 'No active check-in found. Please check in first.');
       return;
     }
 
-    const checkInTime = new Date(`1970-01-01T${todayAttendance.check_in_time}`);
-    const checkOutTime = new Date();
-    const hoursWorked = (checkOutTime - checkInTime) / (1000 * 60 * 60);
+    const now = new Date();
+    const checkOutTime = now.toTimeString().split(' ')[0];
+    
+    // Calculate hours worked
+    const checkInParts = todayAttendance.check_in_time.split(':');
+    const checkOutParts = checkOutTime.split(':');
+    const checkInMinutes = parseInt(checkInParts[0]) * 60 + parseInt(checkInParts[1]);
+    const checkOutMinutes = parseInt(checkOutParts[0]) * 60 + parseInt(checkOutParts[1]);
+    const hoursWorked = (checkOutMinutes - checkInMinutes) / 60;
     const overtimeHours = Math.max(0, hoursWorked - 8);
 
     const checkOutData = {
-      check_out_time: checkOutTime.toTimeString().split(' ')[0],
+      check_out_time: checkOutTime,
       hours_worked: parseFloat(hoursWorked.toFixed(2)),
       overtime_hours: parseFloat(overtimeHours.toFixed(2))
     };
 
     try {
-      console.log('Check-out data:', checkOutData);
-      const response = await attendanceAPI.checkOut(todayAttendance.id, checkOutData);
-      console.log('Check-out response:', response.data);
-      Alert.alert('Success', `Checked out successfully! Hours worked: ${hoursWorked.toFixed(2)}`);
+      await attendanceAPI.checkOut(todayAttendance.id, checkOutData);
+      Alert.alert('Success', `Checked out at ${checkOutTime}\nHours worked: ${hoursWorked.toFixed(2)}h`);
       loadAttendances();
     } catch (error) {
       console.error('Check-out error:', error.response?.data || error);
@@ -152,6 +191,34 @@ export default function AttendanceTracking() {
                 <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
                 <Text style={styles.statusText}>Checked In at {todayAttendance.check_in_time}</Text>
               </View>
+              
+              {todayAttendance.latitude && todayAttendance.longitude && (
+                <View style={styles.mapPreviewContainer}>
+                  <MapView
+                    style={styles.mapPreview}
+                    initialRegion={{
+                      latitude: todayAttendance.latitude,
+                      longitude: todayAttendance.longitude,
+                      latitudeDelta: 0.005,
+                      longitudeDelta: 0.005,
+                    }}
+                    scrollEnabled={false}
+                    zoomEnabled={false}
+                  >
+                    <Marker
+                      coordinate={{
+                        latitude: todayAttendance.latitude,
+                        longitude: todayAttendance.longitude,
+                      }}
+                      title="Check-in Location"
+                    />
+                  </MapView>
+                  <Text style={styles.mapPreviewLabel}>
+                    📍 {todayAttendance.latitude.toFixed(6)}, {todayAttendance.longitude.toFixed(6)}
+                  </Text>
+                </View>
+              )}
+              
               <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
                 <Ionicons name="log-out-outline" size={20} color="#fff" />
                 <Text style={styles.buttonText}>Check Out</Text>
@@ -173,7 +240,7 @@ export default function AttendanceTracking() {
               <View key={attendance.id} style={styles.attendanceCard}>
                 <View style={styles.attendanceHeader}>
                   <Text style={styles.attendanceDate}>
-                    {attendance.check_in_time ? new Date(attendance.check_in_time).toLocaleDateString() : 'N/A'}
+                    {attendance.date || 'N/A'}
                   </Text>
                   <View style={[styles.statusBadge, { 
                     backgroundColor: attendance.check_out_time ? '#4CAF50' : '#FF9800' 
@@ -223,6 +290,59 @@ export default function AttendanceTracking() {
           )}
         </View>
       </ScrollView>
+
+      <Modal visible={mapModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.mapModalOverlay}>
+          <View style={styles.mapModalContent}>
+            <View style={styles.mapModalHeader}>
+              <Text style={styles.mapModalTitle}>📍 Confirm Location</Text>
+              <TouchableOpacity onPress={() => setMapModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {currentLocation && (
+              <>
+                <MapView
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: currentLocation.latitude,
+                    longitude: currentLocation.longitude,
+                    latitudeDelta: 0.005,
+                    longitudeDelta: 0.005,
+                  }}
+                >
+                  <Marker
+                    coordinate={currentLocation}
+                    title="Your Location"
+                    description="Check-in location"
+                  />
+                </MapView>
+
+                <View style={styles.locationInfo}>
+                  <View style={styles.locationRow}>
+                    <Ionicons name="location" size={20} color="#004AAD" />
+                    <Text style={styles.locationText}>
+                      {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
+                    </Text>
+                  </View>
+                  <Text style={styles.locationNote}>Verify this is your location</Text>
+                </View>
+
+                <View style={styles.mapModalActions}>
+                  <TouchableOpacity style={styles.mapCancelButton} onPress={() => setMapModalVisible(false)}>
+                    <Text style={styles.mapCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.mapConfirmButton} onPress={confirmCheckIn}>
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                    <Text style={styles.mapConfirmText}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -360,5 +480,108 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     marginTop: 12,
+  },
+  mapModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  mapModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  mapModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#003366',
+  },
+  map: {
+    width: '100%',
+    height: 300,
+  },
+  locationInfo: {
+    padding: 15,
+    backgroundColor: '#f5f9fc',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#003366',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  locationNote: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  mapModalActions: {
+    flexDirection: 'row',
+    padding: 15,
+    gap: 10,
+  },
+  mapCancelButton: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  mapCancelText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  mapConfirmButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  mapConfirmText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  mapPreviewContainer: {
+    width: '100%',
+    marginVertical: 15,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  mapPreview: {
+    width: '100%',
+    height: 150,
+  },
+  mapPreviewLabel: {
+    fontSize: 12,
+    color: '#666',
+    padding: 8,
+    backgroundColor: '#f5f9fc',
+    textAlign: 'center',
   },
 });
