@@ -128,24 +128,24 @@ export default function BudgetFinancials({ navigation }) {
         <View style={styles.budgetSummary}>
           <View style={styles.budgetItem}>
             <Text style={styles.budgetLabel}>Allocated</Text>
-            <Text style={styles.budgetValue}>${project.allocated_amount?.toLocaleString()}</Text>
+            <Text style={styles.budgetValue}>₹{project.allocated_amount?.toLocaleString()}</Text>
           </View>
           <View style={styles.budgetItem}>
             <Text style={styles.budgetLabel}>Spent</Text>
             <Text style={[styles.budgetValue, { color: '#dc3545' }]}>
-              ${project.spent_amount?.toLocaleString()}
+              ₹{project.spent_amount?.toLocaleString()}
             </Text>
           </View>
           <View style={styles.budgetItem}>
             <Text style={styles.budgetLabel}>Committed</Text>
             <Text style={[styles.budgetValue, { color: '#ffc107' }]}>
-              ${project.committed_amount?.toLocaleString()}
+              ₹{project.committed_amount?.toLocaleString()}
             </Text>
           </View>
           <View style={styles.budgetItem}>
             <Text style={styles.budgetLabel}>Remaining</Text>
             <Text style={[styles.budgetValue, { color: '#28a745' }]}>
-              ${getRemainingAmount(project.allocated_amount, project.spent_amount, project.committed_amount)?.toLocaleString()}
+              ₹{getRemainingAmount(project.allocated_amount, project.spent_amount, project.committed_amount)?.toLocaleString()}
             </Text>
           </View>
         </View>
@@ -180,8 +180,8 @@ export default function BudgetFinancials({ navigation }) {
                     <Text style={styles.categoryProgress}>{categoryProgress}%</Text>
                   </View>
                   <View style={styles.categoryAmounts}>
-                    <Text style={styles.categoryAmount}>Allocated: ${category.allocated?.toLocaleString()}</Text>
-                    <Text style={[styles.categoryAmount, { color: '#dc3545' }]}>Spent: ${category.spent?.toLocaleString()}</Text>
+                    <Text style={styles.categoryAmount}>Allocated: ₹{category.allocated?.toLocaleString()}</Text>
+                    <Text style={[styles.categoryAmount, { color: '#dc3545' }]}>Spent: ₹{category.spent?.toLocaleString()}</Text>
                   </View>
                   <View style={styles.progressBarContainer}>
                     <View 
@@ -278,7 +278,7 @@ export default function BudgetFinancials({ navigation }) {
                   <Text style={styles.recentExpenseDesc}>{expense.description}</Text>
                   <Text style={styles.recentExpenseCategory}>{expense.category} • {expense.date}</Text>
                 </View>
-                <Text style={styles.recentExpenseAmount}>${expense.amount?.toLocaleString()}</Text>
+                <Text style={styles.recentExpenseAmount}>₹{expense.amount?.toLocaleString()}</Text>
               </View>
             ))}
           </View>

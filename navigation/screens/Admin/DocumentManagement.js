@@ -52,11 +52,23 @@ export default function DocumentManagement() {
       
       if (result.type === 'success' || !result.canceled) {
         const file = result.assets ? result.assets[0] : result;
+        const fileSizeInMB = file.size / 1024 / 1024;
+        const fileSizeInKB = file.size / 1024;
+        
+        if (fileSizeInKB < 500) {
+          Alert.alert('File Too Small', 'File size must be at least 500 KB');
+          return;
+        }
+        if (fileSizeInMB > 3) {
+          Alert.alert('File Too Large', 'File size must not exceed 3 MB');
+          return;
+        }
+        
         setSelectedFile(file);
         if (!documentName.trim()) {
           setDocumentName(file.name.split('.')[0]);
         }
-        Alert.alert('File Selected', `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+        Alert.alert('File Selected', `${file.name} (${fileSizeInMB.toFixed(2)} MB)`);
       }
     } catch (error) {
       console.error('Error picking document:', error);
@@ -182,6 +194,7 @@ export default function DocumentManagement() {
             <TouchableOpacity style={styles.filePickerButton} onPress={pickDocument}>
               <Text style={styles.filePickerText}>📎 {selectedFile ? selectedFile.name : 'Pick File'}</Text>
             </TouchableOpacity>
+            <Text style={styles.fileSizeHint}>File size: 500 KB - 3 MB</Text>
 
             <TouchableOpacity 
               style={[styles.uploadButton, !selectedFile && styles.disabledButton]} 
@@ -386,5 +399,12 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  fileSizeHint: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: 'center',
+    marginTop: -10,
+    marginBottom: 15,
   },
 });

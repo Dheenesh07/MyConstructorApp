@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, ScrollView, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { documentAPI, projectAPI, taskAPI, userAPI } from '../../utils/api';
 
@@ -98,6 +98,20 @@ export default function Documents({ route }) {
     }
   };
 
+  const handleDownload = async (document) => {
+    try {
+      const fileUrl = `https://construct.velandev.in${document.file_path}`;
+      const supported = await Linking.canOpenURL(fileUrl);
+      if (supported) {
+        await Linking.openURL(fileUrl);
+      } else {
+        Alert.alert('Error', 'Cannot open this file');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to download document');
+    }
+  };
+
   const renderDocument = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -111,6 +125,9 @@ export default function Documents({ route }) {
           {item.description && <Text style={styles.description}>{item.description}</Text>}
           <Text style={styles.version}>Version: {item.version}</Text>
         </View>
+        <TouchableOpacity style={styles.downloadButton} onPress={() => handleDownload(item)}>
+          <Ionicons name="download-outline" size={20} color="#fff" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -291,6 +308,7 @@ const styles = StyleSheet.create({
   type: { fontSize: 10, color: '#004AAD', fontWeight: '600', marginBottom: 4 },
   description: { fontSize: 12, color: '#333', marginBottom: 4 },
   version: { fontSize: 11, color: '#999' },
+  downloadButton: { backgroundColor: '#004AAD', padding: 10, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50 },
   emptyText: { fontSize: 16, color: '#666' },
   modalContainer: { flex: 1, padding: 20, backgroundColor: '#f5f9fc' },
