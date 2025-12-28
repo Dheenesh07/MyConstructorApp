@@ -55,12 +55,12 @@ export default function DocumentManagement() {
         const fileSizeInMB = file.size / 1024 / 1024;
         const fileSizeInKB = file.size / 1024;
         
-        if (fileSizeInKB < 500) {
-          Alert.alert('File Too Small', 'File size must be at least 500 KB');
+        if (fileSizeInKB < 5) {
+          Alert.alert('File Too Small', 'File size must be at least 5 KB');
           return;
         }
-        if (fileSizeInMB > 3) {
-          Alert.alert('File Too Large', 'File size must not exceed 3 MB');
+        if (fileSizeInMB > 2) {
+          Alert.alert('File Too Large', 'File size must not exceed 2 MB');
           return;
         }
         
@@ -194,7 +194,7 @@ export default function DocumentManagement() {
             <TouchableOpacity style={styles.filePickerButton} onPress={pickDocument}>
               <Text style={styles.filePickerText}>📎 {selectedFile ? selectedFile.name : 'Pick File'}</Text>
             </TouchableOpacity>
-            <Text style={styles.fileSizeHint}>File size: 500 KB - 3 MB</Text>
+            <Text style={styles.fileSizeHint}>File size: 5 KB - 2 MB</Text>
 
             <TouchableOpacity 
               style={[styles.uploadButton, !selectedFile && styles.disabledButton]} 

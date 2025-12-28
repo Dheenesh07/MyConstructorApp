@@ -16,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as DocumentPicker from 'expo-document-picker';
 import { taskAPI, documentAPI, equipmentAPI, vendorAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
@@ -242,11 +243,34 @@ export default function EngineerDashboard() {
     Alert.alert('Success', 'Document uploaded successfully!');
   };
 
-  const selectFile = () => {
-    const fileTypes = ['foundation_plan.dwg', 'electrical_layout.pdf', 'structural_details.dwg', 'site_survey.pdf'];
-    const randomFile = fileTypes[Math.floor(Math.random() * fileTypes.length)];
-    setUploadForm({...uploadForm, fileName: randomFile});
-    Alert.alert('File Selected', `Selected: ${randomFile}`);
+  const selectFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true
+      });
+      
+      if (result.type === 'success' || !result.canceled) {
+        const file = result.assets ? result.assets[0] : result;
+        const fileSizeInMB = file.size / 1024 / 1024;
+        const fileSizeInKB = file.size / 1024;
+        
+        if (fileSizeInKB < 5) {
+          Alert.alert('File Too Small', 'File size must be at least 5 KB');
+          return;
+        }
+        if (fileSizeInMB > 2) {
+          Alert.alert('File Too Large', 'File size must not exceed 2 MB');
+          return;
+        }
+        
+        setUploadForm({...uploadForm, fileName: file.name});
+        Alert.alert('File Selected', `Selected: ${file.name} (${fileSizeInMB.toFixed(2)} MB)`);
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert('Error', 'Failed to select file');
+    }
   };
 
   const viewReport = (report) => {
