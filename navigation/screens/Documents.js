@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, ScrollView, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { documentAPI, projectAPI, taskAPI, userAPI } from '../../utils/api';
 
 export default function Documents({ route }) {
@@ -20,8 +21,21 @@ export default function Documents({ route }) {
     file_path: '',
     version: '1.0',
     description: '',
-    uploaded_by: ''
+    uploaded_by: '',
+    selectedFile: null
   });
+
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
+      if (result.type === 'success' || !result.canceled) {
+        const file = result.assets ? result.assets[0] : result;
+        setDocForm({...docForm, filename: file.name, selectedFile: file, title: docForm.title || file.name.split('.')[0]});
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick document');
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -38,12 +52,15 @@ export default function Documents({ route }) {
         taskAPI.getAll(),
         userAPI.getAll()
       ]);
-      setDocuments(docsRes.data || []);
+      console.log('Documents loaded:', docsRes.data?.length || 0);
+      const validDocs = (docsRes.data || []).filter(doc => doc && doc.id);
+      setDocuments(validDocs);
       setProjects(projectsRes.data || []);
       setTasks(tasksRes.data || []);
       setUsers(usersRes.data || []);
     } catch (error) {
       console.error('Error loading documents:', error);
+      Alert.alert('Error', 'Failed to load documents. Please check your connection.');
     }
   };
 
@@ -112,7 +129,9 @@ export default function Documents({ route }) {
     }
   };
 
-  const renderDocument = ({ item }) => (
+  const renderDocument = ({ item }) => {
+    if (!item || !item.id) return null;
+    return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.iconContainer}>
@@ -130,7 +149,8 @@ export default function Documents({ route }) {
         </TouchableOpacity>
       </View>
     </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -143,15 +163,15 @@ export default function Documents({ route }) {
 
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{documents.length}</Text>
+          <Text style={styles.statNumber}>{documents?.length || 0}</Text>
           <Text style={styles.statLabel}>Total</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{documents.filter(d => d.document_type === 'blueprint').length}</Text>
+          <Text style={styles.statNumber}>{documents?.filter(d => d?.document_type === 'blueprint').length || 0}</Text>
           <Text style={styles.statLabel}>Blueprints</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{documents.filter(d => d.document_type === 'safety_report').length}</Text>
+          <Text style={styles.statNumber}>{documents?.filter(d => d?.document_type === 'safety_report').length || 0}</Text>
           <Text style={styles.statLabel}>Safety</Text>
         </View>
       </View>
@@ -159,7 +179,7 @@ export default function Documents({ route }) {
       <FlatList
         data={projectId ? documents.filter(d => d.project === projectId) : documents}
         renderItem={renderDocument}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
         style={styles.list}
         ListEmptyComponent={
           <View style={styles.emptyState}>
@@ -173,6 +193,11 @@ export default function Documents({ route }) {
           <Text style={styles.modalTitle}>Upload Document</Text>
           
           <ScrollView showsVerticalScrollIndicator={false}>
+            <TouchableOpacity style={styles.filePickerButton} onPress={pickDocument}>
+              <Ionicons name="cloud-upload-outline" size={24} color="#004AAD" />
+              <Text style={styles.filePickerText}>{docForm.selectedFile ? docForm.selectedFile.name : 'Pick a file'}</Text>
+            </TouchableOpacity>
+            
             <TextInput
               style={styles.input}
               placeholder="Document Title *"
@@ -184,7 +209,7 @@ export default function Documents({ route }) {
               style={styles.input}
               placeholder="Filename *"
               value={docForm.filename}
-              onChangeText={(text) => setDocForm({...docForm, filename: text})}
+              editable={false}
             />
             
             <TextInput
@@ -330,5 +355,7 @@ const styles = StyleSheet.create({
   cancelButton: { flex: 1, backgroundColor: '#6c757d', padding: 15, borderRadius: 8, marginRight: 10, alignItems: 'center' },
   cancelButtonText: { color: '#fff', fontWeight: '600' },
   createButton: { flex: 1, backgroundColor: '#004AAD', padding: 15, borderRadius: 8, marginLeft: 10, alignItems: 'center' },
-  createButtonText: { color: '#fff', fontWeight: '600' }
+  createButtonText: { color: '#fff', fontWeight: '600' },
+  filePickerButton: { backgroundColor: '#E3F2FD', borderWidth: 2, borderColor: '#004AAD', borderStyle: 'dashed', borderRadius: 8, padding: 20, marginBottom: 15, alignItems: 'center' },
+  filePickerText: { color: '#004AAD', fontSize: 14, fontWeight: '600', marginTop: 8 }
 });

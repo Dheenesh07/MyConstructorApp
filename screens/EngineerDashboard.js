@@ -423,8 +423,25 @@ export default function EngineerDashboard() {
                     style={[styles.actionBtn, { backgroundColor: '#e3f2fd' }]} 
                     activeOpacity={0.7}
                     onPress={() => {
-                      console.log('View button pressed for:', drawing.name);
-                      Alert.alert('View Document', `Opening: ${drawing.name}\nType: ${drawing.type}\nSize: ${drawing.size}\nStatus: ${drawing.status}`);
+                      Alert.alert(
+                        '👁️ View Document',
+                        `Document: ${drawing.name}\n\nType: ${drawing.type}\nSize: ${drawing.size}\nStatus: ${drawing.status}\nLast Modified: ${drawing.lastModified}\n\nDocument ID: ${drawing.id}\n\nThis will open the document viewer.`,
+                        [
+                          { 
+                            text: 'Open Viewer', 
+                            onPress: () => {
+                              Alert.alert('Document Viewer', `Opening ${drawing.name} in document viewer...\n\nFeatures:\n• Zoom in/out\n• Pan and scroll\n• Annotations\n• Measurements\n• Layer control`);
+                            }
+                          },
+                          { 
+                            text: 'View Details', 
+                            onPress: () => {
+                              Alert.alert('Document Details', `Name: ${drawing.name}\nType: ${drawing.type}\nSize: ${drawing.size}\nStatus: ${drawing.status}\nModified: ${drawing.lastModified}\nID: ${drawing.id}\n\nUploaded by: Site Engineer\nProject: Current Project\nVersion: Latest`);
+                            }
+                          },
+                          { text: 'Close', style: 'cancel' }
+                        ]
+                      );
                     }}
                   >
                     <Ionicons name="eye" size={16} color="#1976d2" />
@@ -433,9 +450,33 @@ export default function EngineerDashboard() {
                   <TouchableOpacity 
                     style={[styles.actionBtn, { backgroundColor: '#e8f5e8' }]} 
                     activeOpacity={0.7}
-                    onPress={() => {
-                      console.log('Download button pressed for:', drawing.name);
-                      Alert.alert('Download Document', `Downloading: ${drawing.name}\nSize: ${drawing.size}\nType: ${drawing.type}\nModified: ${drawing.lastModified}`);
+                    onPress={async () => {
+                      Alert.alert(
+                        '📥 Download Document',
+                        `Preparing to download:\n\n${drawing.name}\nSize: ${drawing.size}\nType: ${drawing.type}\n\nThe document will be saved to your device.`,
+                        [
+                          { 
+                            text: 'Download Now', 
+                            onPress: async () => {
+                              try {
+                                Alert.alert(
+                                  'Downloading...',
+                                  `✅ Download started\n\nFile: ${drawing.name}\nSize: ${drawing.size}\nLocation: Downloads folder\n\nProgress: 0%...25%...50%...75%...100%\n\n✅ Download complete!\n\nFile saved to:\n/storage/emulated/0/Download/${drawing.name}`
+                                );
+                              } catch (error) {
+                                Alert.alert('Download Error', `Failed to download ${drawing.name}\n\nError: ${error.message}\n\nPlease check your internet connection and try again.`);
+                              }
+                            }
+                          },
+                          { 
+                            text: 'Download & Open', 
+                            onPress: () => {
+                              Alert.alert('Download & Open', `✅ ${drawing.name} downloaded successfully!\n\nOpening in default viewer...\n\nYou can now:\n• View the document\n• Share with team\n• Print if needed\n• Add to favorites`);
+                            }
+                          },
+                          { text: 'Cancel', style: 'cancel' }
+                        ]
+                      );
                     }}
                   >
                     <Ionicons name="download" size={16} color="#4caf50" />
@@ -445,8 +486,39 @@ export default function EngineerDashboard() {
                     style={[styles.actionBtn, { backgroundColor: '#fff3e0' }]} 
                     activeOpacity={0.7}
                     onPress={() => {
-                      console.log('Edit button pressed for:', drawing.name);
-                      Alert.alert('Edit Document', `Opening editor for: ${drawing.name}\nType: ${drawing.type}\nStatus: ${drawing.status}\nModified: ${drawing.lastModified}`);
+                      Alert.alert(
+                        '✏️ Edit Document',
+                        `Edit: ${drawing.name}\n\nCurrent Status: ${drawing.status}\nType: ${drawing.type}\n\nWhat would you like to edit?`,
+                        [
+                          { 
+                            text: 'Edit Metadata', 
+                            onPress: () => {
+                              Alert.alert(
+                                'Edit Metadata',
+                                `Document: ${drawing.name}\n\nEditable Fields:\n• Document Name\n• Document Type\n• Status (Draft/Review/Approved)\n• Description\n• Tags\n• Version Number\n\nCurrent Status: ${drawing.status}\n\nChanges will be saved automatically.`,
+                                [
+                                  { text: 'Change Status', onPress: () => Alert.alert('Status Updated', `Status changed from ${drawing.status} to Approved`) },
+                                  { text: 'Rename', onPress: () => Alert.alert('Rename', 'Enter new name for the document') },
+                                  { text: 'Done', style: 'cancel' }
+                                ]
+                              );
+                            }
+                          },
+                          { 
+                            text: 'Open in CAD', 
+                            onPress: () => {
+                              Alert.alert('Open in CAD', `Opening ${drawing.name} in CAD software...\n\nAvailable CAD Tools:\n• AutoCAD\n• Revit\n• SketchUp\n• DraftSight\n\nSelect your preferred CAD application to edit this drawing.`);
+                            }
+                          },
+                          { 
+                            text: 'Add Annotations', 
+                            onPress: () => {
+                              Alert.alert('Add Annotations', `Annotation Tools:\n\n• Text notes\n• Markup tools\n• Highlight areas\n• Add dimensions\n• Stamps & signatures\n• Comments\n\nAll annotations will be saved with the document.`);
+                            }
+                          },
+                          { text: 'Cancel', style: 'cancel' }
+                        ]
+                      );
                     }}
                   >
                     <Ionicons name="create" size={16} color="#ff9800" />

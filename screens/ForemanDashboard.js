@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { userAPI, taskAPI, materialAPI, attendanceAPI, projectAPI } from '../utils/api';
+import { userAPI, taskAPI, materialAPI, attendanceAPI, projectAPI, safetyAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -154,22 +154,24 @@ export default function ForemanDashboard() {
     }
   };
 
-  const loadMaterials = () => {
-    setMaterials([
-      { id: 1, item: 'Concrete Mix', requested: 50, delivered: 45, unit: 'bags', status: 'Partial', requestDate: '2024-01-10' },
-      { id: 2, item: 'Steel Rebar', requested: 200, delivered: 200, unit: 'pcs', status: 'Complete', requestDate: '2024-01-08' },
-      { id: 3, item: 'Electrical Wire', requested: 500, delivered: 0, unit: 'meters', status: 'Pending', requestDate: '2024-01-12' },
-      { id: 4, item: 'PVC Pipes', requested: 100, delivered: 100, unit: 'pcs', status: 'Complete', requestDate: '2024-01-09' }
-    ]);
+  const loadMaterials = async () => {
+    try {
+      const response = await materialAPI.getRequests();
+      setMaterials(response.data || []);
+    } catch (error) {
+      console.error('Error loading materials:', error);
+      setMaterials([]);
+    }
   };
 
-  const loadSafety = () => {
-    setSafety([
-      { id: 1, type: 'PPE Check', status: 'Completed', date: '2024-01-12', notes: 'All crew members wearing required PPE' },
-      { id: 2, type: 'Tool Inspection', status: 'Completed', date: '2024-01-12', notes: 'All tools in good condition' },
-      { id: 3, type: 'Site Hazard Assessment', status: 'Pending', date: '2024-01-13', notes: 'Daily hazard assessment required' },
-      { id: 4, type: 'Safety Meeting', status: 'Scheduled', date: '2024-01-13', notes: 'Weekly safety briefing at 7:00 AM' }
-    ]);
+  const loadSafety = async () => {
+    try {
+      const response = await safetyAPI.getIncidents();
+      setSafety(response.data || []);
+    } catch (error) {
+      console.error('Error loading safety checks:', error);
+      setSafety([]);
+    }
   };
 
   const toggleMenu = () => {

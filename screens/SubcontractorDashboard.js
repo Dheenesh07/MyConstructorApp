@@ -17,7 +17,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { taskAPI, attendanceAPI, documentAPI, invoiceAPI } from '../utils/api';
+import { taskAPI, attendanceAPI, documentAPI, invoiceAPI, communicationAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -31,6 +31,7 @@ export default function SubcontractorDashboard() {
   const [documents, setDocuments] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [complianceDocuments, setComplianceDocuments] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState('progress');
   const [selectedTask, setSelectedTask] = useState(null);
@@ -52,6 +53,7 @@ export default function SubcontractorDashboard() {
       loadDocuments();
       loadInvoices();
       loadComplianceDocuments();
+      loadMessages();
     }
   }, [user]);
 
@@ -140,6 +142,22 @@ export default function SubcontractorDashboard() {
       setInvoices([
         { id: 1, invoiceNo: 'INV-2024-001', amount: 15000, status: 'approved', date: '2024-01-08', task: 'Plumbing Work' }
       ]);
+    }
+  };
+
+  const loadMessages = async () => {
+    try {
+      const response = await communicationAPI.getByUser(user?.id);
+      setMessages(response.data.map(msg => ({
+        id: msg.id,
+        sender: msg.sender_name || 'Unknown',
+        subject: msg.subject,
+        content: msg.message,
+        time: msg.created_at
+      })));
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      setMessages([]);
     }
   };
   const toggleMenu = () => {
@@ -240,33 +258,30 @@ export default function SubcontractorDashboard() {
     setModalVisible(false);
     Alert.alert('Success', 'Invoice created successfully!');
   };
-  const loadComplianceDocuments = () => {
-    setComplianceDocuments([
-      {
-        id: 1,
-        title: 'General Liability Insurance',
-        type: 'Insurance',
-        status: 'Valid',
-        expiryDate: '2024-12-31',
-        details: 'Coverage: $2M'
-      },
-      {
-        id: 2,
-        title: 'OSHA 30-Hour Certification',
-        type: 'Certification',
-        status: 'Valid',
-        expiryDate: '2025-03-15',
-        details: 'Certificate #: OSH-2024-001'
-      },
-      {
-        id: 3,
-        title: 'Workers Compensation',
-        type: 'Insurance',
-        status: 'Expiring Soon',
-        expiryDate: '2024-02-28',
-        details: 'Renewal Required'
-      }
-    ]);
+  const loadComplianceDocuments = async () => {
+    try {
+      const response = await documentAPI.getAll();
+      const complianceDocs = response.data
+        .filter(doc => doc.document_type === 'compliance' || doc.category === 'compliance')
+        .map(doc => {
+          const expiryDate = doc.expiry_date || doc.valid_until;
+          const isExpiringSoon = expiryDate && new Date(expiryDate) - Date.now() < 30 * 24 * 60 * 60 * 1000;
+          const isExpired = expiryDate && new Date(expiryDate) < Date.now();
+          
+          return {
+            id: doc.id,
+            title: doc.title,
+            type: doc.sub_type || 'Document',
+            status: isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Valid',
+            expiryDate: expiryDate || 'N/A',
+            details: doc.description || doc.notes || 'No details'
+          };
+        });
+      setComplianceDocuments(complianceDocs);
+    } catch (error) {
+      console.error('Error loading compliance documents:', error);
+      setComplianceDocuments([]);
+    }
   };
 
   const submitCompliance = () => {
@@ -385,6 +400,7 @@ export default function SubcontractorDashboard() {
           </ScrollView>
         );
       case "Progress Reports":
+        const progressTasks = tasks.filter(t => t.progress >= 50 || t.status === 'completed');
         return (
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
@@ -398,41 +414,37 @@ export default function SubcontractorDashboard() {
               </TouchableOpacity>
             </View>
             
-            <View style={styles.reportCard}>
-              <View style={styles.reportHeader}>
-                <Text style={styles.reportTitle}>Foundation Work - Block A</Text>
-                <Text style={styles.reportDate}>Jan 12, 2024</Text>
-              </View>
-              <Text style={styles.reportDescription}>Completed 65% of foundation work. Concrete pouring in progress.</Text>
-              <View style={styles.reportImages}>
-                <View style={styles.imagePlaceholder}>
-                  <Ionicons name="image-outline" size={40} color="#ccc" />
-                  <Text style={styles.imagePlaceholderText}>Photo 1</Text>
+            {progressTasks.length > 0 ? (
+              progressTasks.map(task => (
+                <View key={task.id} style={styles.reportCard}>
+                  <View style={styles.reportHeader}>
+                    <Text style={styles.reportTitle}>{task.title}</Text>
+                    <Text style={styles.reportDate}>{task.due_date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</Text>
+                  </View>
+                  <Text style={styles.reportDescription}>
+                    {task.status === 'completed' 
+                      ? `Task completed successfully. ${task.description || 'All work finished as per requirements.'}` 
+                      : `Progress: ${task.progress}%. ${task.description || 'Work in progress.'}`}
+                  </Text>
+                  <View style={styles.reportImages}>
+                    <View style={styles.imagePlaceholder}>
+                      <Ionicons name="image-outline" size={40} color="#ccc" />
+                      <Text style={styles.imagePlaceholderText}>Photo 1</Text>
+                    </View>
+                    <View style={styles.imagePlaceholder}>
+                      <Ionicons name="image-outline" size={40} color="#ccc" />
+                      <Text style={styles.imagePlaceholderText}>Photo 2</Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.imagePlaceholder}>
-                  <Ionicons name="image-outline" size={40} color="#ccc" />
-                  <Text style={styles.imagePlaceholderText}>Photo 2</Text>
-                </View>
+              ))
+            ) : (
+              <View style={styles.noPrioritiesCard}>
+                <Ionicons name="document-text-outline" size={48} color="#9E9E9E" />
+                <Text style={[styles.noPrioritiesText, { color: "#9E9E9E" }]}>No progress reports</Text>
+                <Text style={styles.noPrioritiesSubtext}>Start working on tasks to generate reports</Text>
               </View>
-            </View>
-            
-            <View style={styles.reportCard}>
-              <View style={styles.reportHeader}>
-                <Text style={styles.reportTitle}>Plumbing Installation</Text>
-                <Text style={styles.reportDate}>Jan 10, 2024</Text>
-              </View>
-              <Text style={styles.reportDescription}>All bathroom fixtures installed successfully. Quality check completed.</Text>
-              <View style={styles.reportImages}>
-                <View style={styles.imagePlaceholder}>
-                  <Ionicons name="image-outline" size={40} color="#ccc" />
-                  <Text style={styles.imagePlaceholderText}>Before</Text>
-                </View>
-                <View style={styles.imagePlaceholder}>
-                  <Ionicons name="image-outline" size={40} color="#ccc" />
-                  <Text style={styles.imagePlaceholderText}>After</Text>
-                </View>
-              </View>
-            </View>
+            )}
           </ScrollView>
         );
       case "Documents":
@@ -520,26 +532,36 @@ export default function SubcontractorDashboard() {
               </TouchableOpacity>
             </View>
             
-            <View style={styles.messageCard}>
-              <View style={styles.messageHeader}>
-                <Text style={styles.messageSender}>John Smith (PM)</Text>
-                <Text style={styles.messageTime}>2 hours ago</Text>
+            {messages.length > 0 ? (
+              messages.map(msg => {
+                const timeAgo = msg.time ? (() => {
+                  const diff = Date.now() - new Date(msg.time).getTime();
+                  const hours = Math.floor(diff / 3600000);
+                  const days = Math.floor(diff / 86400000);
+                  return days > 0 ? `${days} day${days > 1 ? 's' : ''} ago` : hours > 0 ? `${hours} hour${hours > 1 ? 's' : ''} ago` : 'Just now';
+                })() : 'Recently';
+                
+                return (
+                  <View key={msg.id} style={styles.messageCard}>
+                    <View style={styles.messageHeader}>
+                      <Text style={styles.messageSender}>{msg.sender}</Text>
+                      <Text style={styles.messageTime}>{timeAgo}</Text>
+                    </View>
+                    <Text style={styles.messageSubject}>{msg.subject}</Text>
+                    <Text style={styles.messageContent}>{msg.content}</Text>
+                    <TouchableOpacity style={styles.replyButton}>
+                      <Text style={styles.replyButtonText}>Reply</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
+            ) : (
+              <View style={styles.noPrioritiesCard}>
+                <Ionicons name="mail-outline" size={48} color="#9E9E9E" />
+                <Text style={[styles.noPrioritiesText, { color: "#9E9E9E" }]}>No messages</Text>
+                <Text style={styles.noPrioritiesSubtext}>You're all caught up</Text>
               </View>
-              <Text style={styles.messageSubject}>Foundation Work Update Required</Text>
-              <Text style={styles.messageContent}>Please provide an update on the foundation work progress. We need photos of the completed sections.</Text>
-              <TouchableOpacity style={styles.replyButton}>
-                <Text style={styles.replyButtonText}>Reply</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.messageCard}>
-              <View style={styles.messageHeader}>
-                <Text style={styles.messageSender}>Safety Officer</Text>
-                <Text style={styles.messageTime}>1 day ago</Text>
-              </View>
-              <Text style={styles.messageSubject}>Safety Reminder</Text>
-              <Text style={styles.messageContent}>Please ensure all workers are wearing proper PPE. Safety inspection scheduled for tomorrow.</Text>
-            </View>
+            )}
           </ScrollView>
         );
       case "Compliance":
@@ -556,24 +578,34 @@ export default function SubcontractorDashboard() {
               </TouchableOpacity>
             </View>
             
-            {complianceDocuments.map(doc => (
-              <View key={doc.id} style={styles.complianceCard}>
-                <View style={styles.complianceHeader}>
-                  <Ionicons 
-                    name={doc.type === 'Insurance' ? 'shield-checkmark' : doc.type === 'Certification' ? 'school' : 'document'} 
-                    size={24} 
-                    color={doc.status === 'Valid' ? '#4CAF50' : '#FF9800'} 
-                  />
-                  <Text style={styles.complianceTitle}>{doc.title}</Text>
-                  <View style={[styles.statusBadge, { 
-                    backgroundColor: doc.status === 'Valid' ? '#4CAF50' : '#FF9800' 
-                  }]}>
-                    <Text style={styles.statusText}>{doc.status}</Text>
+            {complianceDocuments.length > 0 ? (
+              complianceDocuments.map(doc => (
+                <View key={doc.id} style={styles.complianceCard}>
+                  <View style={styles.complianceHeader}>
+                    <Ionicons 
+                      name={doc.type === 'Insurance' ? 'shield-checkmark' : doc.type === 'Certification' ? 'school' : 'document'} 
+                      size={24} 
+                      color={doc.status === 'Valid' ? '#4CAF50' : doc.status === 'Expiring Soon' ? '#FF9800' : '#F44336'} 
+                    />
+                    <Text style={styles.complianceTitle}>{doc.title}</Text>
+                    <View style={[styles.statusBadge, { 
+                      backgroundColor: doc.status === 'Valid' ? '#4CAF50' : doc.status === 'Expiring Soon' ? '#FF9800' : '#F44336'
+                    }]}>
+                      <Text style={styles.statusText}>{doc.status}</Text>
+                    </View>
                   </View>
+                  <Text style={styles.complianceDetails}>
+                    {doc.expiryDate !== 'N/A' ? `Expires: ${new Date(doc.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}` : 'No expiry date'} • {doc.details}
+                  </Text>
                 </View>
-                <Text style={styles.complianceDetails}>Expires: {new Date(doc.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} • {doc.details}</Text>
+              ))
+            ) : (
+              <View style={styles.noPrioritiesCard}>
+                <Ionicons name="shield-checkmark-outline" size={48} color="#9E9E9E" />
+                <Text style={[styles.noPrioritiesText, { color: "#9E9E9E" }]}>No compliance documents</Text>
+                <Text style={styles.noPrioritiesSubtext}>Upload your certifications and insurance</Text>
               </View>
-            ))}
+            )}
           </ScrollView>
         );
       case "Invoices":
@@ -593,25 +625,25 @@ export default function SubcontractorDashboard() {
             {invoices.map(invoice => (
               <View key={invoice.id} style={styles.invoiceCard}>
                 <View style={styles.invoiceHeader}>
-                  <Text style={styles.invoiceNumber}>{invoice.invoiceNo}</Text>
+                  <Text style={styles.invoiceNumber}>{invoice.invoiceNo || 'N/A'}</Text>
                   <View style={[styles.statusBadge, { 
-                    backgroundColor: invoice.status === 'Paid' ? '#4CAF50' : 
-                                   invoice.status === 'Approved' ? '#2196F3' : '#FF9800' 
+                    backgroundColor: invoice.status === 'Paid' || invoice.status === 'paid' ? '#4CAF50' : 
+                                   invoice.status === 'Approved' || invoice.status === 'approved' ? '#2196F3' : '#FF9800' 
                   }]}>
-                    <Text style={styles.statusText}>{invoice.status}</Text>
+                    <Text style={styles.statusText}>{invoice.status || 'Pending'}</Text>
                   </View>
                 </View>
-                <Text style={styles.invoiceTask}>{invoice.task}</Text>
+                <Text style={styles.invoiceTask}>{invoice.task || 'No description'}</Text>
                 <View style={styles.invoiceDetails}>
-                  <Text style={styles.invoiceAmount}>${invoice.amount.toLocaleString()}</Text>
-                  <Text style={styles.invoiceDate}>{invoice.date}</Text>
+                  <Text style={styles.invoiceAmount}>₹{(invoice.amount || 0).toLocaleString()}</Text>
+                  <Text style={styles.invoiceDate}>{invoice.date || 'N/A'}</Text>
                 </View>
                 <TouchableOpacity 
                   style={styles.viewInvoiceButton}
                   onPress={() => {
                     Alert.alert(
-                      `Invoice Details - ${invoice.invoiceNo}`,
-                      `Task: ${invoice.task}\\n\\nAmount: $${invoice.amount.toLocaleString()}\\nStatus: ${invoice.status}\\nDate: ${invoice.date}\\n\\nInvoice Number: ${invoice.invoiceNo}\\nPayment Status: ${invoice.status === 'paid' ? 'Paid' : invoice.status === 'approved' ? 'Approved - Pending Payment' : 'Under Review'}`,
+                      `Invoice Details - ${invoice.invoiceNo || 'N/A'}`,
+                      `Task: ${invoice.task || 'No description'}\n\nAmount: ₹${(invoice.amount || 0).toLocaleString()}\nStatus: ${invoice.status || 'Pending'}\nDate: ${invoice.date || 'N/A'}\n\nInvoice Number: ${invoice.invoiceNo || 'N/A'}\nPayment Status: ${invoice.status === 'paid' ? 'Paid' : invoice.status === 'approved' ? 'Approved - Pending Payment' : 'Under Review'}`,
                       [
                         { text: 'Download PDF', onPress: () => Alert.alert('Download', 'PDF download functionality will be implemented') },
                         { text: 'Close', style: 'cancel' }
@@ -690,26 +722,37 @@ export default function SubcontractorDashboard() {
             </View>
             <View style={styles.alertsSection}>
               <Text style={styles.sectionTitle}>🚨 Priority Tasks</Text>
-              <TouchableOpacity 
-                style={styles.priorityAlert}
-                onPress={() => {
-                  Alert.alert(
-                    'High Priority Task', 
-                    'Foundation Work - Block A\\n\\nDeadline: Today 5:00 PM\\nLocation: Site A - North Section\\nContact: Project Manager for details\\n\\nEnsure all safety protocols are followed.',
-                    [{ text: 'Understood', style: 'default' }]
-                  );
-                }}
-              >
-                <View style={styles.alertIconContainer}>
-                  <Ionicons name="construct" size={24} color="#fff" />
+              {tasks.filter(t => t.priority === 'high' && (t.status === 'in_progress' || t.status === 'pending')).length > 0 ? (
+                tasks.filter(t => t.priority === 'high' && (t.status === 'in_progress' || t.status === 'pending')).slice(0, 1).map((task) => (
+                  <TouchableOpacity 
+                    key={task.id}
+                    style={styles.priorityAlert}
+                    onPress={() => {
+                      Alert.alert(
+                        'High Priority Task', 
+                        `${task.title}\n\nDeadline: ${task.due_date}\nLocation: ${task.location || 'Not specified'}\nStatus: ${task.status}\n\n${task.description || 'No additional details'}\n\nEnsure all safety protocols are followed.`,
+                        [{ text: 'Understood', style: 'default' }]
+                      );
+                    }}
+                  >
+                    <View style={styles.alertIconContainer}>
+                      <Ionicons name="construct" size={24} color="#fff" />
+                    </View>
+                    <View style={styles.alertContent}>
+                      <Text style={styles.alertTitle}>High Priority</Text>
+                      <Text style={styles.alertText}>{task.title}</Text>
+                      <Text style={styles.alertTime}>Due: {task.due_date}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#FF5722" />
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.noPrioritiesCard}>
+                  <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+                  <Text style={styles.noPrioritiesText}>No urgent tasks</Text>
+                  <Text style={styles.noPrioritiesSubtext}>All tasks are on track</Text>
                 </View>
-                <View style={styles.alertContent}>
-                  <Text style={styles.alertTitle}>High Priority</Text>
-                  <Text style={styles.alertText}>Foundation Work - Block A completion</Text>
-                  <Text style={styles.alertTime}>Due: Today 5:00 PM</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#FF5722" />
-              </TouchableOpacity>
+              )}
             </View>
             
             <View style={styles.actionsSection}>
@@ -1078,45 +1121,56 @@ const styles = StyleSheet.create({
   },
   welcomeBackground: {
     backgroundColor: "#003366",
-    paddingVertical: 30,
+    paddingVertical: 35,
     paddingHorizontal: 20,
     alignItems: "center",
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    elevation: 8,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
   },
   constructionIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255, 215, 0, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
-    borderWidth: 2,
-    borderColor: "rgba(255, 215, 0, 0.3)",
+    borderWidth: 3,
+    borderColor: "rgba(255, 215, 0, 0.4)",
+    elevation: 5,
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   welcomeTitle: {
-    fontSize: 18,
+    fontSize: 20,
     color: "#FFD700",
-    fontWeight: "600",
+    fontWeight: "700",
     marginBottom: 5,
+    letterSpacing: 0.5,
   },
   welcomeName: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "800",
     color: "#fff",
     marginBottom: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   welcomeSubtitle: {
     fontSize: 16,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "rgba(255, 255, 255, 0.9)",
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: 18,
+    fontWeight: "500",
+    letterSpacing: 0.3,
   },
   dateTimeContainer: {
     flexDirection: "row",
@@ -1769,5 +1823,23 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "500",
+  },
+  noPrioritiesCard: {
+    backgroundColor: "#fff",
+    padding: 30,
+    borderRadius: 12,
+    alignItems: "center",
+    elevation: 2,
+  },
+  noPrioritiesText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4CAF50",
+    marginTop: 12,
+  },
+  noPrioritiesSubtext: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
   },
 });

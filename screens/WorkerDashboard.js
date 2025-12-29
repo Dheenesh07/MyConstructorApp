@@ -594,7 +594,7 @@ export default function WorkerDashboard() {
             <View style={styles.statsSection}>
               <Text style={styles.statsTitle}>Today's Overview</Text>
               <View style={styles.statsContainer}>
-                <View style={[styles.statCard, styles.tasksCard]}>
+                <View style={[styles.statCard, styles.presentCard]}>
                   <View style={styles.statIconContainer}>
                     <Ionicons name="clipboard" size={24} color="#FF9800" />
                   </View>
@@ -603,7 +603,7 @@ export default function WorkerDashboard() {
                   <Text style={styles.statSubtext}>in progress</Text>
                 </View>
                 
-                <View style={[styles.statCard, styles.attendanceCard]}>
+                <View style={[styles.statCard, styles.presentCard]}>
                   <View style={styles.statIconContainer}>
                     <Ionicons name="time" size={24} color="#4CAF50" />
                   </View>
@@ -612,7 +612,7 @@ export default function WorkerDashboard() {
                   <Text style={styles.statSubtext}>hours worked</Text>
                 </View>
                 
-                <View style={[styles.statCard, styles.trainingCard]}>
+                <View style={[styles.statCard, styles.presentCard]}>
                   <View style={styles.statIconContainer}>
                     <Ionicons name="school" size={24} color="#2196F3" />
                   </View>
@@ -626,38 +626,37 @@ export default function WorkerDashboard() {
             {/* Priority Alerts */}
             <View style={styles.alertsSection}>
               <Text style={styles.sectionTitle}>🚨 Today's Priorities</Text>
-              <TouchableOpacity 
-                style={styles.priorityAlert}
-                onPress={() => {
-                  console.log('Priority alert pressed');
-                  Alert.alert(
-                    'High Priority Task', 
-                    'Complete concrete pouring - Block A foundation\n\nLocation: Site A - North Section\nDeadline: Today 3:00 PM\nSafety Requirements: Hard hat, safety vest, steel-toe boots\n\nContact foreman if you need assistance.',
-                    [{ text: 'Understood', style: 'default' }]
-                  );
-                }}
-              >
-                <View style={styles.alertIconContainer}>
-                  <Ionicons name="hammer" size={24} color="#fff" />
+              {tasks.filter(t => t.priority === 'high' || t.priority === 'High').length > 0 ? (
+                tasks.filter(t => t.priority === 'high' || t.priority === 'High').slice(0, 2).map((task, index) => (
+                  <TouchableOpacity 
+                    key={task.id}
+                    style={index === 0 ? styles.priorityAlert : styles.safetyAlert}
+                    onPress={() => {
+                      Alert.alert(
+                        'High Priority Task', 
+                        `${task.title}\n\nLocation: ${task.location}\nDeadline: ${task.dueDate}\nStatus: ${task.status}\n\n${task.description || 'No additional details'}\n\nContact foreman if you need assistance.`,
+                        [{ text: 'Understood', style: 'default' }]
+                      );
+                    }}
+                  >
+                    <View style={index === 0 ? styles.alertIconContainer : styles.safetyIconContainer}>
+                      <Ionicons name={index === 0 ? "hammer" : "alert-circle"} size={24} color="#fff" />
+                    </View>
+                    <View style={styles.alertContent}>
+                      <Text style={index === 0 ? styles.alertTitle : styles.safetyTitle}>High Priority</Text>
+                      <Text style={index === 0 ? styles.alertText : styles.safetyText}>{task.title}</Text>
+                      <Text style={index === 0 ? styles.alertTime : styles.safetyTime}>Due: {task.dueDate}</Text>
+                    </View>
+                    {index === 0 && <Ionicons name="chevron-forward" size={20} color="#FF5722" />}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.noPrioritiesCard}>
+                  <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+                  <Text style={styles.noPrioritiesText}>No urgent tasks today</Text>
+                  <Text style={styles.noPrioritiesSubtext}>All tasks are on track</Text>
                 </View>
-                <View style={styles.alertContent}>
-                  <Text style={styles.alertTitle}>High Priority</Text>
-                  <Text style={styles.alertText}>Complete concrete pouring - Block A foundation</Text>
-                  <Text style={styles.alertTime}>Due: Today 3:00 PM</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#FF5722" />
-              </TouchableOpacity>
-              
-              <View style={styles.safetyAlert}>
-                <View style={styles.safetyIconContainer}>
-                  <Ionicons name="shield-checkmark" size={24} color="#fff" />
-                </View>
-                <View style={styles.alertContent}>
-                  <Text style={styles.safetyTitle}>Safety Briefing</Text>
-                  <Text style={styles.safetyText}>Mandatory attendance at 8:00 AM</Text>
-                  <Text style={styles.safetyTime}>Location: Main Site Office</Text>
-                </View>
-              </View>
+              )}
             </View>
             
             {/* Quick Actions Section */}
@@ -889,45 +888,56 @@ const styles = StyleSheet.create({
   },
   welcomeBackground: {
     backgroundColor: "#003366",
-    paddingVertical: 30,
+    paddingVertical: 35,
     paddingHorizontal: 20,
     alignItems: "center",
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    elevation: 8,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
   },
   constructionIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255, 215, 0, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
-    borderWidth: 2,
-    borderColor: "rgba(255, 215, 0, 0.3)",
+    borderWidth: 3,
+    borderColor: "rgba(255, 215, 0, 0.4)",
+    elevation: 5,
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   welcomeTitle: {
-    fontSize: 18,
+    fontSize: 20,
     color: "#FFD700",
-    fontWeight: "600",
+    fontWeight: "700",
     marginBottom: 5,
+    letterSpacing: 0.5,
   },
   welcomeName: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "800",
     color: "#fff",
     marginBottom: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   welcomeSubtitle: {
     fontSize: 16,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "rgba(255, 255, 255, 0.9)",
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: 18,
+    fontWeight: "500",
+    letterSpacing: 0.3,
   },
   dateTimeContainer: {
     flexDirection: "row",
@@ -969,26 +979,9 @@ const styles = StyleSheet.create({
     color: "#003366",
     marginBottom: 15,
   },
-  statIconContainer: {
-    marginBottom: 8,
-  },
-  statSubtext: {
-    fontSize: 10,
-    color: "#999",
-    marginTop: 2,
-  },
-  tasksCard: {
-    borderTopWidth: 3,
-    borderTopColor: "#FF9800",
-  },
-  attendanceCard: {
-    borderTopWidth: 3,
-    borderTopColor: "#4CAF50",
-  },
-  trainingCard: {
-    borderTopWidth: 3,
-    borderTopColor: "#2196F3",
-  },
+
+
+
   
   // Enhanced Alerts Section
   alertsSection: { 
@@ -1222,6 +1215,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  statIconContainer: {
+    marginBottom: 8,
+  },
   statNumber: { 
     fontSize: 28, 
     fontWeight: "bold", 
@@ -1233,6 +1229,15 @@ const styles = StyleSheet.create({
     color: "#666", 
     fontWeight: "600",
     textAlign: "center",
+  },
+  statSubtext: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
+  },
+  presentCard: {
+    borderTopWidth: 3,
+    borderTopColor: "#4CAF50",
   },
   
   sectionTitle: { 
@@ -1472,5 +1477,23 @@ const styles = StyleSheet.create({
     color: "#999",
     marginTop: 8,
     textAlign: "center",
+  },
+  noPrioritiesCard: {
+    backgroundColor: "#fff",
+    padding: 30,
+    borderRadius: 12,
+    alignItems: "center",
+    elevation: 2,
+  },
+  noPrioritiesText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4CAF50",
+    marginTop: 12,
+  },
+  noPrioritiesSubtext: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
   },
 });

@@ -372,21 +372,6 @@ export default function SignupScreen() {
               <Text style={styles.loginLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Debug: Test API Connection */}
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={async () => {
-              try {
-                const response = await axios.get('https://construct.velandev.in/api/auth/users/');
-                Alert.alert('API Test', `Connection successful! Found ${response.data.length} users`);
-              } catch (error) {
-                Alert.alert('API Test Failed', `Error: ${error.message}\nStatus: ${error.response?.status || 'No response'}`);
-              }
-            }}
-          >
-            <Text style={styles.testButtonText}>Test API Connection</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
       
@@ -555,20 +540,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#003366',
     fontWeight: '600',
-  },
-  testButton: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  testButtonText: {
-    color: '#666',
-    fontSize: 12,
-    fontWeight: '500',
   },
   
   // Success Modal Styles

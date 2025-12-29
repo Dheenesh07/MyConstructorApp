@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { safetyAPI, equipmentAPI, userAPI } from '../utils/api';
+import { safetyAPI, equipmentAPI, userAPI, qualityAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -82,39 +82,23 @@ export default function SafetyOfficerDashboard() {
     }
   };
 
-  const loadInspections = () => {
-    setInspections([
-      {
-        id: 1,
-        title: 'Site A - Weekly Safety Inspection',
-        date: '2024-01-12',
-        status: 'Completed',
-        score: 85,
-        issues: 3,
-        location: 'Construction Site A',
-        inspector: 'Safety Officer'
-      },
-      {
-        id: 2,
-        title: 'Equipment Safety Check - Cranes',
-        date: '2024-01-15',
-        status: 'Scheduled',
-        score: null,
-        issues: null,
-        location: 'Equipment Yard',
-        inspector: 'Safety Officer'
-      },
-      {
-        id: 3,
-        title: 'PPE Compliance Audit',
-        date: '2024-01-10',
-        status: 'Completed',
-        score: 92,
-        issues: 1,
-        location: 'All Sites',
-        inspector: 'Safety Officer'
-      }
-    ]);
+  const loadInspections = async () => {
+    try {
+      const response = await qualityAPI.getInspections();
+      setInspections(response.data.map(inspection => ({
+        id: inspection.id,
+        title: inspection.title || inspection.inspection_type,
+        date: inspection.inspection_date?.split('T')[0] || inspection.created_at?.split('T')[0],
+        status: inspection.status || 'Scheduled',
+        score: inspection.score || null,
+        issues: inspection.issues_found || null,
+        location: inspection.location,
+        inspector: inspection.inspector_name || 'Safety Officer'
+      })));
+    } catch (error) {
+      console.error('Error loading inspections:', error);
+      setInspections([]);
+    }
   };
 
   const loadIncidents = async () => {
@@ -148,45 +132,32 @@ export default function SafetyOfficerDashboard() {
   };
 
   const loadTrainings = () => {
-    setTrainings([
-      {
-        id: 1,
-        title: 'OSHA 30-Hour Construction Safety',
-        participants: 25,
-        completed: 22,
-        date: '2024-01-08',
-        status: 'Completed',
-        instructor: 'Safety Officer'
-      },
-      {
-        id: 2,
-        title: 'Fall Protection Training',
-        participants: 15,
-        completed: 0,
-        date: '2024-01-20',
-        status: 'Scheduled',
-        instructor: 'External Trainer'
-      },
-      {
-        id: 3,
-        title: 'Hazard Communication',
-        participants: 30,
-        completed: 30,
-        date: '2024-01-05',
-        status: 'Completed',
-        instructor: 'Safety Officer'
-      }
-    ]);
+    setTrainings([]);
   };
 
-  const loadEquipment = () => {
-    setEquipment([
-      { id: 1, name: 'Hard Hats', total: 50, available: 45, damaged: 2, status: 'Good' },
-      { id: 2, name: 'Safety Harnesses', total: 25, available: 20, damaged: 1, status: 'Good' },
-      { id: 3, name: 'Safety Goggles', total: 40, available: 35, damaged: 0, status: 'Good' },
-      { id: 4, name: 'Steel-toe Boots', total: 30, available: 15, damaged: 3, status: 'Low Stock' },
-      { id: 5, name: 'High-vis Vests', total: 60, available: 55, damaged: 1, status: 'Good' }
-    ]);
+  const loadEquipment = async () => {
+    try {
+      const response = await equipmentAPI.getAll();
+      setEquipment(response.data.map(item => {
+        const total = item.quantity || item.total_quantity || 0;
+        const available = item.available_quantity || total;
+        const damaged = item.damaged_quantity || 0;
+        const inUse = total - available - damaged;
+        const status = available < total * 0.3 ? 'Low Stock' : damaged > total * 0.1 ? 'Needs Maintenance' : 'Good';
+        
+        return {
+          id: item.id,
+          name: item.name || item.equipment_name,
+          total: total,
+          available: available,
+          damaged: damaged,
+          status: status
+        };
+      }));
+    } catch (error) {
+      console.error('Error loading equipment:', error);
+      setEquipment([]);
+    }
   };
 
   const toggleMenu = () => {
@@ -556,6 +527,18 @@ export default function SafetyOfficerDashboard() {
         );
 
       case "Compliance Monitoring":
+        const daysSinceLastIncident = incidents.length > 0 
+          ? Math.floor((Date.now() - new Date(incidents[0].date).getTime()) / (1000 * 60 * 60 * 24))
+          : 0;
+        const completedInspections = inspections.filter(i => i.status === 'Completed').length;
+        const totalInspections = inspections.length;
+        const complianceRate = totalInspections > 0 
+          ? Math.round((completedInspections / totalInspections) * 100)
+          : 0;
+        const overdueInspections = inspections.filter(i => 
+          i.status === 'Scheduled' && new Date(i.date) < Date.now()
+        ).length;
+        
         return (
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
@@ -564,12 +547,12 @@ export default function SafetyOfficerDashboard() {
             
             <View style={styles.metricsContainer}>
               <View style={styles.metricCard}>
-                <Text style={styles.metricNumber}>0</Text>
+                <Text style={styles.metricNumber}>{daysSinceLastIncident}</Text>
                 <Text style={styles.metricLabel}>Days Since Last Incident</Text>
                 <Ionicons name="shield-checkmark" size={24} color="#4CAF50" />
               </View>
               <View style={styles.metricCard}>
-                <Text style={styles.metricNumber}>95%</Text>
+                <Text style={styles.metricNumber}>{complianceRate}%</Text>
                 <Text style={styles.metricLabel}>Safety Compliance</Text>
                 <Ionicons name="trending-up" size={24} color="#4CAF50" />
               </View>
@@ -580,32 +563,32 @@ export default function SafetyOfficerDashboard() {
             <View style={styles.complianceItem}>
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
               <View style={styles.complianceInfo}>
-                <Text style={styles.complianceTitle}>OSHA Reporting</Text>
-                <Text style={styles.complianceStatus}>Up to date</Text>
+                <Text style={styles.complianceTitle}>Safety Incidents</Text>
+                <Text style={styles.complianceStatus}>{incidents.length} reported</Text>
               </View>
             </View>
             
             <View style={styles.complianceItem}>
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+              <Ionicons name={trainings.length > 0 ? "checkmark-circle" : "alert-circle"} size={24} color={trainings.length > 0 ? "#4CAF50" : "#9E9E9E"} />
               <View style={styles.complianceInfo}>
                 <Text style={styles.complianceTitle}>Safety Training Records</Text>
-                <Text style={styles.complianceStatus}>Current</Text>
+                <Text style={styles.complianceStatus}>{trainings.length > 0 ? `${trainings.length} programs` : 'No trainings scheduled'}</Text>
               </View>
             </View>
             
             <View style={styles.complianceItem}>
-              <Ionicons name="warning" size={24} color="#FF9800" />
+              <Ionicons name={overdueInspections > 0 ? "warning" : "checkmark-circle"} size={24} color={overdueInspections > 0 ? "#FF9800" : "#4CAF50"} />
               <View style={styles.complianceInfo}>
                 <Text style={styles.complianceTitle}>Equipment Inspections</Text>
-                <Text style={styles.complianceStatus}>2 overdue</Text>
+                <Text style={styles.complianceStatus}>{overdueInspections > 0 ? `${overdueInspections} overdue` : 'Up to date'}</Text>
               </View>
             </View>
             
             <View style={styles.complianceItem}>
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
               <View style={styles.complianceInfo}>
-                <Text style={styles.complianceTitle}>Emergency Procedures</Text>
-                <Text style={styles.complianceStatus}>Updated</Text>
+                <Text style={styles.complianceTitle}>Safety Equipment</Text>
+                <Text style={styles.complianceStatus}>{equipment.length} items tracked</Text>
               </View>
             </View>
           </ScrollView>
@@ -1352,45 +1335,56 @@ const styles = StyleSheet.create({
   },
   welcomeBackground: {
     backgroundColor: "#003366",
-    paddingVertical: 30,
+    paddingVertical: 35,
     paddingHorizontal: 20,
     alignItems: "center",
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    elevation: 8,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
   },
   safetyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255, 215, 0, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
-    borderWidth: 2,
-    borderColor: "rgba(255, 215, 0, 0.3)",
+    borderWidth: 3,
+    borderColor: "rgba(255, 215, 0, 0.4)",
+    elevation: 5,
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   welcomeTitle: {
-    fontSize: 18,
+    fontSize: 20,
     color: "#FFD700",
-    fontWeight: "600",
+    fontWeight: "700",
     marginBottom: 5,
+    letterSpacing: 0.5,
   },
   welcomeName: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "800",
     color: "#fff",
     marginBottom: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   welcomeSubtitle: {
     fontSize: 16,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "rgba(255, 255, 255, 0.9)",
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: 18,
+    fontWeight: "500",
+    letterSpacing: 0.3,
   },
   dateTimeContainer: {
     flexDirection: "row",

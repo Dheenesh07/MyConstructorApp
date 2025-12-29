@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { userAPI, projectAPI, materialAPI } from '../utils/api';
+import { userAPI, projectAPI, materialAPI, taskAPI, budgetAPI, vendorAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -59,6 +59,7 @@ export default function ProjectManagerDashboard() {
   const navigation = useNavigation();
 
   useEffect(() => {
+    verifyUserRole();
     loadUserData();
     loadProjects();
     loadTeam();
@@ -67,6 +68,46 @@ export default function ProjectManagerDashboard() {
     loadVendors();
     loadMaterialRequests();
   }, []);
+
+  useEffect(() => {
+    if (activePage === "Documents") {
+      setTimeout(() => {
+        navigation.navigate('Documents');
+        setActivePage("Dashboard");
+      }, 0);
+    } else if (activePage === "Communications") {
+      setTimeout(() => {
+        navigation.navigate('CommunicationCenter');
+        setActivePage("Dashboard");
+      }, 0);
+    }
+  }, [activePage, navigation]);
+
+  const verifyUserRole = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        console.log('✅ Current user role:', user.role);
+        
+        // Verify user is a project manager
+        if (user.role !== 'project_manager') {
+          console.warn('⚠️ Unauthorized access attempt. User role:', user.role);
+          Alert.alert(
+            'Access Denied',
+            'You do not have permission to access the Project Manager Dashboard.',
+            [{ text: 'OK', onPress: () => navigation.replace('Login') }]
+          );
+        }
+      } else {
+        console.warn('⚠️ No user data found');
+        navigation.replace('Login');
+      }
+    } catch (error) {
+      console.error('❌ Error verifying user role:', error);
+      navigation.replace('Login');
+    }
+  };
 
   const loadUserData = async () => {
     try {
@@ -127,30 +168,46 @@ export default function ProjectManagerDashboard() {
     }
   };
 
-  const loadTasks = () => {
-    setTasks([
-      { id: 1, title: 'Foundation Inspection', assignee: 'Sarah Davis', priority: 'High', status: 'In Progress', dueDate: '2024-01-15' },
-      { id: 2, title: 'Material Procurement', assignee: 'Mike Johnson', priority: 'Medium', status: 'Pending', dueDate: '2024-01-18' },
-      { id: 3, title: 'Safety Training', assignee: 'Lisa Wilson', priority: 'High', status: 'Completed', dueDate: '2024-01-12' },
-      { id: 4, title: 'Quality Audit', assignee: 'Tom Brown', priority: 'Medium', status: 'In Progress', dueDate: '2024-01-20' }
-    ]);
+  const loadTasks = async () => {
+    try {
+      const response = await taskAPI.getAll();
+      setTasks(response.data.map(task => ({
+        id: task.id,
+        title: task.title,
+        assignee: task.assigned_to_name || 'Unassigned',
+        priority: task.priority,
+        status: task.status,
+        dueDate: task.due_date
+      })));
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      setTasks([]);
+    }
   };
 
-  const loadBudget = () => {
-    setBudget([
-      { category: 'Materials', allocated: 1500000, spent: 980000, remaining: 520000 },
-      { category: 'Labor', allocated: 800000, spent: 520000, remaining: 280000 },
-      { category: 'Equipment', allocated: 300000, spent: 180000, remaining: 120000 },
-      { category: 'Overhead', allocated: 200000, spent: 145000, remaining: 55000 }
-    ]);
+  const loadBudget = async () => {
+    try {
+      const response = await budgetAPI.getAll();
+      setBudget(response.data.map(budget => ({
+        category: budget.category,
+        allocated: budget.allocated_amount,
+        spent: budget.spent_amount,
+        remaining: budget.allocated_amount - budget.spent_amount
+      })));
+    } catch (error) {
+      console.error('Error loading budget:', error);
+      setBudget([]);
+    }
   };
 
-  const loadVendors = () => {
-    setVendors([
-      { id: 1, name: 'ABC Construction Materials', vendor_code: 'VEN001', vendor_type: 'supplier', contact_person: 'John Smith', email: 'john@abc.com', phone: '555-0101', address: '123 Main St', tax_id: 'TAX001', rating: 4.5, is_approved: true },
-      { id: 2, name: 'Heavy Equipment Rentals', vendor_code: 'VEN002', vendor_type: 'equipment_rental', contact_person: 'Sarah Johnson', email: 'sarah@her.com', phone: '555-0102', address: '456 Oak Ave', tax_id: 'TAX002', rating: 4.2, is_approved: true },
-      { id: 3, name: 'Elite Subcontractors', vendor_code: 'VEN003', vendor_type: 'subcontractor', contact_person: 'Mike Davis', email: 'mike@elite.com', phone: '555-0103', address: '789 Pine Rd', tax_id: 'TAX003', rating: 4.8, is_approved: false }
-    ]);
+  const loadVendors = async () => {
+    try {
+      const response = await vendorAPI.getAll();
+      setVendors(response.data || []);
+    } catch (error) {
+      console.error('Error loading vendors:', error);
+      setVendors([]);
+    }
   };
 
   const loadMaterialRequests = async () => {
@@ -469,12 +526,9 @@ export default function ProjectManagerDashboard() {
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
               <Text style={styles.pageTitle}>📄 Documents</Text>
-              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('Documents')}>
-                <Text style={styles.addButtonText}>View All</Text>
-              </TouchableOpacity>
             </View>
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>Navigate to Documents screen to manage project documents</Text>
+              <Text style={styles.emptyStateText}>Redirecting to Documents screen...</Text>
             </View>
           </ScrollView>
         );
@@ -484,12 +538,9 @@ export default function ProjectManagerDashboard() {
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
               <Text style={styles.pageTitle}>💬 Communications</Text>
-              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('CommunicationCenter')}>
-                <Text style={styles.addButtonText}>View All</Text>
-              </TouchableOpacity>
             </View>
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>Navigate to Communication Center to send and view messages</Text>
+              <Text style={styles.emptyStateText}>Redirecting to Communication Center...</Text>
             </View>
           </ScrollView>
         );
@@ -499,46 +550,54 @@ export default function ProjectManagerDashboard() {
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
               <Text style={styles.pageTitle}>📦 Material Requests</Text>
-              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('MaterialRequests')}>
-                <Text style={styles.addButtonText}>View All</Text>
-              </TouchableOpacity>
             </View>
             
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>{materialRequests.length}</Text>
-                <Text style={styles.statLabel}>Total</Text>
+            {materialRequests.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No material requests found</Text>
               </View>
-              <View style={styles.statBox}>
-                <Text style={[styles.statNumber, {color: '#FF9800'}]}>{materialRequests.filter(r => r.status === 'pending').length}</Text>
-                <Text style={styles.statLabel}>Pending</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={[styles.statNumber, {color: '#4CAF50'}]}>{materialRequests.filter(r => r.status === 'approved').length}</Text>
-                <Text style={styles.statLabel}>Approved</Text>
-              </View>
-            </View>
-            
-            {materialRequests.slice(0, 5).map(request => (
-              <View key={request.id} style={styles.requestCard}>
-                <View style={styles.requestHeader}>
-                  <Text style={styles.requestId}>{request.request_id}</Text>
-                  <View style={[styles.urgencyBadge, {
-                    backgroundColor: request.urgency === 'high' ? '#F44336' : request.urgency === 'medium' ? '#FF9800' : '#4CAF50'
-                  }]}>
-                    <Text style={styles.statusText}>{request.urgency?.toUpperCase()}</Text>
+            ) : (
+              <>
+                <View style={styles.statsRow}>
+                  <View style={styles.statBox}>
+                    <Text style={styles.statNumber}>{materialRequests.length}</Text>
+                    <Text style={styles.statLabel}>Total</Text>
+                  </View>
+                  <View style={styles.statBox}>
+                    <Text style={[styles.statNumber, {color: '#FF9800'}]}>{materialRequests.filter(r => r.status === 'pending').length}</Text>
+                    <Text style={styles.statLabel}>Pending</Text>
+                  </View>
+                  <View style={styles.statBox}>
+                    <Text style={[styles.statNumber, {color: '#4CAF50'}]}>{materialRequests.filter(r => r.status === 'approved').length}</Text>
+                    <Text style={styles.statLabel}>Approved</Text>
                   </View>
                 </View>
-                <Text style={styles.requestMaterial}>{request.material_description}</Text>
-                <Text style={styles.requestQuantity}>Qty: {request.quantity} {request.unit}</Text>
-                <Text style={styles.requestCost}>Est. Cost: ${request.estimated_cost?.toLocaleString()}</Text>
-                <View style={[styles.statusBadge, {
-                  backgroundColor: request.status === 'approved' ? '#4CAF50' : '#FF9800'
-                }]}>
-                  <Text style={styles.statusText}>{request.status?.toUpperCase()}</Text>
-                </View>
-              </View>
-            ))}
+                
+                {materialRequests.map(request => (
+                  <View key={request.id} style={styles.requestCard}>
+                    <View style={styles.requestHeader}>
+                      <Text style={styles.requestId}>{request.request_id}</Text>
+                      <View style={[styles.urgencyBadge, {
+                        backgroundColor: request.urgency === 'high' ? '#F44336' : request.urgency === 'medium' ? '#FF9800' : '#4CAF50'
+                      }]}>
+                        <Text style={styles.statusText}>{request.urgency?.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.requestMaterial}>{request.material_description}</Text>
+                    <Text style={styles.requestQuantity}>Qty: {request.quantity} {request.unit}</Text>
+                    <Text style={styles.requestCost}>Est. Cost: ₹{request.estimated_cost?.toLocaleString()}</Text>
+                    <View style={{ marginTop: 8 }}>
+                      <View style={[styles.statusBadge, {
+                        backgroundColor: request.status === 'approved' ? '#4CAF50' : '#FF9800',
+                        alignSelf: 'flex-start'
+                      }]}>
+                        <Text style={styles.statusText}>{request.status?.toUpperCase()}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </>
+            )}
           </ScrollView>
         );
 
@@ -551,8 +610,12 @@ export default function ProjectManagerDashboard() {
             
             <View style={styles.budgetSummary}>
               <Text style={styles.budgetTitle}>Total Project Budget</Text>
-              <Text style={styles.budgetAmount}>$2.8M</Text>
-              <Text style={styles.budgetSpent}>Spent: $1.825M (65%)</Text>
+              <Text style={styles.budgetAmount}>
+                ₹{budget.reduce((sum, item) => sum + item.allocated, 0).toLocaleString()}
+              </Text>
+              <Text style={styles.budgetSpent}>
+                Spent: ₹{budget.reduce((sum, item) => sum + item.spent, 0).toLocaleString()} ({budget.length > 0 ? Math.round((budget.reduce((sum, item) => sum + item.spent, 0) / budget.reduce((sum, item) => sum + item.allocated, 0)) * 100) : 0}%)
+              </Text>
             </View>
             
             {budget.map((item, index) => (
@@ -688,9 +751,9 @@ export default function ProjectManagerDashboard() {
                       <Text style={styles.trendText}>+8%</Text>
                     </View>
                   </View>
-                  <Text style={styles.metricNumber}>$2.8M</Text>
+                  <Text style={styles.metricNumber}>₹{budget.reduce((sum, item) => sum + item.allocated, 0).toLocaleString()}</Text>
                   <Text style={styles.metricLabel}>Portfolio Value</Text>
-                  <Text style={styles.metricDetail}>65% utilized, on budget</Text>
+                  <Text style={styles.metricDetail}>{budget.length > 0 ? Math.round((budget.reduce((sum, item) => sum + item.spent, 0) / budget.reduce((sum, item) => sum + item.allocated, 0)) * 100) : 0}% utilized, on budget</Text>
                 </View>
               </View>
             </View>
@@ -699,47 +762,26 @@ export default function ProjectManagerDashboard() {
             <View style={styles.prioritySection}>
               <Text style={styles.sectionTitle}>⚡ Priority Management</Text>
               <View style={styles.priorityContainer}>
-                <View style={[styles.priorityCard, { borderLeftColor: '#F44336' }]}>
-                  <View style={styles.priorityIcon}>
-                    <Ionicons name="warning" size={24} color="#F44336" />
+                {tasks.filter(t => t.priority === 'High').slice(0, 3).map((task) => (
+                  <View key={task.id} style={[styles.priorityCard, { borderLeftColor: '#F44336' }]}>
+                    <View style={styles.priorityIcon}>
+                      <Ionicons name="warning" size={24} color="#F44336" />
+                    </View>
+                    <View style={styles.priorityContent}>
+                      <Text style={styles.priorityTitle}>{task.title}</Text>
+                      <Text style={styles.priorityText}>Assigned to: {task.assignee}</Text>
+                      <Text style={styles.priorityProject}>Due: {task.dueDate || 'No deadline'}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.priorityAction}>
+                      <Ionicons name="chevron-forward" size={20} color="#F44336" />
+                    </TouchableOpacity>
                   </View>
-                  <View style={styles.priorityContent}>
-                    <Text style={styles.priorityTitle}>Critical Deadline</Text>
-                    <Text style={styles.priorityText}>Foundation inspection due today at 3:00 PM</Text>
-                    <Text style={styles.priorityProject}>Residential Complex A</Text>
+                ))}
+                {tasks.filter(t => t.priority === 'High').length === 0 && (
+                  <View style={{ padding: 20, alignItems: 'center' }}>
+                    <Text style={{ color: '#666', fontSize: 14 }}>No high priority tasks</Text>
                   </View>
-                  <TouchableOpacity style={styles.priorityAction}>
-                    <Ionicons name="chevron-forward" size={20} color="#F44336" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={[styles.priorityCard, { borderLeftColor: '#FF9800' }]}>
-                  <View style={styles.priorityIcon}>
-                    <Ionicons name="people" size={24} color="#FF9800" />
-                  </View>
-                  <View style={styles.priorityContent}>
-                    <Text style={styles.priorityTitle}>Team Meeting</Text>
-                    <Text style={styles.priorityText}>Weekly progress review at 2:00 PM</Text>
-                    <Text style={styles.priorityProject}>Conference Room A - All leads</Text>
-                  </View>
-                  <TouchableOpacity style={styles.priorityAction}>
-                    <Ionicons name="calendar" size={20} color="#FF9800" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={[styles.priorityCard, { borderLeftColor: '#4CAF50' }]}>
-                  <View style={styles.priorityIcon}>
-                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                  </View>
-                  <View style={styles.priorityContent}>
-                    <Text style={styles.priorityTitle}>Budget Approved</Text>
-                    <Text style={styles.priorityText}>Office Building B - $5M budget approved</Text>
-                    <Text style={styles.priorityProject}>Ready for Phase 2 execution</Text>
-                  </View>
-                  <TouchableOpacity style={styles.priorityAction}>
-                    <Ionicons name="checkmark" size={20} color="#4CAF50" />
-                  </TouchableOpacity>
-                </View>
+                )}
               </View>
             </View>
 
@@ -804,7 +846,7 @@ export default function ProjectManagerDashboard() {
                     <Ionicons name="cash" size={28} color="#fff" />
                   </View>
                   <Text style={styles.controlTitle}>Budget Management</Text>
-                  <Text style={styles.controlSubtitle}>$2.8M portfolio</Text>
+                  <Text style={styles.controlSubtitle}>₹{budget.reduce((sum, item) => sum + item.allocated, 0).toLocaleString()} portfolio</Text>
                   <View style={styles.controlMetric}>
                     <Text style={styles.controlValue}>65%</Text>
                     <Text style={styles.controlLabel}>Utilized</Text>
@@ -1224,34 +1266,36 @@ export default function ProjectManagerDashboard() {
         </View>
         <View style={styles.menuDivider} />
         
-        {[
-          { title: "Dashboard", icon: "home" },
-          { title: "Project Management", icon: "bar-chart" },
-          { title: "Team Management", icon: "people" },
-          { title: "Vendor Management", icon: "business" },
-          { title: "Task Assignment", icon: "clipboard" },
-          { title: "Budget Management", icon: "cash" },
-          { title: "Material Requests", icon: "cube" },
-          { title: "Documents", icon: "document-text" },
-          { title: "Communications", icon: "chatbubbles" },
-          { title: "Attendance Tracking", icon: "time" }
-        ].map((item) => (
-          <TouchableOpacity key={item.title} onPress={() => handleMenuClick(item.title)} style={[styles.menuItem, activePage === item.title && styles.activeMenuItem]}>
-            <View style={styles.menuIconContainer}>
-              <Ionicons name={activePage === item.title ? item.icon : `${item.icon}-outline`} size={20} color={activePage === item.title ? "#fff" : "#003366"} />
+        <ScrollView style={styles.menuScrollView} showsVerticalScrollIndicator={false}>
+          {[
+            { title: "Dashboard", icon: "home" },
+            { title: "Project Management", icon: "bar-chart" },
+            { title: "Team Management", icon: "people" },
+            { title: "Vendor Management", icon: "business" },
+            { title: "Task Assignment", icon: "clipboard" },
+            { title: "Budget Management", icon: "cash" },
+            { title: "Material Requests", icon: "cube" },
+            { title: "Documents", icon: "document-text" },
+            { title: "Communications", icon: "chatbubbles" },
+            { title: "Attendance Tracking", icon: "time" }
+          ].map((item) => (
+            <TouchableOpacity key={item.title} onPress={() => handleMenuClick(item.title)} style={[styles.menuItem, activePage === item.title && styles.activeMenuItem]}>
+              <View style={styles.menuIconContainer}>
+                <Ionicons name={activePage === item.title ? item.icon : `${item.icon}-outline`} size={20} color={activePage === item.title ? "#fff" : "#003366"} />
+              </View>
+              <Text style={[styles.menuText, activePage === item.title && styles.activeMenuText]}>{item.title}</Text>
+              {activePage === item.title && <View style={styles.activeIndicator} />}
+            </TouchableOpacity>
+          ))}
+          
+          <View style={styles.menuDivider} />
+          <TouchableOpacity onPress={() => { toggleMenu(); setLogoutModalVisible(true); }} style={styles.logoutMenuItem}>
+            <View style={styles.logoutIconContainer}>
+              <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
             </View>
-            <Text style={[styles.menuText, activePage === item.title && styles.activeMenuText]}>{item.title}</Text>
-            {activePage === item.title && <View style={styles.activeIndicator} />}
+            <Text style={styles.logoutMenuText}>Logout</Text>
           </TouchableOpacity>
-        ))}
-        
-        <View style={styles.menuDivider} />
-        <TouchableOpacity onPress={() => { toggleMenu(); setLogoutModalVisible(true); }} style={styles.logoutMenuItem}>
-          <View style={styles.logoutIconContainer}>
-            <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
-          </View>
-          <Text style={styles.logoutMenuText}>Logout</Text>
-        </TouchableOpacity>
+        </ScrollView>
       </Animated.View>
     </View>
   );
@@ -1984,6 +2028,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, 
     shadowRadius: 10,
     zIndex: 1000
+  },
+  menuScrollView: {
+    flex: 1,
   },
   userProfileSection: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 20, backgroundColor: "#f8f9fa" },
   userAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: "#003366", alignItems: "center", justifyContent: "center", marginRight: 15 },
