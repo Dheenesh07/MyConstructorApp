@@ -828,29 +828,6 @@ export default function SafetyOfficerDashboard() {
                 </View>
               </View>
             </View>
-            
-            {/* Recent Activity */}
-            <View style={styles.recentSection}>
-              <Text style={styles.sectionTitle}>📋 Recent Activity</Text>
-              <View style={styles.activityCard}>
-                <View style={styles.activityIcon}>
-                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                </View>
-                <View style={styles.activityContent}>
-                  <Text style={styles.activityTitle}>Safety Inspection Completed - Site A</Text>
-                  <Text style={styles.activityTime}>2 hours ago</Text>
-                </View>
-              </View>
-              <View style={styles.activityCard}>
-                <View style={styles.activityIcon}>
-                  <Ionicons name="document-text" size={20} color="#FF9800" />
-                </View>
-                <View style={styles.activityContent}>
-                  <Text style={styles.activityTitle}>Incident Report Filed - Minor Cut</Text>
-                  <Text style={styles.activityTime}>1 day ago</Text>
-                </View>
-              </View>
-            </View>
           </ScrollView>
         );
     }
