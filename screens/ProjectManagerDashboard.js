@@ -915,6 +915,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Task Title *"
+              placeholderTextColor="#999"
               value={taskForm.title}
               onChangeText={(text) => setTaskForm({...taskForm, title: text})}
             />
@@ -922,6 +923,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Task Description"
+              placeholderTextColor="#999"
               value={taskForm.description}
               onChangeText={(text) => setTaskForm({...taskForm, description: text})}
               multiline
@@ -931,6 +933,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Assignee *"
+              placeholderTextColor="#999"
               value={taskForm.assignee}
               onChangeText={(text) => setTaskForm({...taskForm, assignee: text})}
             />
@@ -938,6 +941,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Due Date (YYYY-MM-DD)"
+              placeholderTextColor="#999"
               value={taskForm.dueDate}
               onChangeText={(text) => setTaskForm({...taskForm, dueDate: text})}
             />
@@ -984,6 +988,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Task Title *"
+              placeholderTextColor="#999"
               value={taskForm.title}
               onChangeText={(text) => setTaskForm({...taskForm, title: text})}
             />
@@ -991,6 +996,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Task Description"
+              placeholderTextColor="#999"
               value={taskForm.description}
               onChangeText={(text) => setTaskForm({...taskForm, description: text})}
               multiline
@@ -1000,6 +1006,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Due Date (YYYY-MM-DD)"
+              placeholderTextColor="#999"
               value={taskForm.dueDate}
               onChangeText={(text) => setTaskForm({...taskForm, dueDate: text})}
             />
@@ -1165,6 +1172,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Vendor Name *"
+              placeholderTextColor="#999"
               value={vendorForm.name}
               onChangeText={(text) => setVendorForm({...vendorForm, name: text})}
             />
@@ -1172,6 +1180,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Vendor Code *"
+              placeholderTextColor="#999"
               value={vendorForm.vendor_code}
               onChangeText={(text) => setVendorForm({...vendorForm, vendor_code: text})}
             />
@@ -1196,6 +1205,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Contact Person *"
+              placeholderTextColor="#999"
               value={vendorForm.contact_person}
               onChangeText={(text) => setVendorForm({...vendorForm, contact_person: text})}
             />
@@ -1203,6 +1213,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Email *"
+              placeholderTextColor="#999"
               value={vendorForm.email}
               onChangeText={(text) => setVendorForm({...vendorForm, email: text})}
               keyboardType="email-address"
@@ -1211,6 +1222,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Phone Number"
+              placeholderTextColor="#999"
               value={vendorForm.phone}
               onChangeText={(text) => setVendorForm({...vendorForm, phone: text})}
               keyboardType="phone-pad"
@@ -1219,6 +1231,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Address"
+              placeholderTextColor="#999"
               value={vendorForm.address}
               onChangeText={(text) => setVendorForm({...vendorForm, address: text})}
               multiline
@@ -1228,6 +1241,7 @@ export default function ProjectManagerDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Tax ID"
+              placeholderTextColor="#999"
               value={vendorForm.tax_id}
               onChangeText={(text) => setVendorForm({...vendorForm, tax_id: text})}
             />
@@ -2000,7 +2014,17 @@ const styles = StyleSheet.create({
   modalContent: { backgroundColor: "#fff", borderRadius: 12, padding: 20, width: width * 0.9, maxHeight: "80%" },
   modalTitle: { fontSize: 18, fontWeight: "600", color: "#003366", marginBottom: 15 },
   
-  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 10, backgroundColor: "#fff" },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 15,
+    fontSize: 16,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+    color: "#333",
+    minHeight: 50,
+  },
   textArea: { height: 80, textAlignVertical: "top" },
   
   priorityContainer: { flexDirection: "row", alignItems: "center", marginBottom: 15, flexWrap: "wrap" },

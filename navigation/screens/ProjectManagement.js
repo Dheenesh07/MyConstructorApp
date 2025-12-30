@@ -247,82 +247,96 @@ export default function ProjectManagement({ navigation, route }) {
         />
       )}
 
-      <Modal visible={modalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Create New Project</Text>
-          <ScrollView style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Project Name"
-              value={newProject.name}
-              onChangeText={(text) => setNewProject({...newProject, name: text})}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Project Code"
-              value={newProject.project_code}
-              onChangeText={(text) => setNewProject({...newProject, project_code: text})}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Client Name"
-              value={newProject.client}
-              onChangeText={(text) => setNewProject({...newProject, client: text})}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Description"
-              value={newProject.description}
-              onChangeText={(text) => setNewProject({...newProject, description: text})}
-              multiline
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Location"
-              value={newProject.location}
-              onChangeText={(text) => setNewProject({...newProject, location: text})}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Latitude (optional)"
-              value={newProject.latitude}
-              onChangeText={(text) => setNewProject({...newProject, latitude: text})}
-              keyboardType="decimal-pad"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Longitude (optional)"
-              value={newProject.longitude}
-              onChangeText={(text) => setNewProject({...newProject, longitude: text})}
-              keyboardType="decimal-pad"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Start Date (YYYY-MM-DD)"
-              value={newProject.start_date}
-              onChangeText={(text) => setNewProject({...newProject, start_date: text})}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="End Date (YYYY-MM-DD)"
-              value={newProject.end_date}
-              onChangeText={(text) => setNewProject({...newProject, end_date: text})}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Budget"
-              value={newProject.total_budget}
-              onChangeText={(text) => setNewProject({...newProject, total_budget: text})}
-              keyboardType="numeric"
-            />
-          </ScrollView>
-          <View style={styles.modalButtons}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.createButton} onPress={createProject}>
-              <Text style={styles.createButtonText}>Create</Text>
-            </TouchableOpacity>
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Create New Project</Text>
+            <ScrollView style={styles.formScrollView} showsVerticalScrollIndicator={false}>
+              <TextInput
+                style={styles.formInput}
+                placeholder="Project Name *"
+                placeholderTextColor="#999"
+                value={newProject.name}
+                onChangeText={(text) => setNewProject({...newProject, name: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Project Code *"
+                placeholderTextColor="#999"
+                value={newProject.project_code}
+                onChangeText={(text) => setNewProject({...newProject, project_code: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Client Name *"
+                placeholderTextColor="#999"
+                value={newProject.client}
+                onChangeText={(text) => setNewProject({...newProject, client: text})}
+              />
+              <TextInput
+                style={[styles.formInput, styles.textArea]}
+                placeholder="Description"
+                placeholderTextColor="#999"
+                value={newProject.description}
+                onChangeText={(text) => setNewProject({...newProject, description: text})}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Location"
+                placeholderTextColor="#999"
+                value={newProject.location}
+                onChangeText={(text) => setNewProject({...newProject, location: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Latitude (optional)"
+                placeholderTextColor="#999"
+                value={newProject.latitude}
+                onChangeText={(text) => setNewProject({...newProject, latitude: text})}
+                keyboardType="decimal-pad"
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Longitude (optional)"
+                placeholderTextColor="#999"
+                value={newProject.longitude}
+                onChangeText={(text) => setNewProject({...newProject, longitude: text})}
+                keyboardType="decimal-pad"
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Start Date (YYYY-MM-DD)"
+                placeholderTextColor="#999"
+                value={newProject.start_date}
+                onChangeText={(text) => setNewProject({...newProject, start_date: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="End Date (YYYY-MM-DD)"
+                placeholderTextColor="#999"
+                value={newProject.end_date}
+                onChangeText={(text) => setNewProject({...newProject, end_date: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Budget"
+                placeholderTextColor="#999"
+                value={newProject.total_budget}
+                onChangeText={(text) => setNewProject({...newProject, total_budget: text})}
+                keyboardType="numeric"
+              />
+            </ScrollView>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.createButton} onPress={createProject}>
+                <Text style={styles.createButtonText}>Create Project</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -412,32 +426,54 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 12,
   },
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
-    backgroundColor: "#f5f9fc",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    width: "100%",
+    maxHeight: "90%",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#003366",
     marginBottom: 20,
+    textAlign: "center",
   },
-  form: {
-    flex: 1,
+  formScrollView: {
+    maxHeight: 400,
+    marginBottom: 20,
   },
-  input: {
+  formInput: {
     backgroundColor: "#fff",
     borderRadius: 8,
-    padding: 12,
+    padding: 15,
     marginBottom: 15,
     borderWidth: 1,
     borderColor: "#ddd",
+    fontSize: 16,
+    color: "#333",
+    minHeight: 50,
   },
-  modalButtons: {
+  textArea: {
+    height: 80,
+    textAlignVertical: "top",
+  },
+  modalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
   },
   cancelButton: {
     flex: 1,

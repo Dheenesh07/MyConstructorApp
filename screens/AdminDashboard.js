@@ -1295,6 +1295,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Full Name *"
+              placeholderTextColor="#999"
               value={userForm.name}
               onChangeText={(text) => setUserForm({...userForm, name: text})}
             />
@@ -1302,6 +1303,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Email *"
+              placeholderTextColor="#999"
               value={userForm.email}
               onChangeText={(text) => setUserForm({...userForm, email: text})}
             />
@@ -1309,6 +1311,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Phone"
+              placeholderTextColor="#999"
               value={userForm.phone}
               onChangeText={(text) => setUserForm({...userForm, phone: text})}
             />
@@ -1351,6 +1354,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Report Title *"
+              placeholderTextColor="#999"
               value={reportForm.title}
               onChangeText={(text) => setReportForm({...reportForm, title: text})}
             />
@@ -1375,6 +1379,7 @@ export default function AdminDashboard() {
             <TextInput
               style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
               placeholder="Report Description *"
+              placeholderTextColor="#999"
               value={reportForm.description}
               onChangeText={(text) => setReportForm({...reportForm, description: text})}
               multiline
@@ -1491,6 +1496,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Full Name *"
+              placeholderTextColor="#999"
               value={editUserForm.name}
               onChangeText={(text) => setEditUserForm({...editUserForm, name: text})}
             />
@@ -1498,6 +1504,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Email *"
+              placeholderTextColor="#999"
               value={editUserForm.email}
               onChangeText={(text) => setEditUserForm({...editUserForm, email: text})}
             />
@@ -1505,6 +1512,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Phone"
+              placeholderTextColor="#999"
               value={editUserForm.phone}
               onChangeText={(text) => setEditUserForm({...editUserForm, phone: text})}
             />
@@ -1557,24 +1565,28 @@ export default function AdminDashboard() {
                   <TextInput
                     style={styles.input}
                     placeholder="Company Name"
+                    placeholderTextColor="#999"
                     value={companyInfo.name}
                     onChangeText={(text) => setCompanyInfo({...companyInfo, name: text})}
                   />
                   <TextInput
                     style={styles.input}
                     placeholder="Address"
+                    placeholderTextColor="#999"
                     value={companyInfo.address}
                     onChangeText={(text) => setCompanyInfo({...companyInfo, address: text})}
                   />
                   <TextInput
                     style={styles.input}
                     placeholder="Phone"
+                    placeholderTextColor="#999"
                     value={companyInfo.phone}
                     onChangeText={(text) => setCompanyInfo({...companyInfo, phone: text})}
                   />
                   <TextInput
                     style={styles.input}
                     placeholder="Email"
+                    placeholderTextColor="#999"
                     value={companyInfo.email}
                     onChangeText={(text) => setCompanyInfo({...companyInfo, email: text})}
                   />
@@ -1706,6 +1718,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Incident Title *"
+              placeholderTextColor="#999"
               value={incidentForm.title}
               onChangeText={(text) => setIncidentForm({...incidentForm, title: text})}
             />
@@ -1749,6 +1762,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Location Details *"
+              placeholderTextColor="#999"
               value={incidentForm.location_details}
               onChangeText={(text) => setIncidentForm({...incidentForm, location_details: text})}
             />
@@ -1756,6 +1770,7 @@ export default function AdminDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Injured Person (if any)"
+              placeholderTextColor="#999"
               value={incidentForm.injured_person}
               onChangeText={(text) => setIncidentForm({...incidentForm, injured_person: text})}
             />
@@ -1763,6 +1778,7 @@ export default function AdminDashboard() {
             <TextInput
               style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
               placeholder="Incident Description *"
+              placeholderTextColor="#999"
               value={incidentForm.description}
               onChangeText={(text) => setIncidentForm({...incidentForm, description: text})}
               multiline
@@ -1790,6 +1806,7 @@ export default function AdminDashboard() {
               <TextInput
                 style={styles.input}
                 placeholder="Vendor Name *"
+                placeholderTextColor="#999"
                 value={vendorForm.name}
                 onChangeText={(text) => setVendorForm({...vendorForm, name: text})}
               />
@@ -1797,6 +1814,7 @@ export default function AdminDashboard() {
               <TextInput
                 style={styles.input}
                 placeholder="Vendor Code (e.g., VEN001)"
+                placeholderTextColor="#999"
                 value={vendorForm.vendor_code}
                 onChangeText={(text) => setVendorForm({...vendorForm, vendor_code: text})}
               />
@@ -1821,6 +1839,7 @@ export default function AdminDashboard() {
               <TextInput
                 style={styles.input}
                 placeholder="Contact Person *"
+                placeholderTextColor="#999"
                 value={vendorForm.contact_person}
                 onChangeText={(text) => setVendorForm({...vendorForm, contact_person: text})}
               />
@@ -1828,6 +1847,7 @@ export default function AdminDashboard() {
               <TextInput
                 style={styles.input}
                 placeholder="Email *"
+                placeholderTextColor="#999"
                 value={vendorForm.email}
                 onChangeText={(text) => setVendorForm({...vendorForm, email: text})}
                 keyboardType="email-address"
@@ -1836,6 +1856,7 @@ export default function AdminDashboard() {
               <TextInput
                 style={styles.input}
                 placeholder="Phone *"
+                placeholderTextColor="#999"
                 value={vendorForm.phone}
                 onChangeText={(text) => setVendorForm({...vendorForm, phone: text})}
                 keyboardType="phone-pad"
@@ -1844,6 +1865,7 @@ export default function AdminDashboard() {
               <TextInput
                 style={styles.input}
                 placeholder="Address"
+                placeholderTextColor="#999"
                 value={vendorForm.address}
                 onChangeText={(text) => setVendorForm({...vendorForm, address: text})}
               />
@@ -1851,6 +1873,7 @@ export default function AdminDashboard() {
               <TextInput
                 style={styles.input}
                 placeholder="Tax ID"
+                placeholderTextColor="#999"
                 value={vendorForm.tax_id}
                 onChangeText={(text) => setVendorForm({...vendorForm, tax_id: text})}
               />
@@ -2398,13 +2421,46 @@ const styles = StyleSheet.create({
   viewButton: { alignSelf: "flex-start", backgroundColor: "#003366", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   viewButtonText: { color: "#fff", fontSize: 12 },
   
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
-  modalContent: { backgroundColor: "#fff", borderRadius: 12, padding: 20, width: width * 0.9, maxHeight: "80%" },
-  modalTitle: { fontSize: 18, fontWeight: "600", color: "#003366", marginBottom: 15 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    width: "100%",
+    maxHeight: "85%",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 20,
+    textAlign: "center",
+  },
   vendorModalContainer: { backgroundColor: "#fff", borderRadius: 12, padding: 20, width: width * 0.9, maxHeight: "85%" },
   vendorScrollView: { maxHeight: 450 },
   
-  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 10, backgroundColor: "#fff" },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 15,
+    fontSize: 16,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+    color: "#333",
+    minHeight: 50,
+  },
   
   roleContainer: { flexDirection: "row", alignItems: "center", marginBottom: 15, flexWrap: "wrap" },
   roleLabel: { fontSize: 14, color: "#666", marginRight: 10, width: "100%", marginBottom: 5 },

@@ -884,18 +884,21 @@ export default function SafetyOfficerDashboard() {
                 <TextInput
                   style={styles.input}
                   placeholder="Incident Title *"
+                  placeholderTextColor="#999"
                   value={incidentForm.title}
                   onChangeText={(text) => setIncidentForm({...incidentForm, title: text})}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Location *"
+                  placeholderTextColor="#999"
                   value={incidentForm.location}
                   onChangeText={(text) => setIncidentForm({...incidentForm, location: text})}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Involved Persons"
+                  placeholderTextColor="#999"
                   value={incidentForm.involvedPersons}
                   onChangeText={(text) => setIncidentForm({...incidentForm, involvedPersons: text})}
                 />
@@ -918,6 +921,7 @@ export default function SafetyOfficerDashboard() {
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder="Incident Description *"
+                  placeholderTextColor="#999"
                   value={incidentForm.description}
                   onChangeText={(text) => setIncidentForm({...incidentForm, description: text})}
                   multiline
@@ -932,12 +936,14 @@ export default function SafetyOfficerDashboard() {
                 <TextInput
                   style={styles.input}
                   placeholder="Inspection Title *"
+                  placeholderTextColor="#999"
                   value={inspectionForm.title}
                   onChangeText={(text) => setInspectionForm({...inspectionForm, title: text})}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Location *"
+                  placeholderTextColor="#999"
                   value={inspectionForm.location}
                   onChangeText={(text) => setInspectionForm({...inspectionForm, location: text})}
                 />
@@ -960,6 +966,7 @@ export default function SafetyOfficerDashboard() {
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder="Inspection Notes"
+                  placeholderTextColor="#999"
                   value={inspectionForm.notes}
                   onChangeText={(text) => setInspectionForm({...inspectionForm, notes: text})}
                   multiline
@@ -974,24 +981,28 @@ export default function SafetyOfficerDashboard() {
                 <TextInput
                   style={styles.input}
                   placeholder="Training Title *"
+                  placeholderTextColor="#999"
                   value={trainingForm.title}
                   onChangeText={(text) => setTrainingForm({...trainingForm, title: text})}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Date (YYYY-MM-DD) *"
+                  placeholderTextColor="#999"
                   value={trainingForm.date}
                   onChangeText={(text) => setTrainingForm({...trainingForm, date: text})}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Instructor"
+                  placeholderTextColor="#999"
                   value={trainingForm.instructor}
                   onChangeText={(text) => setTrainingForm({...trainingForm, instructor: text})}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Number of Participants"
+                  placeholderTextColor="#999"
                   value={trainingForm.participants}
                   onChangeText={(text) => setTrainingForm({...trainingForm, participants: text})}
                   keyboardType="numeric"
@@ -1021,12 +1032,14 @@ export default function SafetyOfficerDashboard() {
                 <TextInput
                   style={styles.input}
                   placeholder="Equipment Name *"
+                  placeholderTextColor="#999"
                   value={equipmentForm.name}
                   onChangeText={(text) => setEquipmentForm({...equipmentForm, name: text})}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Total Quantity *"
+                  placeholderTextColor="#999"
                   value={equipmentForm.total}
                   onChangeText={(text) => setEquipmentForm({...equipmentForm, total: text})}
                   keyboardType="numeric"
@@ -1889,13 +1902,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
     zIndex: 1000,
   },
   modalContent: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 20,
-    width: width * 0.9,
+    width: "100%",
     maxHeight: "85%",
     elevation: 20,
     shadowColor: "#000",
@@ -1903,18 +1917,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
   },
-  modalTitle: { fontSize: 18, fontWeight: "600", color: "#003366", marginBottom: 15 },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 20,
+    textAlign: "center",
+  },
   
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    marginBottom: 10,
+    padding: 15,
+    fontSize: 16,
+    marginBottom: 15,
     backgroundColor: "#fff",
+    color: "#333",
+    minHeight: 50,
   },
-  textArea: { height: 80, textAlignVertical: "top" },
+  textArea: { 
+    height: 80, 
+    textAlignVertical: "top" 
+  },
   
   severityContainer: {
     flexDirection: "row",

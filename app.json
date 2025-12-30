@@ -20,10 +20,20 @@
         "foregroundImage": "./assets/beemji logo ai.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.kumaravel07.beemjibuilders"
     },
     "web": {
       "favicon": "./assets/beemji logo ai.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9c476546-3b69-45f3-b863-e67fe13d6774"
+      }
+    },
+    "owner": "kumaravel_07",
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

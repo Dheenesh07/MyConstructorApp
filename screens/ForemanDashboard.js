@@ -713,6 +713,7 @@ export default function ForemanDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Material Item *"
+              placeholderTextColor="#999"
               value={materialForm.item}
               onChangeText={(text) => setMaterialForm({...materialForm, item: text})}
             />
@@ -720,6 +721,7 @@ export default function ForemanDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Quantity *"
+              placeholderTextColor="#999"
               value={materialForm.quantity}
               onChangeText={(text) => setMaterialForm({...materialForm, quantity: text})}
               keyboardType="numeric"
@@ -762,6 +764,7 @@ export default function ForemanDashboard() {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Additional Notes"
+              placeholderTextColor="#999"
               value={materialForm.notes}
               onChangeText={(text) => setMaterialForm({...materialForm, notes: text})}
               multiline
@@ -806,6 +809,7 @@ export default function ForemanDashboard() {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Notes *"
+              placeholderTextColor="#999"
               value={safetyForm.notes}
               onChangeText={(text) => setSafetyForm({...safetyForm, notes: text})}
               multiline
@@ -833,6 +837,7 @@ export default function ForemanDashboard() {
             <TextInput
               style={styles.input}
               placeholder="Progress Percentage (0-100) *"
+              placeholderTextColor="#999"
               value={taskForm.progress}
               onChangeText={(text) => setTaskForm({...taskForm, progress: text})}
               keyboardType="numeric"
@@ -1416,7 +1421,17 @@ const styles = StyleSheet.create({
   modalContent: { backgroundColor: "#fff", borderRadius: 12, padding: 20, width: width * 0.9, maxHeight: "80%" },
   modalTitle: { fontSize: 18, fontWeight: "600", color: "#003366", marginBottom: 15 },
   
-  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 10, backgroundColor: "#fff" },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 15,
+    fontSize: 16,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+    color: "#333",
+    minHeight: 50,
+  },
   textArea: { height: 80, textAlignVertical: "top" },
   
   unitContainer: { flexDirection: "row", alignItems: "center", marginBottom: 15, flexWrap: "wrap" },

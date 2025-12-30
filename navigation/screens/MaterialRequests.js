@@ -220,6 +220,7 @@ export default function MaterialRequests({ route }) {
             <TextInput
               style={styles.input}
               placeholder="Material Description *"
+              placeholderTextColor="#999"
               value={requestForm.material_description}
               onChangeText={(text) => setRequestForm({...requestForm, material_description: text})}
               multiline
@@ -229,6 +230,7 @@ export default function MaterialRequests({ route }) {
               <TextInput
                 style={[styles.input, styles.halfInput]}
                 placeholder="Quantity *"
+                placeholderTextColor="#999"
                 value={requestForm.quantity}
                 onChangeText={(text) => setRequestForm({...requestForm, quantity: text})}
                 keyboardType="numeric"
@@ -236,6 +238,7 @@ export default function MaterialRequests({ route }) {
               <TextInput
                 style={[styles.input, styles.halfInput]}
                 placeholder="Unit *"
+                placeholderTextColor="#999"
                 value={requestForm.unit}
                 onChangeText={(text) => setRequestForm({...requestForm, unit: text})}
               />
@@ -244,6 +247,7 @@ export default function MaterialRequests({ route }) {
             <TextInput
               style={styles.input}
               placeholder="Estimated Cost"
+              placeholderTextColor="#999"
               value={requestForm.estimated_cost}
               onChangeText={(text) => setRequestForm({...requestForm, estimated_cost: text})}
               keyboardType="numeric"
@@ -252,6 +256,7 @@ export default function MaterialRequests({ route }) {
             <TextInput
               style={styles.input}
               placeholder="Required Date (YYYY-MM-DD)"
+              placeholderTextColor="#999"
               value={requestForm.required_date}
               onChangeText={(text) => setRequestForm({...requestForm, required_date: text})}
             />
@@ -363,7 +368,17 @@ const styles = StyleSheet.create({
   approveButtonText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   modalContainer: { flex: 1, padding: 20, backgroundColor: '#f5f9fc' },
   modalTitle: { fontSize: 24, fontWeight: 'bold', color: '#003366', marginBottom: 20 },
-  input: { backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 15, borderWidth: 1, borderColor: '#ddd' },
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    fontSize: 16,
+    color: '#333',
+    minHeight: 50,
+  },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   halfInput: { width: '48%' },
   label: { fontSize: 16, fontWeight: '600', color: '#003366', marginBottom: 10 },
