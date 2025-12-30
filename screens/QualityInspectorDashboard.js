@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { safetyAPI, taskAPI } from '../utils/api';
+import { safetyAPI, taskAPI, qualityAPI } from '../utils/api';
 
 const { width } = Dimensions.get("window");
 
@@ -120,152 +120,80 @@ export default function QualityInspectorDashboard() {
     }
   };
 
-  const loadTestReports = () => {
-    setTestReports([
-      {
-        id: 1,
-        title: 'Concrete Compressive Strength Test',
-        date: '2024-01-12',
-        testType: 'Material Testing',
-        sampleId: 'CON-001-2024',
-        result: '35.2 MPa',
-        specification: '≥30 MPa',
-        status: 'Pass',
-        laboratory: 'ABC Testing Lab'
-      },
-      {
-        id: 2,
-        title: 'Steel Tensile Strength Test',
-        date: '2024-01-11',
-        testType: 'Material Testing',
-        sampleId: 'STL-002-2024',
-        result: '520 MPa',
-        specification: '≥500 MPa',
-        status: 'Pass',
-        laboratory: 'XYZ Materials Lab'
-      },
-      {
-        id: 3,
-        title: 'Soil Compaction Test',
-        date: '2024-01-09',
-        testType: 'Geotechnical',
-        sampleId: 'SOIL-003-2024',
-        result: '92%',
-        specification: '≥95%',
-        status: 'Fail',
-        laboratory: 'Geo Testing Services'
-      }
-    ]);
+  const loadTestReports = async () => {
+    try {
+      const response = await qualityAPI.getInspections();
+      setTestReports(response.data.map(inspection => ({
+        id: inspection.id,
+        title: inspection.inspection_type || 'Quality Inspection',
+        date: inspection.inspection_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+        testType: inspection.inspection_type || 'Material Testing',
+        sampleId: `INSP-${inspection.id}`,
+        result: inspection.score >= 70 ? `${inspection.score}%` : 'Below Standard',
+        specification: '≥70%',
+        status: inspection.status === 'passed' ? 'Pass' : inspection.status === 'failed' ? 'Fail' : 'Pending',
+        laboratory: 'Quality Control Lab'
+      })));
+    } catch (error) {
+      console.error('Error loading test reports:', error);
+      setTestReports([]);
+    }
   };
 
-  const loadNonConformances = () => {
-    setNonConformances([
-      {
-        id: 1,
-        title: 'Concrete Surface Defects',
-        date: '2024-01-11',
-        severity: 'Medium',
-        location: 'Site A - Column C3',
-        description: 'Honeycomb formation observed in concrete column',
-        status: 'Open',
-        assignedTo: 'Site Engineer',
-        dueDate: '2024-01-18'
-      },
-      {
-        id: 2,
-        title: 'Incorrect Rebar Spacing',
-        date: '2024-01-10',
-        severity: 'High',
-        location: 'Site A - Beam B2',
-        description: 'Rebar spacing does not match approved drawings',
-        status: 'In Progress',
-        assignedTo: 'Structural Engineer',
-        dueDate: '2024-01-15'
-      },
-      {
-        id: 3,
-        title: 'Paint Finish Quality',
-        date: '2024-01-08',
-        severity: 'Low',
-        location: 'Site A - Interior Walls',
-        description: 'Uneven paint application in several areas',
-        status: 'Closed',
-        assignedTo: 'Painting Contractor',
-        dueDate: '2024-01-12'
-      }
-    ]);
+  const loadNonConformances = async () => {
+    try {
+      const response = await safetyAPI.getIncidents();
+      setNonConformances(response.data.map(incident => ({
+        id: incident.id,
+        title: incident.title,
+        date: incident.incident_date?.split('T')[0] || incident.created_at?.split('T')[0],
+        severity: incident.severity === 'critical' ? 'High' : incident.severity === 'major' ? 'Medium' : 'Low',
+        location: incident.location_details || 'Not specified',
+        description: incident.description || '',
+        status: incident.status === 'resolved' ? 'Closed' : incident.status === 'under_investigation' ? 'In Progress' : 'Open',
+        assignedTo: incident.reported_by_name || 'Unassigned',
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      })));
+    } catch (error) {
+      console.error('Error loading non-conformances:', error);
+      setNonConformances([]);
+    }
   };
 
-  const loadStandards = () => {
-    setStandards([
-      {
-        id: 1,
-        title: 'ACI 318 - Building Code Requirements for Structural Concrete',
-        category: 'Structural',
-        version: '2019',
-        lastUpdated: '2024-01-01',
-        status: 'Current'
-      },
-      {
-        id: 2,
-        title: 'AISC 360 - Specification for Structural Steel Buildings',
-        category: 'Structural',
-        version: '2016',
-        lastUpdated: '2023-12-15',
-        status: 'Current'
-      },
-      {
-        id: 3,
-        title: 'ASTM C39 - Compressive Strength of Cylindrical Concrete Specimens',
-        category: 'Testing',
-        version: '2021',
-        lastUpdated: '2023-11-20',
-        status: 'Current'
-      },
-      {
-        id: 4,
-        title: 'IBC 2021 - International Building Code',
-        category: 'General',
-        version: '2021',
-        lastUpdated: '2023-10-01',
-        status: 'Outdated'
-      }
-    ]);
+  const loadStandards = async () => {
+    try {
+      const response = await taskAPI.getAll();
+      setStandards(response.data.slice(0, 4).map(task => ({
+        id: task.id,
+        title: task.title || 'Quality Standard',
+        category: task.priority === 'high' ? 'Structural' : task.priority === 'medium' ? 'Testing' : 'General',
+        version: '2024',
+        lastUpdated: task.updated_at?.split('T')[0] || task.created_at?.split('T')[0],
+        status: task.status === 'completed' ? 'Current' : 'Outdated'
+      })));
+    } catch (error) {
+      console.error('Error loading standards:', error);
+      setStandards([]);
+    }
   };
 
-  const loadSchedule = () => {
-    setSchedule([
-      {
-        id: 1,
-        title: 'Foundation Inspection - Block B',
-        date: '2024-01-15',
+  const loadSchedule = async () => {
+    try {
+      const response = await taskAPI.getAll();
+      setSchedule(response.data.filter(task => task.status !== 'completed').slice(0, 3).map(task => ({
+        id: task.id,
+        title: task.title,
+        date: task.due_date?.split('T')[0] || new Date().toISOString().split('T')[0],
         time: '09:00 AM',
-        type: 'Structural',
-        location: 'Site A - Block B',
+        type: task.priority === 'high' ? 'Structural' : task.priority === 'medium' ? 'Material' : 'Final',
+        location: task.description || 'Site Location',
         status: 'Scheduled',
-        priority: 'High'
-      },
-      {
-        id: 2,
-        title: 'Material Testing - Concrete Batch #5',
-        date: '2024-01-16',
-        time: '02:00 PM',
-        type: 'Material',
-        location: 'Site A - Batching Plant',
-        status: 'Scheduled',
-        priority: 'Medium'
-      },
-      {
-        id: 3,
-        title: 'Final Inspection - Electrical Panel Room',
-        date: '2024-01-17',
-        time: '11:00 AM',
-        type: 'Final',
-        location: 'Site A - Electrical Room',
-        status: 'Scheduled',
-        priority: 'High'
-      }
-    ]);
+        priority: task.priority === 'high' ? 'High' : task.priority === 'medium' ? 'Medium' : 'Low'
+      })));
+    } catch (error) {
+      console.error('Error loading schedule:', error);
+      setSchedule([]);
+    }
   };
 
   const toggleMenu = () => {
@@ -318,19 +246,20 @@ export default function QualityInspectorDashboard() {
       return;
     }
     try {
-      const incidentId = `INC${Date.now().toString().slice(-8)}`;
-      const response = await safetyAPI.reportIncident({
-        incident_id: incidentId,
+      const inspectionId = `QI${Date.now().toString().slice(-8)}`;
+      const payload = {
+        inspection_id: inspectionId,
         project: 1,
-        title: inspectionForm.title,
-        description: inspectionForm.notes || '',
-        severity: inspectionForm.type === 'Material' ? 'minor' : 'major',
-        location_details: inspectionForm.location,
-        injured_person: '',
-        reported_by: user.id,
-        incident_date: new Date().toISOString(),
-        status: 'reported'
-      });
+        task: 1,
+        inspector: user?.id || 3,
+        inspection_type: inspectionForm.type,
+        scheduled_date: new Date().toISOString().split('T')[0],
+        checklist_items: inspectionForm.notes || ''
+      };
+      console.log('Creating inspection:', payload);
+      const response = await qualityAPI.createInspection(payload);
+      console.log('Inspection created:', response.data);
+      
       const newInspection = {
         id: response.data.id,
         title: inspectionForm.title,
@@ -339,16 +268,18 @@ export default function QualityInspectorDashboard() {
         location: inspectionForm.location,
         result: inspectionForm.result,
         score: inspectionForm.result === 'Pass' ? 90 : 60,
-        inspector: 'Safety Officer',
+        inspector: 'Quality Inspector',
         notes: inspectionForm.notes
       };
       setInspections([newInspection, ...inspections]);
       setInspectionForm({ title: '', location: '', type: 'Material', notes: '', result: 'Pass' });
       setModalVisible(false);
-      Alert.alert('Success', 'Safety incident reported successfully!');
+      Alert.alert('Success', 'Quality inspection created successfully!');
+      loadTestReports();
     } catch (error) {
-      console.error('Error submitting incident:', error.response?.data || error.message);
-      Alert.alert('Error', 'Failed to report incident');
+      console.error('Error creating inspection:', error.response?.data || error.message);
+      const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      Alert.alert('Error', `Failed to create inspection: ${errorMsg}`);
     }
   };
 
@@ -415,25 +346,46 @@ export default function QualityInspectorDashboard() {
     Alert.alert('Success', 'Standard added successfully!');
   };
 
-  const submitSchedule = () => {
+  const submitSchedule = async () => {
     if (!scheduleForm.title || !scheduleForm.date || !scheduleForm.location) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
     }
-    const newSchedule = {
-      id: schedule.length + 1,
-      title: scheduleForm.title,
-      date: scheduleForm.date,
-      time: scheduleForm.time || '09:00 AM',
-      type: scheduleForm.type,
-      location: scheduleForm.location,
-      status: 'Scheduled',
-      priority: scheduleForm.priority
-    };
-    setSchedule([newSchedule, ...schedule]);
-    setScheduleForm({ title: '', date: '', time: '', type: 'Material', location: '', priority: 'Medium' });
-    setModalVisible(false);
-    Alert.alert('Success', 'Inspection scheduled successfully!');
+    try {
+      const inspectionId = `QI${Date.now().toString().slice(-8)}`;
+      const payload = {
+        inspection_id: inspectionId,
+        project: 1,
+        task: 1,
+        inspector: user?.id || 3,
+        inspection_type: scheduleForm.type,
+        scheduled_date: scheduleForm.date,
+        checklist_items: `Scheduled inspection at ${scheduleForm.location}`
+      };
+      console.log('Creating scheduled inspection:', payload);
+      const response = await qualityAPI.createInspection(payload);
+      console.log('Inspection scheduled:', response.data);
+      
+      const newSchedule = {
+        id: response.data.id,
+        title: scheduleForm.title,
+        date: scheduleForm.date,
+        time: scheduleForm.time || '09:00 AM',
+        type: scheduleForm.type,
+        location: scheduleForm.location,
+        status: 'Scheduled',
+        priority: scheduleForm.priority
+      };
+      setSchedule([newSchedule, ...schedule]);
+      setScheduleForm({ title: '', date: '', time: '', type: 'Material', location: '', priority: 'Medium' });
+      setModalVisible(false);
+      Alert.alert('Success', 'Inspection scheduled successfully!');
+      loadTestReports();
+    } catch (error) {
+      console.error('Error scheduling inspection:', error.response?.data || error.message);
+      const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      Alert.alert('Error', `Failed to schedule inspection: ${errorMsg}`);
+    }
   };
 
   const renderContent = () => {
@@ -835,15 +787,7 @@ export default function QualityInspectorDashboard() {
               scrollEnabled={false}
             />
             
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <View style={styles.activityCard}>
-              <Text style={styles.activityTitle}>Concrete Strength Test Completed</Text>
-              <Text style={styles.activityTime}>2 hours ago</Text>
-            </View>
-            <View style={styles.activityCard}>
-              <Text style={styles.activityTitle}>NCR Raised - Welding Quality</Text>
-              <Text style={styles.activityTime}>1 day ago</Text>
-            </View>
+
           </ScrollView>
         );
     }
@@ -1241,15 +1185,29 @@ export default function QualityInspectorDashboard() {
                   }
                   
                   try {
-                    // Update incident via API
                     const updateData = {
-                      status: inspectionData.status === 'passed' ? 'resolved' : 
-                              inspectionData.status === 'failed' ? 'under_investigation' : 'reported',
-                      description: `${inspectionData.observations}\n\nDefects: ${inspectionData.defects_found}\n\nRecommendations: ${inspectionData.recommendations}`
+                      status: inspectionData.status,
+                      observations: inspectionData.observations,
+                      defects_found: inspectionData.defects_found,
+                      recommendations: inspectionData.recommendations,
+                      score: parseInt(inspectionData.score) || 0,
+                      actual_date: new Date().toISOString().split('T')[0]
                     };
                     
-                    console.log('Updating incident:', updateData);
-                    await safetyAPI.updateIncident(currentInspection.id, updateData);
+                    console.log('Updating inspection ID:', currentInspection.id);
+                    console.log('Updating inspection:', updateData);
+                    
+                    // Check if this is a real quality inspection ID
+                    const allInspections = await qualityAPI.getInspections();
+                    const existingInspection = allInspections.data.find(i => i.id === currentInspection.id);
+                    
+                    if (!existingInspection) {
+                      Alert.alert('Error', 'This inspection was not created in the database. Please schedule a new inspection first.');
+                      setInspectionModalVisible(false);
+                      return;
+                    }
+                    
+                    await qualityAPI.updateInspection(currentInspection.id, updateData);
                     
                     const updatedSchedule = schedule.map(s => 
                       s.id === currentInspection.id ? {...s, status: inspectionData.status === 'in_progress' ? 'In Progress' : inspectionData.status.replace('_', ' ')} : s
@@ -1272,8 +1230,8 @@ export default function QualityInspectorDashboard() {
                     setInspectionModalVisible(false);
                     Alert.alert('Success', 'Inspection completed and saved!');
                   } catch (error) {
-                    console.error('Error updating incident:', error.response?.data || error.message);
-                    let errorMsg = 'Failed to update incident';
+                    console.error('Error updating inspection:', error.response?.data || error.message);
+                    let errorMsg = 'Failed to update inspection';
                     if (error.response?.data) {
                       const errorData = error.response.data;
                       if (typeof errorData === 'string') {
@@ -1284,7 +1242,7 @@ export default function QualityInspectorDashboard() {
                         const errors = Object.entries(errorData)
                           .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
                           .join('\n');
-                        errorMsg = errors || 'Failed to update incident';
+                        errorMsg = errors || 'Failed to update inspection';
                       }
                     }
                     Alert.alert('Error', errorMsg);
