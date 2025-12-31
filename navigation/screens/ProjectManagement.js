@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput, Dimensions, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import LoadingSpinner from '../../components/LoadingSpinner';
+
+// Conditionally import MapView only for mobile platforms
+let MapView, Marker;
+if (Platform.OS !== 'web') {
+  const Maps = require('react-native-maps');
+  MapView = Maps.default;
+  Marker = Maps.Marker;
+}
 
 const { width } = Dimensions.get("window");
 import { projectAPI, equipmentAPI, materialAPI } from "../../utils/api";
@@ -21,7 +29,12 @@ export default function ProjectManagement({ navigation, route }) {
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedProjectDetails, setSelectedProjectDetails] = useState(null);
+  const [editProject, setEditProject] = useState({});
   const [equipment, setEquipment] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [materialRequests, setMaterialRequests] = useState([]);
   const { projectId, projectName } = route.params || {};
   const [newProject, setNewProject] = useState({
@@ -138,6 +151,50 @@ export default function ProjectManagement({ navigation, route }) {
     }
   };
 
+  const openProjectDetails = (project) => {
+    setSelectedProjectDetails(project);
+    setDetailsModalVisible(true);
+  };
+
+  const openEditModal = (project) => {
+    setEditProject({
+      ...project,
+      start_date: project.start_date || '',
+      end_date: project.end_date || ''
+    });
+    setDetailsModalVisible(false);
+    setEditModalVisible(true);
+  };
+
+  const updateProject = async () => {
+    if (!editProject.name || !editProject.project_code || !editProject.client) {
+      Alert.alert("Validation Error", "Please fill in Project Name, Project Code, and Client Name");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const response = await projectAPI.update(editProject.id, {
+        name: editProject.name,
+        project_code: editProject.project_code,
+        client: editProject.client,
+        project_type: editProject.project_type,
+        status: editProject.status,
+        description: editProject.description || '',
+        location: editProject.location || '',
+        start_date: editProject.start_date || null,
+        end_date: editProject.end_date || null,
+        total_budget: editProject.total_budget ? parseFloat(editProject.total_budget) : 0
+      });
+      Alert.alert("Success", "Project updated successfully");
+      setEditModalVisible(false);
+      loadProjects();
+    } catch (error) {
+      Alert.alert("Error", "Failed to update project");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const createProject = async () => {
     // Validate required fields
     if (!newProject.name || !newProject.project_code || !newProject.client) {
@@ -145,6 +202,7 @@ export default function ProjectManagement({ navigation, route }) {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       // Get current user ID
       const userStr = await AsyncStorage.getItem('user');
@@ -211,6 +269,8 @@ export default function ProjectManagement({ navigation, route }) {
       }
       
       Alert.alert("Error", errorMsg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -277,10 +337,13 @@ export default function ProjectManagement({ navigation, route }) {
       
       <View style={styles.projectActions}>
         <TouchableOpacity style={styles.actionButton} onPress={() => setSelectedProject(item)}>
-          <Text style={styles.actionButtonText}>Select Project</Text>
+          <Text style={styles.actionButtonText}>Select</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionButton, {backgroundColor: "#28a745"}]} onPress={() => openProjectDetails(item)}>
+          <Text style={styles.actionButtonText}>Details</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.actionButton, {backgroundColor: "#FF9800"}]} onPress={() => navigation.navigate('MaterialRequests', {projectId: item.id})}>
-          <Text style={styles.actionButtonText}>Request Materials</Text>
+          <Text style={styles.actionButtonText}>Materials</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -408,8 +471,16 @@ export default function ProjectManagement({ navigation, route }) {
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.createButton} onPress={createProject}>
-                <Text style={styles.createButtonText}>Create Project</Text>
+              <TouchableOpacity 
+                style={[styles.createButton, isSubmitting && styles.disabledButton]} 
+                onPress={createProject}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <LoadingSpinner text="Creating..." />
+                ) : (
+                  <Text style={styles.createButtonText}>Create Project</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -494,6 +565,148 @@ export default function ProjectManagement({ navigation, route }) {
           onChange={onEndDateChange}
         />
       )}
+
+      {/* Project Details Modal */}
+      <Modal visible={detailsModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.detailsHeader}>
+              <Text style={styles.modalTitle}>Project Details</Text>
+              <TouchableOpacity onPress={() => setDetailsModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.detailsContent}>
+              <Text style={styles.detailTitle}>{selectedProjectDetails?.name}</Text>
+              <Text style={styles.detailItem}>Code: {selectedProjectDetails?.project_code}</Text>
+              <Text style={styles.detailItem}>Client: {selectedProjectDetails?.client}</Text>
+              <Text style={styles.detailItem}>Type: {selectedProjectDetails?.project_type}</Text>
+              <Text style={styles.detailItem}>Status: {selectedProjectDetails?.status}</Text>
+              <Text style={styles.detailItem}>Manager: {selectedProjectDetails?.project_manager_name || selectedProjectDetails?.project_manager}</Text>
+              <Text style={styles.detailItem}>Budget: ${selectedProjectDetails?.total_budget?.toLocaleString()}</Text>
+              <Text style={styles.detailItem}>Start: {selectedProjectDetails?.start_date || 'Not set'}</Text>
+              <Text style={styles.detailItem}>End: {selectedProjectDetails?.end_date || 'Not set'}</Text>
+              <Text style={styles.detailItem}>Location: {selectedProjectDetails?.location || 'Not specified'}</Text>
+              {selectedProjectDetails?.latitude && selectedProjectDetails?.longitude && (
+                <Text style={styles.detailItem}>Coordinates: {selectedProjectDetails.latitude}, {selectedProjectDetails.longitude}</Text>
+              )}
+              {selectedProjectDetails?.description && (
+                <Text style={styles.detailDescription}>Description: {selectedProjectDetails.description}</Text>
+              )}
+            </ScrollView>
+            <View style={styles.detailsActions}>
+              <TouchableOpacity style={styles.editButton} onPress={() => openEditModal(selectedProjectDetails)}>
+                <Text style={styles.editButtonText}>Edit Project</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Project Modal */}
+      <Modal visible={editModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Project</Text>
+            <ScrollView style={styles.formScrollView}>
+              <TextInput
+                style={styles.formInput}
+                placeholder="Project Name *"
+                value={editProject.name}
+                onChangeText={(text) => setEditProject({...editProject, name: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Project Code *"
+                value={editProject.project_code}
+                onChangeText={(text) => setEditProject({...editProject, project_code: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Client Name *"
+                value={editProject.client}
+                onChangeText={(text) => setEditProject({...editProject, client: text})}
+              />
+              <Text style={styles.inputLabel}>Project Type</Text>
+              <View style={styles.typeRow}>
+                {['residential', 'commercial', 'industrial', 'infrastructure'].map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[styles.typeOption, editProject.project_type === type && styles.selectedType]}
+                    onPress={() => setEditProject({...editProject, project_type: type})}
+                  >
+                    <Text style={[styles.typeText, editProject.project_type === type && styles.selectedTypeText]}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.inputLabel}>Project Status</Text>
+              <View style={styles.typeRow}>
+                {['planning', 'active', 'on_hold', 'completed', 'cancelled'].map((status) => (
+                  <TouchableOpacity
+                    key={status}
+                    style={[styles.typeOption, editProject.status === status && styles.selectedType]}
+                    onPress={() => setEditProject({...editProject, status: status})}
+                  >
+                    <Text style={[styles.typeText, editProject.status === status && styles.selectedTypeText]}>
+                      {status.replace('_', ' ').toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={[styles.formInput, styles.textArea]}
+                placeholder="Description"
+                value={editProject.description}
+                onChangeText={(text) => setEditProject({...editProject, description: text})}
+                multiline
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Location"
+                value={editProject.location}
+                onChangeText={(text) => setEditProject({...editProject, location: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Start Date (YYYY-MM-DD)"
+                value={editProject.start_date}
+                onChangeText={(text) => setEditProject({...editProject, start_date: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="End Date (YYYY-MM-DD)"
+                value={editProject.end_date}
+                onChangeText={(text) => setEditProject({...editProject, end_date: text})}
+              />
+              <TextInput
+                style={styles.formInput}
+                placeholder="Budget"
+                value={editProject.total_budget?.toString()}
+                onChangeText={(text) => setEditProject({...editProject, total_budget: text})}
+                keyboardType="numeric"
+              />
+            </ScrollView>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setEditModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.createButton, isSubmitting && styles.disabledButton]} 
+                onPress={updateProject}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <LoadingSpinner text="Updating..." />
+                ) : (
+                  <Text style={styles.createButtonText}>Update Project</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -921,5 +1134,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     marginLeft: 10,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  detailsContent: {
+    maxHeight: 400,
+  },
+  detailTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#003366',
+    marginBottom: 15,
+  },
+  detailItem: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 8,
+  },
+  detailDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 10,
+    fontStyle: 'italic',
+  },
+  detailsActions: {
+    marginTop: 20,
+  },
+  editButton: {
+    backgroundColor: '#004AAD',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#003366',
+    marginBottom: 8,
+    marginTop: 5,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 15,
+  },
+  typeOption: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  selectedType: {
+    backgroundColor: '#004AAD',
+    borderColor: '#004AAD',
+  },
+  typeText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  selectedTypeText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

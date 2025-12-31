@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import StyledTextInput from '../components/StyledTextInput';
+import LoadingSpinner from '../components/LoadingSpinner';
 import api, { authAPI } from "../utils/api";
 import { getRoleDisplayInfo, getDashboardRoute } from "../utils/rolePermissions";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -153,7 +154,7 @@ export default function BeemjiLogin({ navigation }) {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <Text style={styles.buttonText}>Logging in...</Text>
           ) : (
             <Text style={styles.buttonText}>Login</Text>
           )}
@@ -171,6 +172,12 @@ export default function BeemjiLogin({ navigation }) {
       {!isWeb && <Text style={styles.footer}>Empowering Construction with Precision</Text>}
       {isWeb && <Text style={styles.webFooter}>Empowering Construction with Precision</Text>}
 
+      {/* Full Screen Loading */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <LoadingSpinner text="Logging in..." size={400} />
+        </View>
+      )}
     </View>
   );
 }
@@ -287,5 +294,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#004AAD",
     fontWeight: "600",
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(245, 249, 252, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    display: 'flex',
+    paddingLeft: 20,
+    paddingBottom: 40,
   },
 });

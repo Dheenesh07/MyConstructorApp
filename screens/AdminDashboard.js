@@ -291,7 +291,11 @@ export default function AdminDashboard() {
 
   const handleMenuClick = (page) => {
     toggleMenu();
-    setActivePage(page);
+    if (page === 'User Management') {
+      navigation.navigate('UserManagement');
+    } else {
+      setActivePage(page);
+    }
   };
 
   const generateReport = () => {
@@ -507,35 +511,19 @@ export default function AdminDashboard() {
           <ScrollView style={styles.fullContainer}>
             <View style={styles.pageHeader}>
               <Text style={styles.pageTitle}>👥 User Management</Text>
-              <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-                <Ionicons name="add" size={20} color="#fff" />
-                <Text style={styles.addButtonText}>Add User</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('UserManagement')}>
+                <Ionicons name="briefcase" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>Manage Users</Text>
               </TouchableOpacity>
             </View>
             
-            {users.map(user => (
-              <View key={user.id} style={styles.userCard}>
-                <View style={styles.userHeader}>
-                  <Text style={styles.userName}>{user.name}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: user.status === 'Active' ? '#4CAF50' : '#F44336' }]}>
-                    <Text style={styles.statusText}>{user.status}</Text>
-                  </View>
-                </View>
-                <Text style={styles.userEmail}>{user.email}</Text>
-                <View style={styles.userDetails}>
-                  <Text style={styles.userRole}>{user.role.replace('_', ' ').toUpperCase()}</Text>
-                  <Text style={styles.userLastLogin}>Last login: {user.lastLogin}</Text>
-                </View>
-                <View style={styles.userActions}>
-                  <TouchableOpacity style={styles.actionBtn} onPress={() => editUser(user)}>
-                    <Text style={styles.actionBtnText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={() => deleteUser(user)}>
-                    <Text style={styles.actionBtnText}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
+            <View style={styles.managementCard}>
+              <Text style={styles.managementTitle}>User Management</Text>
+              <Text style={styles.managementDescription}>Create, edit, and manage user accounts and permissions</Text>
+              <TouchableOpacity style={styles.managementButton} onPress={() => navigation.navigate('UserManagement')}>
+                <Text style={styles.managementButtonText}>Open User Management</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         );
 
@@ -1194,7 +1182,7 @@ export default function AdminDashboard() {
 
                 <TouchableOpacity
                   style={[styles.controlCard, { backgroundColor: '#E8F5E8' }]}
-                  onPress={() => setActivePage('User Management')}
+                  onPress={() => navigation.navigate('UserManagement')}
                 >
                   <View style={styles.controlIcon}>
                     <Ionicons name="people" size={32} color="#388E3C" />
@@ -1236,6 +1224,72 @@ export default function AdminDashboard() {
                     <Text style={styles.controlMetricLabel}>Compliance Rate</Text>
                   </View>
                 </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Performance Charts - Use real data only */}
+            <View style={styles.chartsSection}>
+              <Text style={styles.sectionTitle}>📈 Performance Overview</Text>
+              <View style={styles.chartGrid}>
+                <View style={styles.chartCard}>
+                  <Text style={styles.chartTitle}>Project Status</Text>
+                  <View style={styles.progressChart}>
+                    <View style={[styles.progressSegment, { 
+                      flex: projects.filter(p => p.status === 'completed').length || 1, 
+                      backgroundColor: '#4CAF50' 
+                    }]} />
+                    <View style={[styles.progressSegment, { 
+                      flex: projects.filter(p => p.status === 'active' || p.status === 'in_progress').length || 1, 
+                      backgroundColor: '#FF9800' 
+                    }]} />
+                    <View style={[styles.progressSegment, { 
+                      flex: projects.filter(p => p.status === 'planning').length || 1, 
+                      backgroundColor: '#2196F3' 
+                    }]} />
+                  </View>
+                  <View style={styles.chartLegend}>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: '#4CAF50' }]} />
+                      <Text style={styles.legendText}>Completed ({projects.filter(p => p.status === 'completed').length})</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: '#FF9800' }]} />
+                      <Text style={styles.legendText}>Active ({projects.filter(p => p.status === 'active' || p.status === 'in_progress').length})</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: '#2196F3' }]} />
+                      <Text style={styles.legendText}>Planning ({projects.filter(p => p.status === 'planning').length})</Text>
+                    </View>
+                  </View>
+                </View>
+                
+                <View style={styles.chartCard}>
+                  <Text style={styles.chartTitle}>Budget Status</Text>
+                  <View style={styles.budgetChart}>
+                    <View style={styles.budgetBar}>
+                      <View style={[styles.budgetFill, { width: `${calculateBudgetEfficiency()}%` }]} />
+                    </View>
+                    <Text style={styles.budgetText}>{calculateBudgetEfficiency()}% Efficiency</Text>
+                  </View>
+                  <Text style={styles.budgetAmount}>₹{(calculateTotalRevenue() / 1000000).toFixed(1)}M Revenue</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Team Performance - Use real user data */}
+            <View style={styles.teamSection}>
+              <Text style={styles.sectionTitle}>👥 Recent Users</Text>
+              <View style={styles.teamGrid}>
+                {users.slice(0, 3).map((user, index) => (
+                  <View key={user.id} style={styles.performerCard}>
+                    <View style={styles.performerAvatar}>
+                      <Text style={styles.performerInitial}>{user.name?.charAt(0).toUpperCase() || 'U'}</Text>
+                    </View>
+                    <Text style={styles.performerName}>{user.name || user.email?.split('@')[0] || 'User'}</Text>
+                    <Text style={styles.performerRole}>{user.role?.replace('_', ' ').toUpperCase() || 'WORKER'}</Text>
+                    <Text style={styles.performerStatus}>{user.status || 'Active'}</Text>
+                  </View>
+                ))}
               </View>
             </View>
 
@@ -2805,5 +2859,202 @@ const styles = StyleSheet.create({
     color: "#333",
     marginLeft: 10,
     flex: 1,
+  },
+
+  // Weather Widget Styles
+  weatherWidget: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    elevation: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  weatherHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  weatherTemp: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#003366",
+    marginLeft: 10,
+  },
+  weatherDesc: {
+    fontSize: 14,
+    color: "#4CAF50",
+    fontWeight: "600",
+  },
+  weatherLocation: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  // Activity Feed Styles
+  activitySection: {
+    marginBottom: 25,
+  },
+  activityFeed: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    elevation: 2,
+  },
+  activityItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 15,
+  },
+  activityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 6,
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 4,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: "#999",
+  },
+
+  // Charts Section Styles
+  chartsSection: {
+    marginBottom: 25,
+  },
+  chartGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  chartCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    width: "48%",
+    elevation: 3,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 15,
+  },
+  progressChart: {
+    flexDirection: "row",
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 15,
+  },
+  progressSegment: {
+    height: "100%",
+  },
+  chartLegend: {
+    flexDirection: "column",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  legendText: {
+    fontSize: 12,
+    color: "#666",
+  },
+  budgetChart: {
+    marginBottom: 10,
+  },
+  budgetBar: {
+    height: 8,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  budgetFill: {
+    height: "100%",
+    backgroundColor: "#4CAF50",
+  },
+  budgetText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#4CAF50",
+    textAlign: "center",
+  },
+  budgetAmount: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
+    marginTop: 5,
+  },
+
+  // Team Performance Styles
+  teamSection: {
+    marginBottom: 25,
+  },
+  teamGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  performerCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 15,
+    width: "30%",
+    alignItems: "center",
+    elevation: 2,
+  },
+  performerAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#003366",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  performerInitial: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  performerName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  performerRole: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  performerStatus: {
+    fontSize: 11,
+    color: "#4CAF50",
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

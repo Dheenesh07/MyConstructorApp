@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import { userAPI } from "../../utils/api";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 export default function UserManagement({ navigation }) {
+  return (
+    <SafeAreaProvider>
+      <UserManagementContent navigation={navigation} />
+    </SafeAreaProvider>
+  );
+}
+
+function UserManagementContent({ navigation }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
@@ -17,15 +31,78 @@ export default function UserManagement({ navigation }) {
     department: ''
   });
 
+  const [editUser, setEditUser] = useState({
+    username: '',
+    email: '',
+    password: '',
+    role: 'worker',
+    phone: '',
+    employee_id: '',
+    department: ''
+  });
+
   const roles = [
-    { value: 'admin', label: 'Admin' },
-    { value: 'project_manager', label: 'Project Manager' },
-    { value: 'site_engineer', label: 'Site Engineer' },
-    { value: 'foreman', label: 'Foreman' },
-    { value: 'worker', label: 'Worker' },
-    { value: 'safety_officer', label: 'Safety Officer' },
-    { value: 'quality_inspector', label: 'Quality Inspector' }
+    { value: 'admin', label: 'Admin', icon: 'settings' },
+    { value: 'project_manager', label: 'Project Manager', icon: 'briefcase' },
+    { value: 'site_engineer', label: 'Site Engineer', icon: 'construct' },
+    { value: 'foreman', label: 'Foreman', icon: 'people' },
+    { value: 'worker', label: 'Construction Worker', icon: 'hammer' },
+    { value: 'safety_officer', label: 'Safety Officer', icon: 'shield-checkmark' },
+    { value: 'quality_inspector', label: 'Quality Inspector', icon: 'checkmark-circle' }
   ];
+
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setEditUser({
+      username: user.username,
+      email: user.email,
+      password: '',
+      role: user.role,
+      phone: user.phone || '',
+      employee_id: user.employee_id || '',
+      department: user.department || ''
+    });
+    setEditModalVisible(true);
+  };
+
+  const updateUser = async () => {
+    if (!editUser.username || !editUser.email || !editUser.role) {
+      Alert.alert('Error', 'Please fill all required fields');
+      return;
+    }
+
+    setIsEditing(true);
+    try {
+      const userData = {
+        ...editUser,
+        username: editUser.username.trim(),
+        email: editUser.email.trim().toLowerCase(),
+        phone: editUser.phone.trim(),
+        employee_id: editUser.employee_id.trim() || selectedUser.employee_id,
+        department: editUser.department.trim() || 'Construction'
+      };
+      
+      // Only include password if it's provided
+      if (editUser.password && editUser.password.trim()) {
+        if (editUser.password.length < 6) {
+          Alert.alert('Error', 'Password must be at least 6 characters');
+          setIsEditing(false);
+          return;
+        }
+        userData.password = editUser.password.trim();
+      }
+      
+      await userAPI.update(selectedUser.id, userData);
+      Alert.alert("Success", "User updated successfully");
+      setEditModalVisible(false);
+      setSelectedUser(null);
+      loadUsers();
+    } catch (error) {
+      Alert.alert("Error", "Failed to update user");
+    } finally {
+      setIsEditing(false);
+    }
+  };
 
   useEffect(() => {
     loadUsers();
@@ -45,8 +122,34 @@ export default function UserManagement({ navigation }) {
   };
 
   const createUser = async () => {
+    // Validation
+    if (!newUser.username || !newUser.email || !newUser.password || !newUser.role) {
+      Alert.alert('Error', 'Please fill all required fields');
+      return;
+    }
+
+    if (newUser.phone && (newUser.phone.length < 10 || newUser.phone.length > 15)) {
+      Alert.alert('Error', 'Phone number must be between 10-15 digits');
+      return;
+    }
+
+    if (newUser.password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    setIsCreating(true);
     try {
-      await userAPI.create(newUser);
+      const userData = {
+        ...newUser,
+        username: newUser.username.trim(),
+        email: newUser.email.trim().toLowerCase(),
+        phone: newUser.phone.trim(),
+        employee_id: newUser.employee_id.trim() || `EMP${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 99).toString().padStart(2, '0')}`,
+        department: newUser.department.trim() || 'Construction'
+      };
+      
+      await userAPI.create(userData);
       Alert.alert("Success", "User created successfully");
       setModalVisible(false);
       setNewUser({
@@ -60,7 +163,24 @@ export default function UserManagement({ navigation }) {
       });
       loadUsers();
     } catch (error) {
-      Alert.alert("Error", "Failed to create user");
+      let errorMessage = 'Failed to create user. Please try again.';
+      
+      if (error.response?.data) {
+        const data = error.response.data;
+        if (data.username) {
+          errorMessage = `Username: ${Array.isArray(data.username) ? data.username[0] : data.username}`;
+        } else if (data.email) {
+          errorMessage = `Email: ${Array.isArray(data.email) ? data.email[0] : data.email}`;
+        } else if (data.phone) {
+          errorMessage = `Phone: ${Array.isArray(data.phone) ? data.phone[0] : data.phone}`;
+        } else if (data.detail) {
+          errorMessage = data.detail;
+        }
+      }
+      
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -113,7 +233,7 @@ export default function UserManagement({ navigation }) {
         <View style={[styles.statusBadge, { backgroundColor: item.is_active ? '#28a745' : '#dc3545' }]}>
           <Text style={styles.statusText}>{item.is_active ? 'ACTIVE' : 'INACTIVE'}</Text>
         </View>
-        <TouchableOpacity style={styles.editButton}>
+        <TouchableOpacity style={styles.editButton} onPress={() => handleEditUser(item)}>
           <Text style={styles.editButtonText}>Edit</Text>
         </TouchableOpacity>
       </View>
@@ -121,7 +241,7 @@ export default function UserManagement({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <Ionicons name="people" size={24} color="#003366" style={{marginRight: 8}} />
@@ -199,7 +319,7 @@ export default function UserManagement({ navigation }) {
               onChangeText={(text) => setNewUser({...newUser, department: text})}
             />
             <Text style={styles.roleLabel}>Role:</Text>
-            <View style={styles.roleSelector}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roleSelector}>
               {roles.map((role) => (
                 <TouchableOpacity
                   key={role.value}
@@ -209,6 +329,12 @@ export default function UserManagement({ navigation }) {
                   ]}
                   onPress={() => setNewUser({...newUser, role: role.value})}
                 >
+                  <Ionicons 
+                    name={role.icon} 
+                    size={16} 
+                    color={newUser.role === role.value ? '#fff' : '#003366'} 
+                    style={styles.roleIcon}
+                  />
                   <Text style={[
                     styles.roleOptionText,
                     newUser.role === role.value && styles.selectedRoleText
@@ -217,19 +343,114 @@ export default function UserManagement({ navigation }) {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
           </ScrollView>
           <View style={styles.modalButtons}>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.createButton} onPress={createUser}>
-              <Text style={styles.createButtonText}>Create</Text>
+            <TouchableOpacity 
+              style={[styles.createButton, isCreating && styles.disabledButton]} 
+              onPress={createUser}
+              disabled={isCreating}
+            >
+              <Text style={styles.createButtonText}>
+                {isCreating ? 'Creating...' : 'Create'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+      
+      {/* Edit User Modal */}
+      <Modal visible={editModalVisible} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Edit User</Text>
+          <ScrollView style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              value={editUser.username}
+              onChangeText={(text) => setEditUser({...editUser, username: text})}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={editUser.email}
+              onChangeText={(text) => setEditUser({...editUser, email: text})}
+              keyboardType="email-address"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="New Password (leave blank to keep current)"
+              value={editUser.password}
+              onChangeText={(text) => setEditUser({...editUser, password: text})}
+              secureTextEntry
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Phone"
+              value={editUser.phone}
+              onChangeText={(text) => setEditUser({...editUser, phone: text})}
+              keyboardType="phone-pad"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Department"
+              value={editUser.department}
+              onChangeText={(text) => setEditUser({...editUser, department: text})}
+            />
+            <Text style={styles.roleLabel}>Role:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roleSelector}>
+              {roles.map((role) => (
+                <TouchableOpacity
+                  key={role.value}
+                  style={[
+                    styles.roleOption,
+                    editUser.role === role.value && styles.selectedRole
+                  ]}
+                  onPress={() => setEditUser({...editUser, role: role.value})}
+                >
+                  <Ionicons 
+                    name={role.icon} 
+                    size={16} 
+                    color={editUser.role === role.value ? '#fff' : '#003366'} 
+                    style={styles.roleIcon}
+                  />
+                  <Text style={[
+                    styles.roleOptionText,
+                    editUser.role === role.value && styles.selectedRoleText
+                  ]}>
+                    {role.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </ScrollView>
+          <View style={styles.modalButtons}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setEditModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.createButton, isEditing && styles.disabledButton]} 
+              onPress={updateUser}
+              disabled={isEditing}
+            >
+              <Text style={styles.createButtonText}>
+                {isEditing ? 'Updating...' : 'Update'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Loading Overlay */}
+      {(isCreating || isEditing) && (
+        <View style={styles.loadingOverlay}>
+          <LoadingSpinner text={isCreating ? "Creating user..." : "Updating user..."} size={300} />
+        </View>
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -392,23 +613,26 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   roleSelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     marginBottom: 20,
   },
   roleOption: {
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: "#f8f9fa",
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#e0e0e0",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
     marginRight: 10,
-    marginBottom: 10,
+    minWidth: 120,
+  },
+  roleIcon: {
+    marginRight: 6,
   },
   selectedRole: {
-    backgroundColor: "#004AAD",
-    borderColor: "#004AAD",
+    backgroundColor: "#003366",
+    borderColor: "#003366",
   },
   roleOptionText: {
     fontSize: 12,
@@ -445,5 +669,19 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  disabledButton: {
+    backgroundColor: "#cccccc",
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(245, 249, 252, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
   },
 });
