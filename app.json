@@ -21,7 +21,9 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.kumaravel07.beemjibuilders"
+      "package": "com.kumaravel07.beemjibuilders",
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": []
     },
     "web": {
       "favicon": "./assets/beemji logo ai.png"
@@ -33,7 +35,15 @@
     },
     "owner": "kumaravel_07",
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ]
   }
 }
