@@ -48,13 +48,22 @@ export default function AttendanceTracking() {
       if (userData) {
         const currentUser = JSON.parse(userData);
         const userId = currentUser.id || currentUser.user_id;
-        const response = await attendanceAPI.getByUser(userId);
+        
+        let response;
+        if (currentUser.role === 'admin') {
+          // Admin sees all attendances
+          response = await attendanceAPI.getAll();
+        } else {
+          // Other users see only their own
+          response = await attendanceAPI.getByUser(userId);
+        }
+        
         setAttendances(response.data || []);
         
-        // Check if there's a check-in today without check-out
         const today = new Date().toISOString().split('T')[0];
         const todayRecord = (response.data || []).find(att => 
-          att.date === today && att.check_in_time && !att.check_out_time
+          att.date === today && att.check_in_time && !att.check_out_time &&
+          (currentUser.role === 'admin' ? true : att.user === userId)
         );
         setTodayAttendance(todayRecord);
       }
@@ -128,8 +137,22 @@ export default function AttendanceTracking() {
       setMapModalVisible(false);
       loadAttendances();
     } catch (error) {
-      console.error('Check-in error:', error.response?.data || error);
-      Alert.alert('Error', `Failed to check in: ${error.response?.data?.detail || error.message}`);
+      if (error.response?.data?.non_field_errors) {
+        Alert.alert(
+          'Already Checked In', 
+          'You can only check in once per day. Please check out first if you need to update your attendance.',
+          [
+            { text: 'OK' },
+            { 
+              text: 'Send Reminder', 
+              onPress: () => Alert.alert('Reminder Sent', 'A reminder to check out has been sent to admin.')
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', `Failed to check in: ${error.response?.data?.detail || error.message}`);
+      }
+      setMapModalVisible(false);
     }
   };
 
@@ -142,7 +165,6 @@ export default function AttendanceTracking() {
     const now = new Date();
     const checkOutTime = now.toTimeString().split(' ')[0];
     
-    // Calculate hours worked
     const checkInParts = todayAttendance.check_in_time.split(':');
     const checkOutParts = checkOutTime.split(':');
     const checkInMinutes = parseInt(checkInParts[0]) * 60 + parseInt(checkInParts[1]);
@@ -180,7 +202,6 @@ export default function AttendanceTracking() {
           <RefreshControl refreshing={loading} onRefresh={loadAttendances} />
         }
       >
-        {/* Check-in/Check-out Card */}
         <View style={styles.actionCard}>
           <Text style={styles.cardTitle}>Today's Attendance</Text>
           <Text style={styles.dateText}>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Text>
@@ -232,16 +253,24 @@ export default function AttendanceTracking() {
           )}
         </View>
 
-        {/* Attendance History */}
         <View style={styles.historySection}>
-          <Text style={styles.sectionTitle}>Attendance History</Text>
+          <Text style={styles.sectionTitle}>
+            {user?.role === 'admin' ? 'All Members Attendance' : 'Attendance History'}
+          </Text>
           {attendances.length > 0 ? (
             attendances.map((attendance) => (
               <View key={attendance.id} style={styles.attendanceCard}>
                 <View style={styles.attendanceHeader}>
-                  <Text style={styles.attendanceDate}>
-                    {attendance.date || 'N/A'}
-                  </Text>
+                  <View>
+                    <Text style={styles.attendanceDate}>
+                      {attendance.date || 'N/A'}
+                    </Text>
+                    {user?.role === 'admin' && (
+                      <Text style={styles.userName}>
+                        {attendance.user_name || `User ${attendance.user}`}
+                      </Text>
+                    )}
+                  </View>
                   <View style={[styles.statusBadge, { 
                     backgroundColor: attendance.check_out_time ? '#4CAF50' : '#FF9800' 
                   }]}>
@@ -480,6 +509,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     marginTop: 12,
+  },
+  userName: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
   mapModalOverlay: {
     flex: 1,

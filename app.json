@@ -21,7 +21,18 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.kumaravel07.beemjibuilders"
+      "package": "com.kumaravel07.beemjibuilders",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAjjgrFIJPFOPwXbdY_QX53H0by_4BQuzU"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/beemji logo ai.png"
@@ -33,7 +44,8 @@
     },
     "owner": "kumaravel_07",
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-location"
     ]
   }
 }

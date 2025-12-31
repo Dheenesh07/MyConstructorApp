@@ -42,6 +42,7 @@ export default function AppNavigator() {
           headerStyle: { backgroundColor: "#003366" },
           headerTintColor: "#fff",
           headerTitleStyle: { fontWeight: "bold" },
+          headerLeft: () => null,
         }}
       >
         {/* Authentication */}
@@ -61,7 +62,7 @@ export default function AppNavigator() {
           name="AdminDashboard"
           component={AdminDashboard}
           options={{ 
-            title: "🏗️ Admin Dashboard",
+            title: " Admin Dashboard",
             headerLeft: () => null,
             gestureEnabled: false
           }}
