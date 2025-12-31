@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import StyledTextInput from '../components/StyledTextInput';
 import { authAPI } from '../utils/api';
 import axios from 'axios';
 
@@ -205,35 +205,32 @@ export default function SignupScreen() {
         <View style={styles.formContainer}>
           {/* Username */}
           <Text style={styles.label}>Username *</Text>
-          <TextInput
+          <StyledTextInput
             style={styles.input}
             value={formData.username}
             onChangeText={(text) => updateFormData('username', text)}
             placeholder="john_smith"
-            placeholderTextColor="#999"
             autoCapitalize="none"
           />
 
           {/* Email */}
           <Text style={styles.label}>Email Address *</Text>
-          <TextInput
+          <StyledTextInput
             style={styles.input}
             value={formData.email}
             onChangeText={(text) => updateFormData('email', text)}
             placeholder="john.smith@company.com"
-            placeholderTextColor="#999"
             keyboardType="email-address"
             autoCapitalize="none"
           />
 
           {/* Phone */}
           <Text style={styles.label}>Phone Number *</Text>
-          <TextInput
+          <StyledTextInput
             style={styles.input}
             value={formData.phone}
             onChangeText={(text) => updateFormData('phone', text.replace(/[^0-9]/g, ''))}
             placeholder="1234567890 (10-15 digits)"
-            placeholderTextColor="#999"
             keyboardType="phone-pad"
             maxLength={15}
           />
@@ -272,34 +269,31 @@ export default function SignupScreen() {
 
           {/* Employee ID */}
           <Text style={styles.label}>Employee ID</Text>
-          <TextInput
+          <StyledTextInput
             style={styles.input}
             value={formData.employee_id}
             onChangeText={(text) => updateFormData('employee_id', text)}
             placeholder="EMP001 (auto-generated if empty)"
-            placeholderTextColor="#999"
             autoCapitalize="characters"
           />
 
           {/* Department */}
           <Text style={styles.label}>Department</Text>
-          <TextInput
+          <StyledTextInput
             style={styles.input}
             value={formData.department}
             onChangeText={(text) => updateFormData('department', text)}
             placeholder="Construction (auto-generated if empty)"
-            placeholderTextColor="#999"
           />
 
           {/* Password */}
           <Text style={styles.label}>Password *</Text>
           <View style={styles.passwordContainer}>
-            <TextInput
+            <StyledTextInput
               style={styles.passwordInput}
               value={formData.password}
               onChangeText={(text) => updateFormData('password', text)}
               placeholder="Minimum 6 characters"
-              placeholderTextColor="#999"
               secureTextEntry={!showPassword}
             />
             <TouchableOpacity
@@ -320,12 +314,11 @@ export default function SignupScreen() {
             styles.passwordContainer,
             formData.confirmPassword && !passwordMatch && styles.passwordMismatch
           ]}>
-            <TextInput
+            <StyledTextInput
               style={styles.passwordInput}
               value={formData.confirmPassword}
               onChangeText={(text) => updateFormData('confirmPassword', text)}
               placeholder="Re-enter your password"
-              placeholderTextColor="#999"
               secureTextEntry={!showConfirmPassword}
             />
             <TouchableOpacity

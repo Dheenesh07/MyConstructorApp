@@ -22,6 +22,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.kumaravel07.beemjibuilders",
+<<<<<<< HEAD
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -33,6 +34,10 @@
           "apiKey": "AIzaSyAjjgrFIJPFOPwXbdY_QX53H0by_4BQuzU"
         }
       }
+=======
+      "softwareKeyboardLayoutMode": "pan",
+      "permissions": []
+>>>>>>> 7b40b6b63d182c60dc3be86b15ffb02b2896f572
     },
     "web": {
       "favicon": "./assets/beemji logo ai.png"
@@ -45,7 +50,18 @@
     "owner": "kumaravel_07",
     "plugins": [
       "expo-font",
+<<<<<<< HEAD
       "expo-location"
+=======
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+>>>>>>> 7b40b6b63d182c60dc3be86b15ffb02b2896f572
     ]
   }
 }

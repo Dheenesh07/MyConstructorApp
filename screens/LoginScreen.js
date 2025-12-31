@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   Animated,
   Easing,
@@ -14,6 +13,7 @@ import {
   Dimensions,
 } from "react-native";
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import StyledTextInput from '../components/StyledTextInput';
 import api, { authAPI } from "../utils/api";
 import { getRoleDisplayInfo, getDashboardRoute } from "../utils/rolePermissions";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -118,9 +118,8 @@ export default function BeemjiLogin({ navigation }) {
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
             <Icon name="person-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
+            <StyledTextInput
               placeholder="Username"
-              placeholderTextColor="#999"
               value={username}
               onChangeText={setUsername}
               style={styles.input}
@@ -128,9 +127,8 @@ export default function BeemjiLogin({ navigation }) {
           </View>
           <View style={styles.inputWrapper}>
             <Icon name="lock-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
+            <StyledTextInput
               placeholder="Password"
-              placeholderTextColor="#999"
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
