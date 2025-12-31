@@ -268,13 +268,20 @@ export default function SafetyCompliance({ navigation }) {
             onChangeText={(text) => setNewIncident({...newIncident, injured_person: text})}
           />
           
-          <TextInput
-            style={styles.input}
-            placeholder="Reported By (User ID) *"
-            value={newIncident.reported_by}
-            onChangeText={(text) => setNewIncident({...newIncident, reported_by: text})}
-            keyboardType="numeric"
-          />
+          <Text style={styles.typeLabel}>Reported By *</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectScroll}>
+            {users.map((user) => (
+              <TouchableOpacity
+                key={user.id}
+                style={[styles.typeOption, newIncident.reported_by === user.id && styles.selectedType]}
+                onPress={() => setNewIncident({...newIncident, reported_by: user.id})}
+              >
+                <Text style={[styles.typeText, newIncident.reported_by === user.id && styles.selectedTypeText]}>
+                  {user.username}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
           </ScrollView>
 
           <View style={styles.modalButtons}>
@@ -317,13 +324,20 @@ export default function SafetyCompliance({ navigation }) {
             ))}
           </View>
           
-          <TextInput
-            style={styles.input}
-            placeholder="Investigated By (User ID)"
-            value={updateForm.investigated_by}
-            onChangeText={(text) => setUpdateForm({...updateForm, investigated_by: text})}
-            keyboardType="numeric"
-          />
+          <Text style={styles.typeLabel}>Investigated By</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.projectScroll}>
+            {users.map((user) => (
+              <TouchableOpacity
+                key={user.id}
+                style={[styles.typeOption, updateForm.investigated_by === user.id && styles.selectedType]}
+                onPress={() => setUpdateForm({...updateForm, investigated_by: user.id})}
+              >
+                <Text style={[styles.typeText, updateForm.investigated_by === user.id && styles.selectedTypeText]}>
+                  {user.username}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
           
           <TextInput
             style={[styles.input, { height: 100 }]}

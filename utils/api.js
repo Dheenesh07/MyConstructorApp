@@ -23,7 +23,6 @@ const getAuthHeaders = async () => {
       console.warn('⚠️ No token found in AsyncStorage');
       return { 'X-API-Key': API_KEY };
     }
-    console.log('✅ Token retrieved:', token.substring(0, 20) + '...');
     return { 
       'Authorization': `Bearer ${token}`,
       'X-API-Key': API_KEY 

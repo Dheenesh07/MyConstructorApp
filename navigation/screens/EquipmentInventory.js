@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { equipmentAPI, projectAPI, userAPI } from '../../utils/api';
 
 export default function EquipmentInventory({ navigation }) {
@@ -34,6 +35,8 @@ export default function EquipmentInventory({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [showPurchaseDatePicker, setShowPurchaseDatePicker] = useState(false);
+  const [purchaseDate, setPurchaseDate] = useState(new Date());
   const [newEquipment, setNewEquipment] = useState({
     equipment_id: '',
     name: '',
@@ -65,6 +68,17 @@ export default function EquipmentInventory({ navigation }) {
       case 'maintenance': return '#ffc107';
       case 'out_of_order': return '#dc3545';
       default: return '#6c757d';
+    }
+  };
+
+  const onPurchaseDateChange = (event, selectedDate) => {
+    setShowPurchaseDatePicker(false);
+    if (selectedDate) {
+      setPurchaseDate(selectedDate);
+      setNewEquipment({
+        ...newEquipment,
+        purchase_date: selectedDate.toISOString().split('T')[0]
+      });
     }
   };
 
@@ -291,12 +305,15 @@ export default function EquipmentInventory({ navigation }) {
             onChangeText={(text) => setNewEquipment({...newEquipment, serial_number: text})}
           />
           
-          <TextInput
-            style={styles.input}
-            placeholder="Purchase Date (YYYY-MM-DD)"
-            value={newEquipment.purchase_date}
-            onChangeText={(text) => setNewEquipment({...newEquipment, purchase_date: text})}
-          />
+          <View style={styles.dateSection}>
+            <Text style={styles.inputLabel}>Purchase Date</Text>
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowPurchaseDatePicker(true)}>
+              <Ionicons name="calendar" size={20} color="#003366" />
+              <Text style={styles.dateButtonText}>
+                {newEquipment.purchase_date || 'Select Purchase Date'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           
           <TextInput
             style={styles.input}
@@ -388,6 +405,15 @@ export default function EquipmentInventory({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {showPurchaseDatePicker && (
+        <DateTimePicker
+          value={purchaseDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onPurchaseDateChange}
+        />
+      )}
     </View>
   );
 }
@@ -645,5 +671,23 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  dateSection: {
+    marginBottom: 15,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 50,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 10,
   },
 });

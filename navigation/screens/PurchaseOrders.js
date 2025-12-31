@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal, TextInput, Alert, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { purchaseOrderAPI, vendorAPI, projectAPI } from "../../utils/api";
 
 export default function PurchaseOrders({ navigation }) {
@@ -32,6 +33,10 @@ export default function PurchaseOrders({ navigation }) {
   };
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [showOrderDatePicker, setShowOrderDatePicker] = useState(false);
+  const [showDeliveryDatePicker, setShowDeliveryDatePicker] = useState(false);
+  const [orderDate, setOrderDate] = useState(new Date());
+  const [deliveryDate, setDeliveryDate] = useState(new Date());
   const [newOrder, setNewOrder] = useState({
     po_number: '',
     vendor: '',
@@ -52,6 +57,28 @@ export default function PurchaseOrders({ navigation }) {
       case 'delivered': return '#28a745';
       case 'cancelled': return '#dc3545';
       default: return '#6c757d';
+    }
+  };
+
+  const onOrderDateChange = (event, selectedDate) => {
+    setShowOrderDatePicker(false);
+    if (selectedDate) {
+      setOrderDate(selectedDate);
+      setNewOrder({
+        ...newOrder,
+        order_date: selectedDate.toISOString().split('T')[0]
+      });
+    }
+  };
+
+  const onDeliveryDateChange = (event, selectedDate) => {
+    setShowDeliveryDatePicker(false);
+    if (selectedDate) {
+      setDeliveryDate(selectedDate);
+      setNewOrder({
+        ...newOrder,
+        expected_delivery_date: selectedDate.toISOString().split('T')[0]
+      });
     }
   };
 
@@ -289,19 +316,25 @@ export default function PurchaseOrders({ navigation }) {
             ))}
           </ScrollView>
           
-          <TextInput
-            style={styles.input}
-            placeholder="Order Date (YYYY-MM-DD)"
-            value={newOrder.order_date}
-            onChangeText={(text) => setNewOrder({...newOrder, order_date: text})}
-          />
+          <View style={styles.dateSection}>
+            <Text style={styles.inputLabel}>Order Date</Text>
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowOrderDatePicker(true)}>
+              <Ionicons name="calendar" size={20} color="#003366" />
+              <Text style={styles.dateButtonText}>
+                {newOrder.order_date || 'Select Order Date'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           
-          <TextInput
-            style={styles.input}
-            placeholder="Expected Delivery Date (YYYY-MM-DD)"
-            value={newOrder.expected_delivery_date}
-            onChangeText={(text) => setNewOrder({...newOrder, expected_delivery_date: text})}
-          />
+          <View style={styles.dateSection}>
+            <Text style={styles.inputLabel}>Expected Delivery Date</Text>
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowDeliveryDatePicker(true)}>
+              <Ionicons name="calendar" size={20} color="#003366" />
+              <Text style={styles.dateButtonText}>
+                {newOrder.expected_delivery_date || 'Select Delivery Date'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           </ScrollView>
 
           <View style={styles.modalButtons}>
@@ -314,6 +347,24 @@ export default function PurchaseOrders({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {showOrderDatePicker && (
+        <DateTimePicker
+          value={orderDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onOrderDateChange}
+        />
+      )}
+
+      {showDeliveryDatePicker && (
+        <DateTimePicker
+          value={deliveryDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDeliveryDateChange}
+        />
+      )}
     </View>
   );
 }
@@ -525,5 +576,23 @@ const styles = StyleSheet.create({
   selectedPickerText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  dateSection: {
+    marginBottom: 15,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 50,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 10,
   },
 });

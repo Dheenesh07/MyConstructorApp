@@ -9,8 +9,10 @@ import {
   Alert,
   Modal,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { invoiceAPI, vendorAPI, purchaseOrderAPI, projectAPI } from '../../utils/api';
 
 export default function InvoiceManagement() {
@@ -22,6 +24,10 @@ export default function InvoiceManagement() {
   const [modalVisible, setModalVisible] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [showInvoiceDatePicker, setShowInvoiceDatePicker] = useState(false);
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+  const [invoiceDate, setInvoiceDate] = useState(new Date());
+  const [dueDate, setDueDate] = useState(new Date());
   const [invoiceForm, setInvoiceForm] = useState({
     invoice_number: '',
     vendor: '',
@@ -90,6 +96,28 @@ export default function InvoiceManagement() {
       setPurchaseOrders(response.data);
     } catch (error) {
       console.error('Error loading purchase orders:', error);
+    }
+  };
+
+  const onInvoiceDateChange = (event, selectedDate) => {
+    setShowInvoiceDatePicker(false);
+    if (selectedDate) {
+      setInvoiceDate(selectedDate);
+      setInvoiceForm({
+        ...invoiceForm,
+        invoice_date: selectedDate.toISOString().split('T')[0]
+      });
+    }
+  };
+
+  const onDueDateChange = (event, selectedDate) => {
+    setShowDueDatePicker(false);
+    if (selectedDate) {
+      setDueDate(selectedDate);
+      setInvoiceForm({
+        ...invoiceForm,
+        due_date: selectedDate.toISOString().split('T')[0]
+      });
     }
   };
 
@@ -405,21 +433,25 @@ export default function InvoiceManagement() {
               keyboardType="numeric"
             />
 
-            <Text style={styles.helperText}>Invoice Date (YYYY-MM-DD) *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., 2024-03-20"
-              value={invoiceForm.invoice_date}
-              onChangeText={(text) => setInvoiceForm({...invoiceForm, invoice_date: text})}
-            />
+            <View style={styles.dateSection}>
+              <Text style={styles.label}>Invoice Date *</Text>
+              <TouchableOpacity style={styles.dateButton} onPress={() => setShowInvoiceDatePicker(true)}>
+                <Ionicons name="calendar" size={20} color="#003366" />
+                <Text style={styles.dateButtonText}>
+                  {invoiceForm.invoice_date || 'Select Invoice Date'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-            <Text style={styles.helperText}>Due Date (YYYY-MM-DD) *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., 2024-04-20"
-              value={invoiceForm.due_date}
-              onChangeText={(text) => setInvoiceForm({...invoiceForm, due_date: text})}
-            />
+            <View style={styles.dateSection}>
+              <Text style={styles.label}>Due Date *</Text>
+              <TouchableOpacity style={styles.dateButton} onPress={() => setShowDueDatePicker(true)}>
+                <Ionicons name="calendar" size={20} color="#003366" />
+                <Text style={styles.dateButtonText}>
+                  {invoiceForm.due_date || 'Select Due Date'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
 
           <View style={styles.modalActions}>
@@ -503,6 +535,24 @@ export default function InvoiceManagement() {
           </View>
         </View>
       </Modal>
+
+      {showInvoiceDatePicker && (
+        <DateTimePicker
+          value={invoiceDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onInvoiceDateChange}
+        />
+      )}
+
+      {showDueDatePicker && (
+        <DateTimePicker
+          value={dueDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDueDateChange}
+        />
+      )}
     </View>
   );
 }
@@ -802,5 +852,21 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 5,
     marginTop: 5,
+  },
+  dateSection: {
+    marginBottom: 15,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 50,
+  },
+  dateButtonText: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 10,
   },
 });

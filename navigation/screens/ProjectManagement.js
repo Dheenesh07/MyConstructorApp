@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput, Dimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Modal, TextInput, Dimensions, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import MapView, { Marker } from 'react-native-maps';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width } = Dimensions.get("window");
 import { projectAPI, equipmentAPI, materialAPI } from "../../utils/api";
@@ -11,6 +14,13 @@ export default function ProjectManagement({ navigation, route }) {
   const [selectedProject, setSelectedProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
   const [equipment, setEquipment] = useState([]);
   const [materialRequests, setMaterialRequests] = useState([]);
   const { projectId, projectName } = route.params || {};
@@ -60,6 +70,71 @@ export default function ProjectManagement({ navigation, route }) {
       setMaterialRequests([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required.');
+        return null;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      return {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      };
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Location Error', 'Could not fetch your location.');
+      return null;
+    }
+  };
+
+  const openMapSelector = async () => {
+    const location = await getCurrentLocation();
+    if (location) {
+      setCurrentLocation(location);
+      setSelectedLocation(location);
+      setMapModalVisible(true);
+    }
+  };
+
+  const onStartDateChange = (event, selectedDate) => {
+    setShowStartDatePicker(false);
+    if (selectedDate) {
+      setStartDate(selectedDate);
+      setNewProject({
+        ...newProject,
+        start_date: selectedDate.toISOString().split('T')[0]
+      });
+    }
+  };
+
+  const onEndDateChange = (event, selectedDate) => {
+    setShowEndDatePicker(false);
+    if (selectedDate) {
+      setEndDate(selectedDate);
+      setNewProject({
+        ...newProject,
+        end_date: selectedDate.toISOString().split('T')[0]
+      });
+    }
+  };
+
+  const confirmLocation = () => {
+    if (selectedLocation) {
+      setNewProject({
+        ...newProject,
+        latitude: selectedLocation.latitude.toString(),
+        longitude: selectedLocation.longitude.toString()
+      });
+      setMapModalVisible(false);
     }
   };
 
@@ -283,43 +358,43 @@ export default function ProjectManagement({ navigation, route }) {
                 numberOfLines={3}
                 textAlignVertical="top"
               />
-              <TextInput
-                style={styles.formInput}
-                placeholder="Location"
-                placeholderTextColor="#999"
-                value={newProject.location}
-                onChangeText={(text) => setNewProject({...newProject, location: text})}
-              />
-              <TextInput
-                style={styles.formInput}
-                placeholder="Latitude (optional)"
-                placeholderTextColor="#999"
-                value={newProject.latitude}
-                onChangeText={(text) => setNewProject({...newProject, latitude: text})}
-                keyboardType="decimal-pad"
-              />
-              <TextInput
-                style={styles.formInput}
-                placeholder="Longitude (optional)"
-                placeholderTextColor="#999"
-                value={newProject.longitude}
-                onChangeText={(text) => setNewProject({...newProject, longitude: text})}
-                keyboardType="decimal-pad"
-              />
-              <TextInput
-                style={styles.formInput}
-                placeholder="Start Date (YYYY-MM-DD)"
-                placeholderTextColor="#999"
-                value={newProject.start_date}
-                onChangeText={(text) => setNewProject({...newProject, start_date: text})}
-              />
-              <TextInput
-                style={styles.formInput}
-                placeholder="End Date (YYYY-MM-DD)"
-                placeholderTextColor="#999"
-                value={newProject.end_date}
-                onChangeText={(text) => setNewProject({...newProject, end_date: text})}
-              />
+              <View style={styles.locationSection}>
+                <Text style={styles.locationLabel}>Project Location</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="Location Address"
+                  placeholderTextColor="#999"
+                  value={newProject.location}
+                  onChangeText={(text) => setNewProject({...newProject, location: text})}
+                />
+                <TouchableOpacity style={styles.mapButton} onPress={openMapSelector}>
+                  <Ionicons name="location" size={20} color="#fff" />
+                  <Text style={styles.mapButtonText}>Select on Map</Text>
+                </TouchableOpacity>
+                {newProject.latitude && newProject.longitude && (
+                  <Text style={styles.coordinatesText}>
+                    📍 {parseFloat(newProject.latitude).toFixed(6)}, {parseFloat(newProject.longitude).toFixed(6)}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.dateSection}>
+                <Text style={styles.dateLabel}>Start Date</Text>
+                <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartDatePicker(true)}>
+                  <Ionicons name="calendar" size={20} color="#003366" />
+                  <Text style={styles.dateButtonText}>
+                    {newProject.start_date || 'Select Start Date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.dateSection}>
+                <Text style={styles.dateLabel}>End Date</Text>
+                <TouchableOpacity style={styles.dateButton} onPress={() => setShowEndDatePicker(true)}>
+                  <Ionicons name="calendar" size={20} color="#003366" />
+                  <Text style={styles.dateButtonText}>
+                    {newProject.end_date || 'Select End Date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <TextInput
                 style={styles.formInput}
                 placeholder="Budget"
@@ -340,6 +415,85 @@ export default function ProjectManagement({ navigation, route }) {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={mapModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.mapModalOverlay}>
+          <View style={styles.mapModalContent}>
+            <View style={styles.mapModalHeader}>
+              <Text style={styles.mapModalTitle}>📍 Select Project Location</Text>
+              <TouchableOpacity onPress={() => setMapModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {currentLocation && (
+              <>
+                <MapView
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: currentLocation.latitude,
+                    longitude: currentLocation.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }}
+                  onPress={(event) => {
+                    setSelectedLocation(event.nativeEvent.coordinate);
+                  }}
+                >
+                  {selectedLocation && (
+                    <Marker
+                      coordinate={selectedLocation}
+                      title="Project Location"
+                      description="Selected project site"
+                    />
+                  )}
+                </MapView>
+
+                <View style={styles.locationInfo}>
+                  <Text style={styles.locationInstructions}>Tap on the map to select project location</Text>
+                  {selectedLocation && (
+                    <Text style={styles.selectedCoordinates}>
+                      📍 {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.mapModalActions}>
+                  <TouchableOpacity style={styles.mapCancelButton} onPress={() => setMapModalVisible(false)}>
+                    <Text style={styles.mapCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.mapConfirmButton, !selectedLocation && styles.disabledButton]} 
+                    onPress={confirmLocation}
+                    disabled={!selectedLocation}
+                  >
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                    <Text style={styles.mapConfirmText}>Confirm Location</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {showStartDatePicker && (
+        <DateTimePicker
+          value={startDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onStartDateChange}
+        />
+      )}
+
+      {showEndDatePicker && (
+        <DateTimePicker
+          value={endDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onEndDateChange}
+        />
+      )}
     </View>
   );
 }
@@ -628,5 +782,144 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#fff",
     fontWeight: "600",
+  },
+  locationSection: {
+    marginBottom: 15,
+  },
+  locationLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#003366',
+    marginBottom: 10,
+  },
+  mapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  mapButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  coordinatesText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    backgroundColor: '#f0f8f0',
+    padding: 8,
+    borderRadius: 6,
+  },
+  mapModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  mapModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  mapModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#003366',
+  },
+  map: {
+    width: '100%',
+    height: 300,
+  },
+  locationInfo: {
+    padding: 15,
+    backgroundColor: '#f5f9fc',
+  },
+  locationInstructions: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  selectedCoordinates: {
+    fontSize: 14,
+    color: '#003366',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  mapModalActions: {
+    flexDirection: 'row',
+    padding: 15,
+    gap: 10,
+  },
+  mapCancelButton: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  mapCancelText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  mapConfirmButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  mapConfirmText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+  },
+  dateSection: {
+    marginBottom: 15,
+  },
+  dateLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#003366',
+    marginBottom: 8,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 15,
+    minHeight: 50,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 10,
   },
 });

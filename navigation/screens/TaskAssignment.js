@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { taskAPI, userAPI, projectAPI } from "../../utils/api";
 
 export default function TaskAssignment({ navigation }) {
@@ -24,6 +25,8 @@ export default function TaskAssignment({ navigation }) {
   });
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState(new Date());
+  const [dueDate, setDueDate] = useState(new Date());
 
   useEffect(() => {
     loadTasks();
@@ -155,6 +158,28 @@ export default function TaskAssignment({ navigation }) {
       estimated_hours: task.estimated_hours || 0
     });
     setModalVisible(true);
+  };
+
+  const onStartDateChange = (event, selectedDate) => {
+    setShowStartDatePicker(false);
+    if (selectedDate) {
+      setStartDate(selectedDate);
+      setNewTask({
+        ...newTask,
+        start_date: selectedDate.toISOString().split('T')[0]
+      });
+    }
+  };
+
+  const onDueDateChange = (event, selectedDate) => {
+    setShowDueDatePicker(false);
+    if (selectedDate) {
+      setDueDate(selectedDate);
+      setNewTask({
+        ...newTask,
+        due_date: selectedDate.toISOString().split('T')[0]
+      });
+    }
   };
 
   const updateTaskStatus = async (taskId, newStatus) => {
@@ -291,18 +316,24 @@ export default function TaskAssignment({ navigation }) {
               ))}
             </ScrollView>
           </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Start Date (YYYY-MM-DD)"
-            value={newTask.start_date}
-            onChangeText={(text) => setNewTask({...newTask, start_date: text})}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Due Date (YYYY-MM-DD)"
-            value={newTask.due_date}
-            onChangeText={(text) => setNewTask({...newTask, due_date: text})}
-          />
+          <View style={styles.datePickerContainer}>
+            <Text style={styles.pickerLabel}>Start Date</Text>
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartDatePicker(true)}>
+              <Ionicons name="calendar" size={20} color="#003366" />
+              <Text style={styles.dateButtonText}>
+                {newTask.start_date || 'Select Start Date'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.datePickerContainer}>
+            <Text style={styles.pickerLabel}>Due Date</Text>
+            <TouchableOpacity style={styles.dateButton} onPress={() => setShowDueDatePicker(true)}>
+              <Ionicons name="calendar" size={20} color="#003366" />
+              <Text style={styles.dateButtonText}>
+                {newTask.due_date || 'Select Due Date'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           <TextInput
             style={styles.input}
             placeholder="Estimated Hours"
@@ -367,6 +398,24 @@ export default function TaskAssignment({ navigation }) {
           </ScrollView>
         </View>
       </Modal>
+
+      {showStartDatePicker && (
+        <DateTimePicker
+          value={startDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onStartDateChange}
+        />
+      )}
+
+      {showDueDatePicker && (
+        <DateTimePicker
+          value={dueDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDueDateChange}
+        />
+      )}
     </View>
   );
 }
@@ -595,15 +644,18 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: "#fff",
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
     borderColor: "#ddd",
-    alignItems: 'center',
+    minHeight: 50,
   },
   dateButtonText: {
-    color: "#003366",
     fontSize: 16,
+    color: "#333",
+    marginLeft: 10,
   },
 });

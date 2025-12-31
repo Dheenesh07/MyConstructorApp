@@ -62,7 +62,6 @@ export default function BeemjiLogin({ navigation }) {
 
       // Verify token was saved
       const savedToken = await AsyncStorage.getItem("access");
-      console.log('✅ Token saved successfully:', savedToken ? 'YES' : 'NO');
 
       const dashboardRoute = getDashboardRoute(user.role);
       if (dashboardRoute) {

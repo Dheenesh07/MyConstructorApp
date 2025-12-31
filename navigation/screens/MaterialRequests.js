@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, ScrollView, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { materialAPI, projectAPI, taskAPI, userAPI } from '../../utils/api';
 
 export default function MaterialRequests({ route }) {
@@ -11,6 +12,8 @@ export default function MaterialRequests({ route }) {
   const [users, setUsers] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showRequiredDatePicker, setShowRequiredDatePicker] = useState(false);
+  const [requiredDate, setRequiredDate] = useState(new Date());
   const [requestForm, setRequestForm] = useState({
     material_description: '',
     quantity: '',
@@ -45,6 +48,17 @@ export default function MaterialRequests({ route }) {
     } catch (error) {
       console.error('Error loading data:', error);
       Alert.alert('Error', 'Failed to load material requests');
+    }
+  };
+
+  const onRequiredDateChange = (event, selectedDate) => {
+    setShowRequiredDatePicker(false);
+    if (selectedDate) {
+      setRequiredDate(selectedDate);
+      setRequestForm({
+        ...requestForm,
+        required_date: selectedDate.toISOString().split('T')[0]
+      });
     }
   };
 
@@ -253,13 +267,15 @@ export default function MaterialRequests({ route }) {
               keyboardType="numeric"
             />
             
-            <TextInput
-              style={styles.input}
-              placeholder="Required Date (YYYY-MM-DD)"
-              placeholderTextColor="#999"
-              value={requestForm.required_date}
-              onChangeText={(text) => setRequestForm({...requestForm, required_date: text})}
-            />
+            <View style={styles.dateSection}>
+              <Text style={styles.label}>Required Date</Text>
+              <TouchableOpacity style={styles.dateButton} onPress={() => setShowRequiredDatePicker(true)}>
+                <Ionicons name="calendar" size={20} color="#003366" />
+                <Text style={styles.dateButtonText}>
+                  {requestForm.required_date || 'Select Required Date'}
+                </Text>
+              </TouchableOpacity>
+            </View>
             
             <Text style={styles.label}>Urgency *</Text>
             <View style={styles.urgencyContainer}>
@@ -336,6 +352,15 @@ export default function MaterialRequests({ route }) {
           </View>
         </View>
       </Modal>
+
+      {showRequiredDatePicker && (
+        <DateTimePicker
+          value={requiredDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onRequiredDateChange}
+        />
+      )}
     </View>
   );
 }
@@ -398,5 +423,23 @@ const styles = StyleSheet.create({
   createButton: { flex: 1, backgroundColor: '#004AAD', padding: 15, borderRadius: 8, marginLeft: 10, alignItems: 'center' },
   createButtonText: { color: '#fff', fontWeight: '600' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50 },
-  emptyText: { fontSize: 16, color: '#666' }
+  emptyText: { fontSize: 16, color: '#666' },
+  dateSection: {
+    marginBottom: 15,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    minHeight: 50,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 10,
+  },
 });
